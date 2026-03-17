@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:timelines_plus/timelines_plus.dart';
 
 import '../../domain/entities/rail_snapshot.dart';
 import '../../domain/services/rail_board_service.dart';
@@ -16,165 +17,138 @@ class TimelinePanel extends StatelessWidget {
     final nextService = snapshot.nextService!;
 
     return PanelShell(
-      backgroundColor: const Color(0xD1F7F7F7),
+      backgroundColor: const Color(0xFFF8F8F8),
       borderColor: const Color(0x14171717),
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Journey trace',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: const Color(0xFF5E5E5E),
-              fontSize: 11,
-              letterSpacing: 1.6,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Station-by-station timeline',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0x66E0E0E0),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0x14171717)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Active service',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF5E5E5E),
-                        ),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Journey trace',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                        letterSpacing: 1.4,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Train ${nextService.trainNo}',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ],
-                  ),
-                ),
-                Text(
-                  '${nextService.stops.length} stops',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF5E5E5E),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Column(
-            children: List.generate(
-              nextService.stops.length,
-              (index) => _StopRow(
-                stop: nextService.stops[index],
-                isFirst: index == 0,
-                isLast: index == nextService.stops.length - 1,
-                timeLabel: boardService.formatTimeAmPm(
-                  nextService.stops[index].time,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Your stop-by-stop trip',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ],
                 ),
               ),
-            ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F1F1),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0x12171717)),
+                ),
+                child: Text(
+                  'Train ${nextService.trainNo}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(fontSize: 12),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-}
+          const SizedBox(height: 14),
+          FixedTimeline.tileBuilder(
+            theme: TimelineThemeData(
+              nodePosition: 0,
+              connectorTheme: const ConnectorThemeData(
+                color: Color(0xFFD5D5D5),
+                thickness: 2,
+              ),
+              indicatorTheme: const IndicatorThemeData(position: 0.5, size: 12),
+            ),
+            builder: TimelineTileBuilder.connected(
+              contentsAlign: ContentsAlign.basic,
+              connectionDirection: ConnectionDirection.before,
+              itemCount: nextService.stops.length,
+              indicatorBuilder: (context, index) {
+                final isTerminal =
+                    index == 0 || index == nextService.stops.length - 1;
 
-class _StopRow extends StatelessWidget {
-  const _StopRow({
-    required this.stop,
-    required this.isFirst,
-    required this.isLast,
-    required this.timeLabel,
-  });
+                return DotIndicator(
+                  size: isTerminal ? 12 : 10,
+                  color: isTerminal
+                      ? const Color(0xFF171717)
+                      : const Color(0xFFB8B8B8),
+                );
+              },
+              connectorBuilder: (context, index, connectorType) {
+                return const SolidLineConnector(
+                  color: Color(0xFFD5D5D5),
+                  thickness: 2,
+                );
+              },
+              contentsBuilder: (context, index) {
+                final stop = nextService.stops[index];
+                final isFirst = index == 0;
+                final isLast = index == nextService.stops.length - 1;
+                final subtitle = isFirst
+                    ? 'Board here'
+                    : isLast
+                    ? 'Arrive here'
+                    : 'Intermediate stop';
 
-  final RailStopSnapshot stop;
-  final bool isFirst;
-  final bool isLast;
-  final String timeLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 46,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 20,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (!isFirst)
-                  Positioned(
-                    top: 0,
-                    child: Container(
-                      width: 2,
-                      height: 23,
-                      color: const Color(0xFFD3D3D3),
+                return Padding(
+                  padding: EdgeInsets.only(left: 14, bottom: isLast ? 0 : 10),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF2F2F2),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0x12171717)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                stop.stationName,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                subtitle,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: const Color(0xFF5E5E5E),
+                                      fontSize: 12,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          boardService.formatTimeAmPm(stop.time),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelLarge?.copyWith(fontSize: 13),
+                        ),
+                      ],
                     ),
                   ),
-                if (!isLast)
-                  Positioned(
-                    bottom: 0,
-                    child: Container(
-                      width: 2,
-                      height: 23,
-                      color: const Color(0xFFD3D3D3),
-                    ),
-                  ),
-                Container(
-                  width: isFirst || isLast ? 12 : 10,
-                  height: isFirst || isLast ? 12 : 10,
-                  decoration: BoxDecoration(
-                    color: isFirst || isLast
-                        ? const Color(0xFF171717)
-                        : const Color(0xFFB8B8B8),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFFF7F7F7),
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  stop.stationName,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  isFirst
-                      ? 'Board here'
-                      : isLast
-                      ? 'Arrive here'
-                      : 'Intermediate stop',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF5E5E5E),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(timeLabel, style: Theme.of(context).textTheme.titleMedium),
         ],
       ),
     );

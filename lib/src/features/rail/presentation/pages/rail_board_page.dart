@@ -15,12 +15,19 @@ class RailBoardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [Color(0xFFEBEBEB), Color(0xFFF0F0F0)],
           ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x14171717),
+              blurRadius: 120,
+              offset: Offset(0, 40),
+            ),
+          ],
         ),
         child: SafeArea(
           child: BlocBuilder<RailBoardBloc, RailBoardState>(
@@ -31,25 +38,28 @@ class RailBoardPage extends StatelessWidget {
 
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 1120;
+                  final isTablet = constraints.maxWidth >= 760;
+                  final shellPadding = isTablet ? 18.0 : 8.0;
 
                   return Align(
                     alignment: Alignment.topCenter,
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(12),
+                      physics: const BouncingScrollPhysics(),
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1200),
+                        constraints: BoxConstraints(
+                          maxWidth: isTablet ? 920 : 560,
+                        ),
                         child: Container(
-                          padding: const EdgeInsets.all(10),
+                          padding: EdgeInsets.all(shellPadding),
                           decoration: BoxDecoration(
                             color: const Color(0xD6F7F7F7),
-                            borderRadius: BorderRadius.circular(16),
+                            // borderRadius: BorderRadius.circular(28),
                             border: Border.all(color: const Color(0x1A171717)),
                             boxShadow: const [
                               BoxShadow(
                                 color: Color(0x14171717),
-                                blurRadius: 80,
-                                offset: Offset(0, 24),
+                                blurRadius: 64,
+                                offset: Offset(0, 20),
                               ),
                             ],
                           ),
@@ -57,36 +67,36 @@ class RailBoardPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               HeaderPanel(state: state),
-                              const SizedBox(height: 12),
+                              SizedBox(height: isTablet ? 16 : 14),
                               if (state.snapshot.nextService == null)
                                 const NoticePanel()
-                              else if (isWide)
+                              else if (isTablet)
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Expanded(
-                                      flex: 7,
+                                      flex: 6,
                                       child: Column(
                                         children: [
                                           DecisionPanel(
                                             snapshot: state.snapshot,
                                           ),
-                                          const SizedBox(height: 12),
+                                          const SizedBox(height: 14),
                                           UpcomingPanel(
                                             snapshot: state.snapshot,
                                           ),
                                         ],
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
+                                    const SizedBox(width: 14),
                                     Expanded(
-                                      flex: 5,
+                                      flex: 4,
                                       child: Column(
                                         children: [
                                           TimelinePanel(
                                             snapshot: state.snapshot,
                                           ),
-                                          const SizedBox(height: 12),
+                                          const SizedBox(height: 14),
                                           const NoticePanel(),
                                         ],
                                       ),
@@ -97,11 +107,11 @@ class RailBoardPage extends StatelessWidget {
                                 Column(
                                   children: [
                                     DecisionPanel(snapshot: state.snapshot),
-                                    const SizedBox(height: 12),
-                                    UpcomingPanel(snapshot: state.snapshot),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 14),
                                     TimelinePanel(snapshot: state.snapshot),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 14),
+                                    UpcomingPanel(snapshot: state.snapshot),
+                                    const SizedBox(height: 14),
                                     const NoticePanel(),
                                   ],
                                 ),

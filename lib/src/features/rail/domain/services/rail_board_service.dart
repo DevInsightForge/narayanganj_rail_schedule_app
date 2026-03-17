@@ -23,14 +23,17 @@ class RailBoardService {
         stations.any((station) => station.id == boardingStationId)
         ? boardingStationId!
         : stations.first.id;
-    final downstreamStations = getDownstreamStations(
-      direction: resolvedDirection,
-      boardingStationId: resolvedBoardingStationId,
+    final defaultDestinationStationId = stations.last.id;
+    final destinationOptions = getDestinationOptions(
+      resolvedDirection,
+      resolvedBoardingStationId,
     );
     final resolvedDestinationStationId =
-        downstreamStations.any((station) => station.id == destinationStationId)
+        destinationOptions.any(
+          (option) => !option.disabled && option.value == destinationStationId,
+        )
         ? destinationStationId!
-        : downstreamStations.first.id;
+        : defaultDestinationStationId;
 
     return RailSelection(
       direction: resolvedDirection,
@@ -40,7 +43,17 @@ class RailBoardService {
   }
 
   RailSelection changeDirection(String direction) {
-    return createSelection(direction: direction);
+    final stations = getStationsForDirection(direction);
+
+    if (stations.isEmpty) {
+      return createSelection(direction: direction);
+    }
+
+    return RailSelection(
+      direction: direction,
+      boardingStationId: stations.first.id,
+      destinationStationId: stations.last.id,
+    );
   }
 
   RailSelection changeBoardingStation(
@@ -57,12 +70,16 @@ class RailBoardService {
     }
 
     final downstreamStations = stations.sublist(boardingIndex + 1);
+    final destinationOptions = getDestinationOptions(
+      selection.direction,
+      boardingStationId,
+    );
     final nextDestinationStationId =
         downstreamStations.any(
           (station) => station.id == selection.destinationStationId,
         )
         ? selection.destinationStationId
-        : downstreamStations.first.id;
+        : destinationOptions.firstWhere((option) => !option.disabled).value;
 
     return selection.copyWith(
       boardingStationId: boardingStationId,
@@ -89,7 +106,27 @@ class RailBoardService {
   }
 
   List<RailSelectableOption> getDirectionOptions() {
-    return schedule.directions
+    final directions = schedule.directions.toList()
+      ..sort((left, right) {
+        final leftOrigin = getStationsForDirection(
+          left.directionKey,
+        ).first.name;
+        final rightOrigin = getStationsForDirection(
+          right.directionKey,
+        ).first.name;
+
+        if (leftOrigin == 'Narayanganj' && rightOrigin != 'Narayanganj') {
+          return -1;
+        }
+
+        if (rightOrigin == 'Narayanganj' && leftOrigin != 'Narayanganj') {
+          return 1;
+        }
+
+        return leftOrigin.compareTo(rightOrigin);
+      });
+
+    return directions
         .map(
           (direction) => RailSelectableOption(
             value: direction.directionKey,
@@ -118,12 +155,13 @@ class RailBoardService {
     String direction,
     String boardingStationId,
   ) {
+    final stations = getStationsForDirection(direction);
     final downstreamIds = getDownstreamStations(
       direction: direction,
       boardingStationId: boardingStationId,
     ).map((station) => station.id).toSet();
 
-    return getStationsForDirection(direction)
+    return stations.reversed
         .map(
           (station) => RailSelectableOption(
             value: station.id,

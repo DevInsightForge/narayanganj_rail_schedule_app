@@ -17,114 +17,91 @@ class DecisionPanel extends StatelessWidget {
     final travelMinutes = nextService.etaMinutes - nextService.waitMinutes;
 
     return PanelShell(
-      backgroundColor: const Color(0xEBF7F7F7),
-      borderColor: const Color(0x29171717),
+      backgroundColor: const Color(0xFFF8F8F8),
+      borderColor: const Color(0x14171717),
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 720;
-
-              return isWide
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          child: _DecisionCopy(
-                            verdict: boardService.getDecision(
-                              nextService.waitMinutes,
-                            ),
-                            detail:
-                                'Leave from ${snapshot.selectedStationName} and reach ${snapshot.destinationStationName} in ${boardService.getEtaLabel(nextService.etaMinutes)}.',
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        _RouteChip(
-                          label:
-                              '${snapshot.selectedStationName} to ${snapshot.destinationStationName}',
-                        ),
-                      ],
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _DecisionCopy(
-                          verdict: boardService.getDecision(
-                            nextService.waitMinutes,
-                          ),
-                          detail:
-                              'Leave from ${snapshot.selectedStationName} and reach ${snapshot.destinationStationName} in ${boardService.getEtaLabel(nextService.etaMinutes)}.',
-                        ),
-                        const SizedBox(height: 12),
-                        _RouteChip(
-                          label:
-                              '${snapshot.selectedStationName} to ${snapshot.destinationStationName}',
-                        ),
-                      ],
-                    );
-            },
+          Text(
+            'Best next option',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontSize: 11, letterSpacing: 1.4),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            boardService.getDecision(nextService.waitMinutes),
+            style: Theme.of(
+              context,
+            ).textTheme.displayMedium?.copyWith(fontSize: 32),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Board at ${snapshot.selectedStationName} and arrive at ${snapshot.destinationStationName} in ${boardService.getEtaLabel(nextService.etaMinutes)}.',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: const Color(0xFF5E5E5E),
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _MetricCard(
-                label: 'Boards at',
-                value: boardService.formatTimeAmPm(nextService.departureTime),
-                detail: boardService.getWaitLabel(nextService.waitMinutes),
+              _RouteChip(
+                label:
+                    '${snapshot.selectedStationName} to ${snapshot.destinationStationName}',
               ),
-              _MetricCard(
-                label: 'Travel',
-                value: boardService.getDurationLabel(travelMinutes),
-                detail: 'On-train duration',
-              ),
-              _MetricCard(
-                label: 'Arrives',
-                value: boardService.formatTimeAmPm(nextService.arrivalTime),
-                detail: 'Train ${nextService.trainNo}',
-              ),
+              _RouteChip(label: 'Train ${nextService.trainNo}'),
             ],
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final useGrid = constraints.maxWidth >= 420;
+
+              final cards = [
+                _MetricCard(
+                  label: 'Boards',
+                  value: boardService.formatTimeAmPm(nextService.departureTime),
+                  detail: boardService.getWaitLabel(nextService.waitMinutes),
+                ),
+                _MetricCard(
+                  label: 'Travel',
+                  value: boardService.getDurationLabel(travelMinutes),
+                  detail: 'On-train time',
+                ),
+                _MetricCard(
+                  label: 'Arrives',
+                  value: boardService.formatTimeAmPm(nextService.arrivalTime),
+                  detail: boardService.getEtaLabel(nextService.etaMinutes),
+                ),
+              ];
+
+              if (!useGrid) {
+                return Column(
+                  children: [
+                    for (var index = 0; index < cards.length; index++) ...[
+                      cards[index],
+                      if (index != cards.length - 1) const SizedBox(height: 8),
+                    ],
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  for (var index = 0; index < cards.length; index++) ...[
+                    Expanded(child: cards[index]),
+                    if (index != cards.length - 1) const SizedBox(width: 8),
+                  ],
+                ],
+              );
+            },
           ),
         ],
       ),
-    );
-  }
-}
-
-class _DecisionCopy extends StatelessWidget {
-  const _DecisionCopy({required this.verdict, required this.detail});
-
-  final String verdict;
-  final String detail;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Next departure verdict',
-          style: textTheme.labelLarge?.copyWith(
-            color: const Color(0xFF5E5E5E),
-            fontSize: 11,
-            letterSpacing: 1.6,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(verdict, style: textTheme.displayMedium?.copyWith(fontSize: 44)),
-        const SizedBox(height: 8),
-        Text(
-          detail,
-          style: textTheme.bodyLarge?.copyWith(
-            color: const Color(0xFF5E5E5E),
-            fontSize: 16,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -139,13 +116,13 @@ class _RouteChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xB8FBF8F2),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x1F171717)),
+        color: const Color(0xFFF1F1F1),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0x12171717)),
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13),
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 12),
       ),
     );
   }
@@ -165,30 +142,31 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 180, maxWidth: 260),
+      width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0x75FFFFFF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x14171717)),
+        color: const Color(0xFFF2F2F2),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0x12171717)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             value,
             style: Theme.of(
               context,
-            ).textTheme.titleLarge?.copyWith(fontSize: 20),
+            ).textTheme.titleLarge?.copyWith(fontSize: 18),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             detail,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF5E5E5E)),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF5E5E5E),
+              fontSize: 12,
+            ),
           ),
         ],
       ),

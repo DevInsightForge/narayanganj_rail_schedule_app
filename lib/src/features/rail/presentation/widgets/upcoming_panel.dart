@@ -18,47 +18,47 @@ class UpcomingPanel extends StatelessWidget {
         .toList(growable: false);
 
     return PanelShell(
-      backgroundColor: const Color(0xD1F7F7F7),
+      backgroundColor: const Color(0xFFF8F8F8),
       borderColor: const Color(0x14171717),
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 520;
-
-              return isWide
-                  ? Row(
-                      children: [
-                        const Expanded(child: _Heading()),
-                        Text(
-                          '${alternatives.length} alternatives available',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: const Color(0xFF5E5E5E)),
-                        ),
-                      ],
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _Heading(),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${alternatives.length} alternatives available',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: const Color(0xFF5E5E5E)),
-                        ),
-                      ],
-                    );
-            },
+          Text(
+            'Later departures',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontSize: 11, letterSpacing: 1.4),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Keep these as backup options',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${alternatives.length} alternatives available',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF5E5E5E),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 12),
           if (alternatives.isEmpty)
-            Text(
-              'No later departures are available for the current route selection.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF5E5E5E)),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F1F1),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0x12171717)),
+              ),
+              child: Text(
+                'No later departures are available for the current route selection.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF5E5E5E),
+                ),
+              ),
             )
           else
             Column(
@@ -96,32 +96,6 @@ class UpcomingPanel extends StatelessWidget {
   }
 }
 
-class _Heading extends StatelessWidget {
-  const _Heading();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Backup options',
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: const Color(0xFF5E5E5E),
-            fontSize: 11,
-            letterSpacing: 1.6,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Later trains in the same direction',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-      ],
-    );
-  }
-}
-
 class _AlternativeRow extends StatelessWidget {
   const _AlternativeRow({
     required this.index,
@@ -142,17 +116,18 @@ class _AlternativeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0x85FFFFFF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x14171717)),
+        color: const Color(0xFFF2F2F2),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0x12171717)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 30,
-            height: 30,
+            width: 32,
+            height: 32,
             decoration: const BoxDecoration(
               color: Color(0xFFE0E0E0),
               shape: BoxShape.circle,
@@ -162,47 +137,48 @@ class _AlternativeRow extends StatelessWidget {
               '$index',
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontSize: 16),
+              ).textTheme.labelLarge?.copyWith(fontSize: 13),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Expanded(
                       child: Text(
                         departureLabel,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium?.copyWith(fontSize: 16),
                       ),
                     ),
                     Text(
                       waitLabel,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: const Color(0xFF5E5E5E),
+                        fontSize: 12,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        periodLabel,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF5E5E5E),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      'Arrives $arrivalLabel - $durationLabel',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF5E5E5E),
-                      ),
-                    ),
-                  ],
+                Text(
+                  '$periodLabel  •  Arrives $arrivalLabel',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF5E5E5E),
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  durationLabel,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontSize: 12,
+                    color: const Color(0xFF171717),
+                  ),
                 ),
               ],
             ),
