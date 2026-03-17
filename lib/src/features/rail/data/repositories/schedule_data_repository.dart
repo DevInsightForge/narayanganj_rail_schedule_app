@@ -1,24 +1,26 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../domain/entities/rail_schedule.dart';
 import '../models/rail_schedule_document_parser.dart';
+import 'remote_schedule_client.dart';
+import 'remote_schedule_client_io.dart'
+    if (dart.library.js_interop) 'remote_schedule_client_web.dart';
 
 class ScheduleDataRepository {
   ScheduleDataRepository({
     required RailScheduleDocumentParser parser,
-    http.Client? client,
+    RemoteScheduleClient? remoteClient,
   }) : _parser = parser,
-       _client = client ?? http.Client();
+       _remoteClient = remoteClient ?? RemoteScheduleClientImpl();
 
   static const defaultRemoteUrl =
       'https://gist.githubusercontent.com/IMZihad21/cd4d181220aa57d85f6ce4db2cd7ce99/raw/nrs_data.json';
   static const storageKey = 'nrs:schedule-data';
 
   final RailScheduleDocumentParser _parser;
-  final http.Client _client;
+  final RemoteScheduleClient _remoteClient;
 
   Future<RailSchedule?> readStoredSchedule() async {
     try {
@@ -54,21 +56,9 @@ class ScheduleDataRepository {
     }
 
     try {
-      final response = await _client.get(
-        Uri.parse(resolvedUrl),
-        headers: const {
-          'accept': 'application/json',
-          'cache-control': 'no-cache',
-        },
-      );
+      final jsonValue = await _remoteClient.getJson(resolvedUrl);
 
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        return null;
-      }
-
-      final jsonValue = jsonDecode(response.body);
-
-      if (jsonValue is! Map<String, dynamic>) {
+      if (jsonValue == null) {
         return null;
       }
 

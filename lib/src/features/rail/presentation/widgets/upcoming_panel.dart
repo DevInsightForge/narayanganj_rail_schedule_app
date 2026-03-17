@@ -142,45 +142,78 @@ class _AlternativeRow extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 220;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        departureLabel,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleMedium?.copyWith(fontSize: 16),
+                    if (isCompact)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            departureLabel,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(fontSize: 16),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            waitLabel,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: const Color(0xFF5E5E5E),
+                                  fontSize: 12,
+                                ),
+                          ),
+                        ],
+                      )
+                    else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              departureLabel,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleMedium?.copyWith(fontSize: 16),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              waitLabel,
+                              textAlign: TextAlign.end,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: const Color(0xFF5E5E5E),
+                                    fontSize: 12,
+                                  ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                    const SizedBox(height: 4),
                     Text(
-                      waitLabel,
+                      '$periodLabel - Arrives $arrivalLabel',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: const Color(0xFF5E5E5E),
                         fontSize: 12,
                       ),
                     ),
+                    const SizedBox(height: 2),
+                    Text(
+                      durationLabel,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontSize: 12,
+                        color: const Color(0xFF171717),
+                      ),
+                    ),
                   ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$periodLabel  •  Arrives $arrivalLabel',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF5E5E5E),
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  durationLabel,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontSize: 12,
-                    color: const Color(0xFF171717),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
         ],
