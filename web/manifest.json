@@ -1,11 +1,11 @@
 {
-    "name": "narayanganj_rail_schedule",
-    "short_name": "narayanganj_rail_schedule",
+    "name": "Narayanganj Rail Schedule",
+    "short_name": "Narayanganj Rail",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#171717",
+    "theme_color": "#171717",
+    "description": "Mobile-first commuter rail schedule app for Dhaka and Narayanganj route planning.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
