@@ -21,22 +21,16 @@ class NarayanganjRailScheduleApp extends StatelessWidget {
     );
     final scheduleDataRepository = ScheduleDataRepository(parser: parser);
 
-    return MultiRepositoryProvider(
-      providers: [
-        RepositoryProvider.value(value: boardService),
-        RepositoryProvider.value(value: scheduleDataRepository),
-      ],
-      child: BlocProvider(
-        create: (_) => RailBoardBloc(
-          boardService: boardService,
-          scheduleDataRepository: scheduleDataRepository,
-          selectionRepository: SharedPreferencesSelectionRepository(),
-        ),
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light(),
-          home: const RailBoardPage(),
-        ),
+    return BlocProvider(
+      create: (_) => RailBoardBloc(
+        boardService: boardService,
+        scheduleDataRepository: scheduleDataRepository,
+        selectionRepository: SharedPreferencesSelectionRepository(),
+      ),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        home: const RailBoardPage(),
       ),
     );
   }

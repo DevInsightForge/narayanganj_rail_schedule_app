@@ -28,3 +28,7 @@ Instead of showing the schedule as a dense timetable, the app turns it into a si
 ### Upcoming Trains Panel
 
 ![Upcoming trains panel](docs/screenshots/03-upcoming-trains-panel.png)
+
+## Release & Compliance
+
+- Google Play pre-release checklist: `docs/google_play_compliance.md`

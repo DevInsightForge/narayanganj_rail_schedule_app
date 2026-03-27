@@ -2,7 +2,10 @@ import '../../domain/entities/rail_direction.dart';
 import '../../domain/entities/rail_schedule.dart';
 
 class StaticScheduleDataSource {
+  static const version = '2026.03.27-bundled';
+
   static const schedule = RailSchedule(
+    version: version,
     stations: [
       RailStation(id: 'dhaka', code: 'dhaka', name: 'Dhaka'),
       RailStation(id: 'gendaria', code: 'gendaria', name: 'Gendaria'),

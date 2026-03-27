@@ -40,15 +40,17 @@ class RailTrip extends Equatable {
 
 class RailSchedule extends Equatable {
   const RailSchedule({
+    required this.version,
     required this.stations,
     required this.directions,
     required this.trips,
   });
 
+  final String version;
   final List<RailStation> stations;
   final List<RailDirection> directions;
   final List<RailTrip> trips;
 
   @override
-  List<Object> get props => [stations, directions, trips];
+  List<Object> get props => [version, stations, directions, trips];
 }
