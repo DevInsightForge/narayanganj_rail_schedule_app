@@ -1,4 +1,4 @@
-package com.example.narayanganj_rail_schedule
+package com.narayanganj.railschedule
 
 import io.flutter.embedding.android.FlutterActivity
 

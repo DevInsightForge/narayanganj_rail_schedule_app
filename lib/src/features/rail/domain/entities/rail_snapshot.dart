@@ -72,6 +72,9 @@ class RailBoardSnapshot extends Equatable {
     required this.destinationStationName,
     required this.nextService,
     required this.upcomingServices,
+    required this.dataSourceLabel,
+    required this.lastUpdatedAt,
+    required this.scheduleVersion,
   });
 
   final String direction;
@@ -80,6 +83,34 @@ class RailBoardSnapshot extends Equatable {
   final String destinationStationName;
   final RailServiceSnapshot? nextService;
   final List<RailServiceSnapshot> upcomingServices;
+  final String dataSourceLabel;
+  final DateTime? lastUpdatedAt;
+  final String scheduleVersion;
+
+  RailBoardSnapshot copyWith({
+    String? direction,
+    String? currentTime,
+    String? selectedStationName,
+    String? destinationStationName,
+    RailServiceSnapshot? nextService,
+    List<RailServiceSnapshot>? upcomingServices,
+    String? dataSourceLabel,
+    DateTime? lastUpdatedAt,
+    String? scheduleVersion,
+  }) {
+    return RailBoardSnapshot(
+      direction: direction ?? this.direction,
+      currentTime: currentTime ?? this.currentTime,
+      selectedStationName: selectedStationName ?? this.selectedStationName,
+      destinationStationName:
+          destinationStationName ?? this.destinationStationName,
+      nextService: nextService ?? this.nextService,
+      upcomingServices: upcomingServices ?? this.upcomingServices,
+      dataSourceLabel: dataSourceLabel ?? this.dataSourceLabel,
+      lastUpdatedAt: lastUpdatedAt ?? this.lastUpdatedAt,
+      scheduleVersion: scheduleVersion ?? this.scheduleVersion,
+    );
+  }
 
   @override
   List<Object?> get props => [
@@ -89,5 +120,8 @@ class RailBoardSnapshot extends Equatable {
     destinationStationName,
     nextService,
     upcomingServices,
+    dataSourceLabel,
+    lastUpdatedAt,
+    scheduleVersion,
   ];
 }

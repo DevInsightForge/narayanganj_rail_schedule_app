@@ -7,11 +7,15 @@ sealed class RailBoardEvent extends Equatable {
   List<Object> get props => [];
 }
 
-class RailBoardStarted extends RailBoardEvent {
+final class RailBoardStarted extends RailBoardEvent {
   const RailBoardStarted();
 }
 
-class RailBoardDirectionChanged extends RailBoardEvent {
+final class RailBoardRetryRequested extends RailBoardEvent {
+  const RailBoardRetryRequested();
+}
+
+final class RailBoardDirectionChanged extends RailBoardEvent {
   const RailBoardDirectionChanged(this.direction);
 
   final String direction;
@@ -20,7 +24,7 @@ class RailBoardDirectionChanged extends RailBoardEvent {
   List<Object> get props => [direction];
 }
 
-class RailBoardBoardingChanged extends RailBoardEvent {
+final class RailBoardBoardingChanged extends RailBoardEvent {
   const RailBoardBoardingChanged(this.stationId);
 
   final String stationId;
@@ -29,7 +33,7 @@ class RailBoardBoardingChanged extends RailBoardEvent {
   List<Object> get props => [stationId];
 }
 
-class RailBoardDestinationChanged extends RailBoardEvent {
+final class RailBoardDestinationChanged extends RailBoardEvent {
   const RailBoardDestinationChanged(this.stationId);
 
   final String stationId;
@@ -38,6 +42,6 @@ class RailBoardDestinationChanged extends RailBoardEvent {
   List<Object> get props => [stationId];
 }
 
-class RailBoardTicked extends RailBoardEvent {
+final class RailBoardTicked extends RailBoardEvent {
   const RailBoardTicked();
 }

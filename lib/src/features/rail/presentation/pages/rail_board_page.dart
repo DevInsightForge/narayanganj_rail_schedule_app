@@ -11,6 +11,8 @@ import '../widgets/upcoming_panel.dart';
 class RailBoardPage extends StatelessWidget {
   const RailBoardPage({super.key});
 
+  static const _tabletBreakpoint = 760.0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,13 +34,22 @@ class RailBoardPage extends StatelessWidget {
         child: SafeArea(
           child: BlocBuilder<RailBoardBloc, RailBoardState>(
             builder: (context, state) {
-              if (state.status == RailBoardStatus.loading) {
+              if (state.isLoading) {
                 return const Center(child: CircularProgressIndicator());
+              }
+
+              if (state.hasFailed) {
+                return _FailureView(
+                  message: state.errorMessage,
+                  onRetry: () => context.read<RailBoardBloc>().add(
+                    const RailBoardRetryRequested(),
+                  ),
+                );
               }
 
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final isTablet = constraints.maxWidth >= 760;
+                  final isTablet = constraints.maxWidth >= _tabletBreakpoint;
                   final shellPadding = isTablet ? 18.0 : 8.0;
 
                   return Align(
@@ -53,7 +64,6 @@ class RailBoardPage extends StatelessWidget {
                           padding: EdgeInsets.all(shellPadding),
                           decoration: BoxDecoration(
                             color: const Color(0xD6F7F7F7),
-                            // borderRadius: BorderRadius.circular(28),
                             border: Border.all(color: const Color(0x1A171717)),
                             boxShadow: const [
                               BoxShadow(
@@ -124,6 +134,52 @@ class RailBoardPage extends StatelessWidget {
                 },
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FailureView extends StatelessWidget {
+  const _FailureView({required this.onRetry, this.message});
+
+  final VoidCallback onRetry;
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'We could not load your rail board.',
+                    style: Theme.of(context).textTheme.titleMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    message ?? 'Please check your connection and retry.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

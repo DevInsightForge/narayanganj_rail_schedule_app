@@ -1,6 +1,6 @@
 part of 'rail_board_bloc.dart';
 
-enum RailBoardStatus { loading, ready }
+enum RailBoardStatus { loading, ready, failure }
 
 class RailBoardState extends Equatable {
   const RailBoardState({
@@ -20,7 +20,11 @@ class RailBoardState extends Equatable {
       destinationStationName: '',
       nextService: null,
       upcomingServices: [],
+      dataSourceLabel: '',
+      lastUpdatedAt: null,
+      scheduleVersion: '',
     ),
+    this.errorMessage,
   });
 
   final RailBoardStatus status;
@@ -29,14 +33,40 @@ class RailBoardState extends Equatable {
   final List<RailSelectableOption> boardingStations;
   final List<RailSelectableOption> destinationStations;
   final RailBoardSnapshot snapshot;
+  final String? errorMessage;
+
+  bool get isLoading => status == RailBoardStatus.loading;
+  bool get hasFailed => status == RailBoardStatus.failure;
+
+  RailBoardState copyWith({
+    RailBoardStatus? status,
+    RailSelection? selection,
+    List<RailSelectableOption>? directionOptions,
+    List<RailSelectableOption>? boardingStations,
+    List<RailSelectableOption>? destinationStations,
+    RailBoardSnapshot? snapshot,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
+    return RailBoardState(
+      status: status ?? this.status,
+      selection: selection ?? this.selection,
+      directionOptions: directionOptions ?? this.directionOptions,
+      boardingStations: boardingStations ?? this.boardingStations,
+      destinationStations: destinationStations ?? this.destinationStations,
+      snapshot: snapshot ?? this.snapshot,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+    );
+  }
 
   @override
-  List<Object> get props => [
+  List<Object?> get props => [
     status,
     selection,
     directionOptions,
     boardingStations,
     destinationStations,
     snapshot,
+    errorMessage,
   ];
 }
