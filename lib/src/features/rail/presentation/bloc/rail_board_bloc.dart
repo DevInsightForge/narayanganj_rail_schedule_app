@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import '../../data/datasources/static_schedule_data_source.dart';
 import '../../data/repositories/schedule_data_repository.dart';
 import '../../domain/entities/rail_selection.dart';
+import '../../domain/entities/rail_snapshot.dart';
 import '../../domain/repositories/selection_repository.dart';
 import '../../domain/services/rail_board_service.dart';
 
