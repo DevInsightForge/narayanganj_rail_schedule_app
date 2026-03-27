@@ -23,7 +23,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
-      GOOGLE_PSA_JSON: ${{ secrets.GOOGLE_PSA_JSON }}
 
     steps:
       - name: Checkout
@@ -118,17 +117,3 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           generate_release_notes: true
           files: release-assets/*
-
-      - name: Upload to Google Play internal track
-        if: ${{ env.GOOGLE_PSA_JSON != '' }}
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ env.GOOGLE_PSA_JSON }}
-          packageName: com.narayanganj.railschedule
-          releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          track: internal
-          status: completed
-
-      - name: Note skipped Play upload
-        if: ${{ env.GOOGLE_PSA_JSON == '' }}
-        run: echo "GOOGLE_PSA_JSON not configured; skipped Google Play publish."

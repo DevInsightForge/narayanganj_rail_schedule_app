@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  test_and_build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -40,5 +40,3 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      - name: Build Android app bundle
-        run: flutter build appbundle --release
