@@ -1,4 +1,4 @@
-name: Publish to Google Play (Internal)
+name: Publish Release
 
 on:
   push:
@@ -6,24 +6,14 @@ on:
       - 'v*'
 
 jobs:
-  publish_internal:
-    if: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' || secrets.GOOGLE_PSA_JSON != '' }}
+  publish:
     runs-on: ubuntu-latest
-    env:
-      PLAY_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' && secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON || secrets.GOOGLE_PSA_JSON }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Verify publish secrets are available
-        run: |
-          if [ -z "${PLAY_JSON}" ]; then
-            echo "Missing GOOGLE_PLAY_SERVICE_ACCOUNT_JSON or GOOGLE_PSA_JSON secret"
-            exit 1
-          fi
 
       - name: Verify tag commit belongs to main branch
         run: |
@@ -44,28 +34,43 @@ jobs:
             exit 1
           fi
 
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+
       - name: Setup Java
+        if: ${{ secrets.GOOGLE_PSA_JSON != '' }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Setup Flutter
+        if: ${{ secrets.GOOGLE_PSA_JSON != '' }}
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
       - name: Install dependencies
+        if: ${{ secrets.GOOGLE_PSA_JSON != '' }}
         run: flutter pub get
 
       - name: Build Android app bundle
+        if: ${{ secrets.GOOGLE_PSA_JSON != '' }}
         run: flutter build appbundle --release
 
       - name: Upload to Google Play internal track
+        if: ${{ secrets.GOOGLE_PSA_JSON != '' }}
         uses: r0adkll/upload-google-play@v1
         with:
-          serviceAccountJsonPlainText: ${{ env.PLAY_JSON }}
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PSA_JSON }}
           packageName: com.narayanganj.railschedule
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           track: internal
           status: completed
+
+      - name: Note skipped Play upload
+        if: ${{ secrets.GOOGLE_PSA_JSON == '' }}
+        run: echo "GOOGLE_PSA_JSON not configured; skipped Google Play publish."
