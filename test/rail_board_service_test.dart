@@ -5,7 +5,9 @@ import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail
 
 void main() {
   group('RailBoardService', () {
-    final service = RailBoardService(schedule: StaticScheduleDataSource.schedule);
+    final service = RailBoardService(
+      schedule: StaticScheduleDataSource.schedule,
+    );
 
     test('returns stations ordered by direction', () {
       final forward = service.getStationsForDirection('dhaka_to_narayanganj');

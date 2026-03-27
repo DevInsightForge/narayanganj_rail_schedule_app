@@ -12,7 +12,9 @@ void main() {
   group('RailBoardBloc startup', () {
     test('loads bundled data when cached and remote are unavailable', () async {
       final bloc = RailBoardBloc(
-        boardService: RailBoardService(schedule: StaticScheduleDataSource.schedule),
+        boardService: RailBoardService(
+          schedule: StaticScheduleDataSource.schedule,
+        ),
         scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(),
       );
@@ -35,7 +37,9 @@ void main() {
       );
 
       final bloc = RailBoardBloc(
-        boardService: RailBoardService(schedule: StaticScheduleDataSource.schedule),
+        boardService: RailBoardService(
+          schedule: StaticScheduleDataSource.schedule,
+        ),
         scheduleDataRepository: _FakeScheduleDataRepository(
           stored: ScheduleLoadResult(
             schedule: cachedSchedule,
@@ -55,7 +59,8 @@ void main() {
         (state) => state.status == RailBoardStatus.ready,
       );
       final secondReady = await bloc.stream.firstWhere(
-        (state) => state.status == RailBoardStatus.ready &&
+        (state) =>
+            state.status == RailBoardStatus.ready &&
             state.snapshot.dataSourceLabel == 'Remote',
       );
 
@@ -68,7 +73,7 @@ void main() {
 
 class _FakeScheduleDataRepository extends ScheduleDataRepository {
   _FakeScheduleDataRepository({this.stored, this.remote})
-      : super(parser: RailScheduleDocumentParser());
+    : super(parser: RailScheduleDocumentParser());
 
   final ScheduleLoadResult? stored;
   final ScheduleLoadResult? remote;
@@ -77,7 +82,7 @@ class _FakeScheduleDataRepository extends ScheduleDataRepository {
   Future<ScheduleLoadResult?> readStoredSchedule() async => stored;
 
   @override
-  Future<ScheduleLoadResult?> fetchRemoteSchedule({String? url}) async => remote;
+  Future<ScheduleLoadResult?> fetchRemoteSchedule() async => remote;
 }
 
 class _InMemorySelectionRepository implements SelectionRepository {

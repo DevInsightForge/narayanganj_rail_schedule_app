@@ -7,28 +7,34 @@ import 'remote_schedule_client.dart';
 
 class RemoteScheduleClientImpl implements RemoteScheduleClient {
   @override
-  Future<Map<String, dynamic>?> getJson(String url) async {
+  Future<RemoteJsonResponse> getJson(String url) async {
     final response = await web.window
         .fetch(
           url.toJS,
-          web.RequestInit(method: 'GET', mode: 'cors', credentials: 'omit'),
+          web.RequestInit(
+            method: 'GET',
+            mode: 'cors',
+            credentials: 'omit',
+            cache: 'no-store',
+          ),
         )
         .toDart
         .timeout(const Duration(seconds: 10));
 
-    if (!response.ok) {
-      return null;
+    Map<String, dynamic>? document;
+    if (response.ok) {
+      final text = (await response.text().toDart.timeout(
+        const Duration(seconds: 10),
+      )).toDart;
+      final jsonValue = jsonDecode(text);
+      if (jsonValue is Map<String, dynamic>) {
+        document = jsonValue;
+      }
     }
 
-    final text = (await response.text().toDart.timeout(
-      const Duration(seconds: 10),
-    )).toDart;
-    final jsonValue = jsonDecode(text);
-
-    if (jsonValue is! Map<String, dynamic>) {
-      return null;
-    }
-
-    return jsonValue;
+    return RemoteJsonResponse(
+      statusCode: response.status.toInt(),
+      json: document,
+    );
   }
 }

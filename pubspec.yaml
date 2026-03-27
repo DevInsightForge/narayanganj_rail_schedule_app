@@ -12,9 +12,11 @@ dependencies:
   bloc: ^9.0.0
   equatable: ^2.0.7
   flutter_bloc: ^9.1.1
+  flutter_dotenv: ^5.2.1
   http: ^1.5.0
   shared_preferences: ^2.5.3
   timelines_plus: ^2.0.0
+  url_launcher: ^6.3.2
   web: ^1.1.1
 
 dev_dependencies:
@@ -25,6 +27,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/env/app.env
 
 flutter_launcher_icons:
   android: true

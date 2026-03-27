@@ -13,7 +13,12 @@ Instead of showing the schedule as a dense timetable, the app turns it into a si
 - check the next available commuter train at a glance
 - switch direction, boarding, and destination quickly
 - see trip timing, station sequence, and later backup trains
-- keep working with fallback schedule data using `API > local storage > bundled static`
+- keep working with fallback schedule data using `remote website json > local storage > bundled static`
+
+## Remote Schedule Source
+
+- default URL: `https://devinsightforge.github.io/narayanganj_rail_service/schedule-data.json`
+- override with: `--dart-define=SCHEDULE_DATA_URL=<url>`
 
 ## Showcase
 

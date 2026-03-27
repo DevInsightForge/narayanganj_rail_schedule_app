@@ -37,6 +37,39 @@ void main() {
       expect(parsed.stations.length, equals(2));
     });
 
+    test('parses compact tripsByDirection document', () {
+      final document = {
+        'version': '2026.03.27',
+        'stations': [
+          {'id': 'a', 'code': 'a', 'name': 'A'},
+          {'id': 'b', 'code': 'b', 'name': 'B'},
+        ],
+        'directions': [
+          {
+            'id': 'a_to_b',
+            'directionKey': 'a_to_b',
+            'prefix': 'ab',
+            'label': 'A to B',
+            'isForward': true,
+          },
+        ],
+        'tripsByDirection': {
+          'a_to_b': [
+            {
+              'trainNo': 1,
+              'servicePeriod': 'morning',
+              'stopTimes': ['06:00', '06:15'],
+            },
+          ],
+        },
+      };
+
+      final parsed = parser.parse(document);
+      expect(parsed.trips.length, equals(1));
+      expect(parsed.trips.first.id, equals('a_to_b:01'));
+      expect(parsed.trips.first.directionId, equals('a_to_b'));
+    });
+
     test('throws when required sections are missing', () {
       expect(() => parser.parse({'version': '1'}), throwsFormatException);
     });

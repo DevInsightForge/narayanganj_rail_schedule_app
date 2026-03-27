@@ -50,6 +50,8 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
   ScheduleDataSource _activeSource;
   DateTime? _lastUpdatedAt;
 
+  RailBoardService get boardService => _boardService;
+
   Future<void> _onStarted(
     RailBoardStarted event,
     Emitter<RailBoardState> emit,
@@ -93,7 +95,8 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
 
       await _persistAndEmit(selection: selection, emit: emit);
 
-      final remoteSchedule = await _scheduleDataRepository.fetchRemoteSchedule();
+      final remoteSchedule = await _scheduleDataRepository
+          .fetchRemoteSchedule();
       if (remoteSchedule == null) {
         return;
       }
@@ -177,16 +180,15 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
         selection.direction,
         selection.boardingStationId,
       ),
-      snapshot: _boardService.getSnapshot(
-        selection: selection,
-        now: DateTime.now(),
-      ).copyWith(
-        dataSourceLabel: sourceLabel,
-        lastUpdatedAt: _lastUpdatedAt,
-        scheduleVersion: _boardService.schedule.version.isEmpty
-            ? _bundledVersion
-            : _boardService.schedule.version,
-      ),
+      snapshot: _boardService
+          .getSnapshot(selection: selection, now: DateTime.now())
+          .copyWith(
+            dataSourceLabel: sourceLabel,
+            lastUpdatedAt: _lastUpdatedAt,
+            scheduleVersion: _boardService.schedule.version.isEmpty
+                ? _bundledVersion
+                : _boardService.schedule.version,
+          ),
       errorMessage: null,
     );
   }

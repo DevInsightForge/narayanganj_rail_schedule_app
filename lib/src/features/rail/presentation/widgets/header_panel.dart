@@ -19,7 +19,12 @@ class HeaderPanel extends StatelessWidget {
     return PanelShell(
       backgroundColor: const Color(0xFF171717),
       borderColor: const Color(0x2E171717),
-      padding: EdgeInsets.fromLTRB(10, isTablet ? 12 : 8, 10, isTablet ? 10 : 8),
+      padding: EdgeInsets.fromLTRB(
+        10,
+        isTablet ? 12 : 8,
+        10,
+        isTablet ? 10 : 8,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -36,9 +41,6 @@ class HeaderPanel extends StatelessWidget {
                     waitLabel: nextService == null
                         ? 'No departure for this route'
                         : formatter.getWaitLabel(nextService.waitMinutes),
-                    updatedLabel: _lastUpdatedLabel(state.snapshot.lastUpdatedAt),
-                    dataSourceLabel: state.snapshot.dataSourceLabel,
-                    scheduleVersion: state.snapshot.scheduleVersion,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -61,9 +63,6 @@ class HeaderPanel extends StatelessWidget {
               waitLabel: nextService == null
                   ? 'Unavailable'
                   : formatter.getWaitLabel(nextService.waitMinutes),
-              updatedLabel: _lastUpdatedLabel(state.snapshot.lastUpdatedAt),
-              dataSourceLabel: state.snapshot.dataSourceLabel,
-              scheduleVersion: state.snapshot.scheduleVersion,
             ),
           SizedBox(height: isTablet ? 14 : 10),
           _SelectionStrip(
@@ -96,18 +95,6 @@ class HeaderPanel extends StatelessWidget {
       ),
     );
   }
-
-  String _lastUpdatedLabel(DateTime? value) {
-    if (value == null) {
-      return 'Bundled';
-    }
-
-    final local = value.toLocal();
-    final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
-    final minute = local.minute.toString().padLeft(2, '0');
-    final period = local.hour >= 12 ? 'PM' : 'AM';
-    return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')} $hour:$minute $period';
-  }
 }
 
 class _HeroCopy extends StatelessWidget {
@@ -115,17 +102,11 @@ class _HeroCopy extends StatelessWidget {
     required this.currentTime,
     required this.nextServiceLabel,
     required this.waitLabel,
-    required this.updatedLabel,
-    required this.dataSourceLabel,
-    required this.scheduleVersion,
   });
 
   final String currentTime;
   final String nextServiceLabel;
   final String waitLabel;
-  final String updatedLabel;
-  final String dataSourceLabel;
-  final String scheduleVersion;
 
   @override
   Widget build(BuildContext context) {
@@ -142,9 +123,6 @@ class _HeroCopy extends StatelessWidget {
               label: 'Live commuter board',
               value: currentTime.isEmpty ? 'Dhaka time' : currentTime,
             ),
-            _InfoPill(label: 'Source', value: dataSourceLabel),
-            _InfoPill(label: 'Updated', value: updatedLabel),
-            _InfoPill(label: 'Version', value: scheduleVersion),
           ],
         ),
         const SizedBox(height: 14),
@@ -367,7 +345,7 @@ class _SelectionStrip extends StatelessWidget {
           height: 40,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
             itemBuilder: (context, index) {
               final option = options[index];
 
@@ -375,7 +353,9 @@ class _SelectionStrip extends StatelessWidget {
                 label: option.label,
                 selected: option.value == value,
                 disabled: option.disabled,
-                onPressed: option.disabled ? null : () => onPressed(option.value),
+                onPressed: option.disabled
+                    ? null
+                    : () => onPressed(option.value),
               );
             },
             separatorBuilder: (context, index) => const SizedBox(width: 8),
@@ -422,7 +402,9 @@ class _SelectionChip extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: selected ? const Color(0xFF171717) : const Color(0xFFF5F5F5),
+                color: selected
+                    ? const Color(0xFF171717)
+                    : const Color(0xFFF5F5F5),
                 fontSize: 13,
               ),
             ),
@@ -438,17 +420,11 @@ class _CompactHeader extends StatelessWidget {
     required this.currentTime,
     required this.departureLabel,
     required this.waitLabel,
-    required this.updatedLabel,
-    required this.dataSourceLabel,
-    required this.scheduleVersion,
   });
 
   final String currentTime;
   final String departureLabel;
   final String waitLabel;
-  final String updatedLabel;
-  final String dataSourceLabel;
-  final String scheduleVersion;
 
   @override
   Widget build(BuildContext context) {
@@ -474,16 +450,6 @@ class _CompactHeader extends StatelessWidget {
                   color: const Color(0xB8F5F5F5),
                   fontSize: 12,
                 ),
-              ),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _InfoPill(label: 'Source', value: dataSourceLabel),
-                  _InfoPill(label: 'Updated', value: updatedLabel),
-                  _InfoPill(label: 'Version', value: scheduleVersion),
-                ],
               ),
             ],
           ),

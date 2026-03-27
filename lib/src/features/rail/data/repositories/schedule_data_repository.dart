@@ -8,6 +8,7 @@ import '../models/rail_schedule_document_parser.dart';
 import 'remote_schedule_client.dart';
 import 'remote_schedule_client_io.dart'
     if (dart.library.js_interop) 'remote_schedule_client_web.dart';
+import 'schedule_url_resolver.dart';
 
 enum ScheduleDataSource { bundled, cached, remote }
 
@@ -30,9 +31,12 @@ class ScheduleDataRepository {
   }) : _parser = parser,
        _remoteClient = remoteClient ?? RemoteScheduleClientImpl();
 
-  static const defaultRemoteUrl =
-      'https://gist.githubusercontent.com/IMZihad21/cd4d181220aa57d85f6ce4db2cd7ce99/raw/nrs_data.json';
+  static const defaultManifestUrl =
+      'https://devinsightforge.github.io/narayanganj_rail_service/schedule/manifest.json';
+  static const defaultFallbackRemoteUrl =
+      'https://devinsightforge.github.io/narayanganj_rail_service/schedule-data.json';
   static const storageKey = 'nrs:schedule-data';
+  static const _maxAttempts = 2;
 
   final RailScheduleDocumentParser _parser;
   final RemoteScheduleClient _remoteClient;
@@ -48,23 +52,49 @@ class ScheduleDataRepository {
 
       final jsonValue = jsonDecode(value);
       if (jsonValue is! Map<String, dynamic>) {
-        developer.log('Stored schedule is not a JSON object.', name: '$ScheduleDataRepository');
+        _log(
+          'cache_read_failed',
+          data: const {'reason': 'stored_payload_not_map'},
+        );
+        return null;
+      }
+
+      final document = _extractDocument(jsonValue);
+      final validationFailure = _validateScheduleDocument(document);
+      if (validationFailure != null) {
+        _log('cache_validation_failed', data: {'reason': validationFailure});
         return null;
       }
 
       final loadedAt = _extractStoredAt(jsonValue) ?? DateTime.now();
-      final document = _extractDocument(jsonValue);
       final schedule = _parser.parse(document);
+
+      _log(
+        'cache_read_success',
+        data: {
+          'loadedAt': loadedAt.toUtc().toIso8601String(),
+          'version': schedule.version,
+          'sourceUrl': (jsonValue['sourceUrl'] ?? '').toString(),
+        },
+      );
 
       return ScheduleLoadResult(
         schedule: schedule,
         source: ScheduleDataSource.cached,
         loadedAt: loadedAt,
       );
+    } on FormatException catch (error, stackTrace) {
+      _log(
+        'cache_parse_failed',
+        data: {'reason': error.message},
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return null;
     } catch (error, stackTrace) {
-      developer.log(
-        'Failed to read cached schedule. Falling back to bundled data.',
-        name: '$ScheduleDataRepository',
+      _log(
+        'cache_read_failed',
+        data: const {'reason': 'exception'},
         error: error,
         stackTrace: stackTrace,
       );
@@ -72,28 +102,212 @@ class ScheduleDataRepository {
     }
   }
 
-  Future<ScheduleLoadResult?> fetchRemoteSchedule({String? url}) async {
-    final resolvedUrl =
-        url ??
-        const String.fromEnvironment(
-          'SCHEDULE_DATA_URL',
-          defaultValue: defaultRemoteUrl,
-        );
+  Future<ScheduleLoadResult?> fetchRemoteSchedule() async {
+    final manifestUrl = _resolvedManifestUrl;
+    final fallbackUrl = _resolvedFallbackScheduleUrl;
 
-    if (resolvedUrl.trim().isEmpty) {
+    _log(
+      'remote_load_start',
+      data: {'manifestUrl': manifestUrl, 'fallbackUrl': fallbackUrl},
+    );
+
+    final manifestResult = await _fetchFromManifest(manifestUrl);
+    if (manifestResult != null) {
+      return _parseAndPersistRemote(manifestResult);
+    }
+
+    final fallbackResult = await _fetchScheduleDocument(
+      url: fallbackUrl,
+      branch: 'fallback',
+    );
+    if (fallbackResult != null) {
+      return _parseAndPersistRemote(fallbackResult);
+    }
+
+    _log(
+      'remote_load_failed_all_paths',
+      data: const {'fallbackBranch': 'bundled_or_cached'},
+    );
+    return null;
+  }
+
+  String get _resolvedManifestUrl {
+    const value = String.fromEnvironment(
+      'SCHEDULE_MANIFEST_URL',
+      defaultValue: defaultManifestUrl,
+    );
+    return value.trim();
+  }
+
+  String get _resolvedFallbackScheduleUrl {
+    const explicitFallback = String.fromEnvironment(
+      'SCHEDULE_DATA_URL_FALLBACK',
+      defaultValue: defaultFallbackRemoteUrl,
+    );
+    const legacy = String.fromEnvironment(
+      'SCHEDULE_DATA_URL',
+      defaultValue: '',
+    );
+    if (legacy.trim().isNotEmpty) {
+      return legacy.trim();
+    }
+    return explicitFallback.trim();
+  }
+
+  Future<_RemoteScheduleDocument?> _fetchFromManifest(
+    String manifestUrl,
+  ) async {
+    if (manifestUrl.isEmpty) {
+      _log(
+        'manifest_fetch_skipped',
+        data: const {'reason': 'empty_manifest_url'},
+      );
       return null;
     }
 
-    try {
-      final jsonValue = await _remoteClient.getJson(resolvedUrl);
+    _log('manifest_fetch_start', data: {'url': manifestUrl});
 
-      if (jsonValue == null) {
-        return null;
+    final manifest = await _fetchJsonWithRetry(
+      url: manifestUrl,
+      branch: 'manifest',
+    );
+    if (manifest == null) {
+      _log('manifest_fetch_failed', data: const {'reason': 'request_failed'});
+      return null;
+    }
+
+    _log('manifest_fetch_success', data: {'url': manifestUrl});
+
+    final rawLatestPath = '${manifest['latest_path'] ?? ''}'.trim();
+    if (rawLatestPath.isEmpty) {
+      _log('manifest_invalid', data: const {'reason': 'missing_latest_path'});
+      return null;
+    }
+
+    final manifestUri = Uri.tryParse(manifestUrl);
+    if (manifestUri == null) {
+      _log('manifest_invalid', data: const {'reason': 'invalid_manifest_url'});
+      return null;
+    }
+
+    final scheduleUri = resolveScheduleUriFromManifest(
+      manifestUri: manifestUri,
+      latestPath: rawLatestPath,
+    );
+    if (scheduleUri == null) {
+      _log(
+        'manifest_invalid',
+        data: {'reason': 'invalid_latest_path', 'latestPath': rawLatestPath},
+      );
+      return null;
+    }
+
+    _log(
+      'manifest_latest_path_resolved',
+      data: {
+        'latestPath': rawLatestPath,
+        'resolvedUrl': scheduleUri.toString(),
+      },
+    );
+
+    return _fetchScheduleDocument(
+      url: scheduleUri.toString(),
+      branch: 'manifest_resolved',
+    );
+  }
+
+  Future<_RemoteScheduleDocument?> _fetchScheduleDocument({
+    required String url,
+    required String branch,
+  }) async {
+    if (url.trim().isEmpty) {
+      _log(
+        'schedule_fetch_skipped',
+        data: {'branch': branch, 'reason': 'empty_url'},
+      );
+      return null;
+    }
+
+    final document = await _fetchJsonWithRetry(url: url, branch: branch);
+    if (document == null) {
+      _log('schedule_fetch_failed', data: {'branch': branch, 'url': url});
+      return null;
+    }
+
+    final validationFailure = _validateScheduleDocument(document);
+    if (validationFailure != null) {
+      _log(
+        'schedule_validation_failed',
+        data: {'branch': branch, 'url': url, 'reason': validationFailure},
+      );
+      return null;
+    }
+
+    _log('schedule_fetch_success', data: {'branch': branch, 'url': url});
+
+    return _RemoteScheduleDocument(sourceUrl: url, document: document);
+  }
+
+  Future<Map<String, dynamic>?> _fetchJsonWithRetry({
+    required String url,
+    required String branch,
+  }) async {
+    for (var attempt = 1; attempt <= _maxAttempts; attempt++) {
+      try {
+        _log(
+          'http_fetch_start',
+          data: {'branch': branch, 'url': url, 'attempt': attempt},
+        );
+
+        final response = await _remoteClient.getJson(url);
+
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          _log(
+            'http_fetch_non_200',
+            data: {
+              'branch': branch,
+              'url': url,
+              'attempt': attempt,
+              'statusCode': response.statusCode,
+            },
+          );
+          continue;
+        }
+
+        if (response.json == null) {
+          _log(
+            'http_fetch_invalid_json',
+            data: {'branch': branch, 'url': url, 'attempt': attempt},
+          );
+          continue;
+        }
+
+        return response.json;
+      } catch (error, stackTrace) {
+        _log(
+          'http_fetch_exception',
+          data: {'branch': branch, 'url': url, 'attempt': attempt},
+          error: error,
+          stackTrace: stackTrace,
+        );
       }
+    }
 
-      final schedule = _parser.parse(jsonValue);
+    return null;
+  }
+
+  Future<ScheduleLoadResult?> _parseAndPersistRemote(
+    _RemoteScheduleDocument remote,
+  ) async {
+    try {
+      final schedule = _parser.parse(remote.document);
       final loadedAt = DateTime.now();
-      await _persistDocument(document: jsonValue, loadedAt: loadedAt);
+
+      await _persistDocument(
+        document: remote.document,
+        sourceUrl: remote.sourceUrl,
+        loadedAt: loadedAt,
+      );
 
       return ScheduleLoadResult(
         schedule: schedule,
@@ -101,17 +315,17 @@ class ScheduleDataRepository {
         loadedAt: loadedAt,
       );
     } on FormatException catch (error, stackTrace) {
-      developer.log(
-        'Remote schedule format invalid. Keeping existing schedule.',
-        name: '$ScheduleDataRepository',
+      _log(
+        'schedule_parse_failed',
+        data: {'sourceUrl': remote.sourceUrl, 'reason': error.message},
         error: error,
         stackTrace: stackTrace,
       );
       return null;
     } catch (error, stackTrace) {
-      developer.log(
-        'Remote schedule fetch failed. Keeping existing schedule.',
-        name: '$ScheduleDataRepository',
+      _log(
+        'schedule_parse_failed',
+        data: {'sourceUrl': remote.sourceUrl, 'reason': 'exception'},
         error: error,
         stackTrace: stackTrace,
       );
@@ -121,19 +335,24 @@ class ScheduleDataRepository {
 
   Future<void> _persistDocument({
     required Map<String, dynamic> document,
+    required String sourceUrl,
     required DateTime loadedAt,
   }) async {
     try {
       final preferences = await SharedPreferences.getInstance();
       final wrapped = {
+        'fetchedAt': loadedAt.toUtc().toIso8601String(),
         'cachedAt': loadedAt.toUtc().toIso8601String(),
+        'sourceUrl': sourceUrl,
+        'schemaVersion': '${document['version'] ?? ''}',
+        'checksum': '${document['checksum'] ?? ''}',
         'document': document,
       };
       await preferences.setString(storageKey, jsonEncode(wrapped));
     } catch (error, stackTrace) {
-      developer.log(
-        'Failed to persist schedule cache.',
-        name: '$ScheduleDataRepository',
+      _log(
+        'cache_write_failed',
+        data: const {'reason': 'exception'},
         error: error,
         stackTrace: stackTrace,
       );
@@ -145,17 +364,70 @@ class ScheduleDataRepository {
     if (wrapped is Map<String, dynamic>) {
       return wrapped;
     }
-
-    // Backward-compatible with legacy payload that stored the document directly.
     return storedValue;
   }
 
   DateTime? _extractStoredAt(Map<String, dynamic> storedValue) {
-    final raw = '${storedValue['cachedAt'] ?? ''}'.trim();
-    if (raw.isEmpty) {
-      return null;
+    final fetched = '${storedValue['fetchedAt'] ?? ''}'.trim();
+    if (fetched.isNotEmpty) {
+      return DateTime.tryParse(fetched)?.toLocal();
     }
 
-    return DateTime.tryParse(raw)?.toLocal();
+    final cached = '${storedValue['cachedAt'] ?? ''}'.trim();
+    if (cached.isNotEmpty) {
+      return DateTime.tryParse(cached)?.toLocal();
+    }
+
+    return null;
   }
+
+  String? _validateScheduleDocument(Map<String, dynamic> document) {
+    final stations = document['stations'];
+    if (stations is! List || stations.isEmpty) {
+      return 'stations_missing_or_empty';
+    }
+
+    final directions = document['directions'];
+    if (directions is! List || directions.isEmpty) {
+      return 'directions_missing_or_empty';
+    }
+
+    final trips = document['trips'];
+    final tripsByDirection = document['tripsByDirection'];
+    final hasTrips = trips is List && trips.isNotEmpty;
+    final hasTripsByDirection =
+        tripsByDirection is Map && tripsByDirection.isNotEmpty;
+
+    if (!hasTrips && !hasTripsByDirection) {
+      return 'trips_missing_or_empty';
+    }
+
+    return null;
+  }
+
+  void _log(
+    String event, {
+    Map<String, Object?> data = const {},
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    final payload = {'event': event, ...data};
+
+    developer.log(
+      jsonEncode(payload),
+      name: 'ScheduleDataRepository',
+      error: error,
+      stackTrace: stackTrace,
+    );
+  }
+}
+
+class _RemoteScheduleDocument {
+  const _RemoteScheduleDocument({
+    required this.sourceUrl,
+    required this.document,
+  });
+
+  final String sourceUrl;
+  final Map<String, dynamic> document;
 }
