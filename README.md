@@ -12,17 +12,17 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. It turns
 
 - Next-train decision view with ETA, wait time, and route context
 - Direction, boarding, and destination switching with deterministic state reconciliation
-- Manifest-driven remote schedule loading with strict validation
-- Safe fallback chain: `remote manifest -> cached valid payload -> bundled static data`
+- Remote schedule loading from fixed website API endpoint with strict validation
+- Safe fallback chain: `remote API -> cached valid payload -> bundled static data`
 - Structured logging for remote loading branches and validation failures
 - Android system bars styled to match app surface (no default gray status bar)
 
 ## Remote Data Configuration
 
-The app derives schedule manifest URL from `WEBSITE_BASE_URL`.
+The app derives schedule API URL from `WEBSITE_BASE_URL`.
 
 - Base URL env key: `WEBSITE_BASE_URL`
-- Derived manifest URL: `<WEBSITE_BASE_URL>/schedule/manifest.json`
+- Derived schedule URL: `<WEBSITE_BASE_URL>/api/schedule/data.json`
 - Default base URL: `https://narayanganj-rail-schedule.pages.dev/`
 
 ## Local Setup

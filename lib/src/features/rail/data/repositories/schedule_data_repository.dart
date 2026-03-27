@@ -9,7 +9,6 @@ import '../models/rail_schedule_document_parser.dart';
 import 'remote_schedule_client.dart';
 import 'remote_schedule_client_io.dart'
     if (dart.library.js_interop) 'remote_schedule_client_web.dart';
-import 'schedule_url_resolver.dart';
 
 enum ScheduleDataSource { bundled, cached, remote }
 
@@ -32,8 +31,9 @@ class ScheduleDataRepository {
   }) : _parser = parser,
        _remoteClient = remoteClient ?? RemoteScheduleClientImpl();
 
-  static const defaultManifestUrl =
-      'https://narayanganj-rail-schedule.pages.dev/schedule/manifest.json';
+  static const defaultWebsiteBaseUrl =
+      'https://narayanganj-rail-schedule.pages.dev/';
+  static const scheduleEndpointPath = 'api/schedule/data.json';
   static const storageKey = 'nrs:schedule-data';
   static const _maxAttempts = 2;
 
@@ -102,95 +102,33 @@ class ScheduleDataRepository {
   }
 
   Future<ScheduleLoadResult?> fetchRemoteSchedule() async {
-    final manifestUrl = _resolvedManifestUrl;
-    _log('remote_load_start', data: {'manifestUrl': manifestUrl});
+    final scheduleUrl = _resolvedScheduleUrl;
+    _log('remote_load_start', data: {'scheduleUrl': scheduleUrl});
 
-    final manifestResult = await _fetchFromManifest(manifestUrl);
-    if (manifestResult != null) {
-      return _parseAndPersistRemote(manifestResult);
+    final remoteResult = await _fetchScheduleDocument(
+      url: scheduleUrl,
+      branch: 'direct',
+    );
+    if (remoteResult != null) {
+      return _parseAndPersistRemote(remoteResult);
     }
 
     _log(
       'remote_load_failed_all_paths',
-      data: const {'fallbackBranch': 'manifest_only_bundled_or_cached'},
+      data: const {'fallbackBranch': 'direct_only_bundled_or_cached'},
     );
     return null;
   }
 
-  String get _resolvedManifestUrl {
+  String get _resolvedScheduleUrl {
     final websiteBaseUrl = readRuntimeEnv('WEBSITE_BASE_URL');
-    if (websiteBaseUrl == null) {
-      return defaultManifestUrl;
-    }
-
-    final baseUri = Uri.tryParse(websiteBaseUrl);
+    final baseUri = Uri.tryParse(websiteBaseUrl ?? defaultWebsiteBaseUrl);
     if (baseUri == null) {
-      return defaultManifestUrl;
+      return Uri.parse(
+        defaultWebsiteBaseUrl,
+      ).resolve(scheduleEndpointPath).toString();
     }
-
-    return baseUri.resolve('schedule/manifest.json').toString();
-  }
-
-  Future<_RemoteScheduleDocument?> _fetchFromManifest(
-    String manifestUrl,
-  ) async {
-    if (manifestUrl.isEmpty) {
-      _log(
-        'manifest_fetch_skipped',
-        data: const {'reason': 'empty_manifest_url'},
-      );
-      return null;
-    }
-
-    _log('manifest_fetch_start', data: {'url': manifestUrl});
-
-    final manifest = await _fetchJsonWithRetry(
-      url: manifestUrl,
-      branch: 'manifest',
-    );
-    if (manifest == null) {
-      _log('manifest_fetch_failed', data: const {'reason': 'request_failed'});
-      return null;
-    }
-
-    _log('manifest_fetch_success', data: {'url': manifestUrl});
-
-    final rawLatestPath = '${manifest['latest_path'] ?? ''}'.trim();
-    if (rawLatestPath.isEmpty) {
-      _log('manifest_invalid', data: const {'reason': 'missing_latest_path'});
-      return null;
-    }
-
-    final manifestUri = Uri.tryParse(manifestUrl);
-    if (manifestUri == null) {
-      _log('manifest_invalid', data: const {'reason': 'invalid_manifest_url'});
-      return null;
-    }
-
-    final scheduleUri = resolveScheduleUriFromManifest(
-      manifestUri: manifestUri,
-      latestPath: rawLatestPath,
-    );
-    if (scheduleUri == null) {
-      _log(
-        'manifest_invalid',
-        data: {'reason': 'invalid_latest_path', 'latestPath': rawLatestPath},
-      );
-      return null;
-    }
-
-    _log(
-      'manifest_latest_path_resolved',
-      data: {
-        'latestPath': rawLatestPath,
-        'resolvedUrl': scheduleUri.toString(),
-      },
-    );
-
-    return _fetchScheduleDocument(
-      url: scheduleUri.toString(),
-      branch: 'manifest_resolved',
-    );
+    return baseUri.resolve(scheduleEndpointPath).toString();
   }
 
   Future<_RemoteScheduleDocument?> _fetchScheduleDocument({

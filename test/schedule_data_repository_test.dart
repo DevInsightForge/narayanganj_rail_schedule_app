@@ -12,22 +12,15 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    test('loads schedule through manifest success path', () async {
-      final manifestUrl = ScheduleDataRepository.defaultManifestUrl;
-      final resolvedScheduleUrl = Uri.parse(
-        manifestUrl,
-      ).resolve('schedule-data-v1.json').toString();
-      final remoteDocument = _validScheduleDocument(version: 'manifest-remote');
+    test('loads schedule through direct website API path', () async {
+      final scheduleUrl = Uri.parse(
+        ScheduleDataRepository.defaultWebsiteBaseUrl,
+      ).resolve(ScheduleDataRepository.scheduleEndpointPath).toString();
+      final remoteDocument = _validScheduleDocument(version: 'direct-remote');
 
       final client = _FakeRemoteClient(
         responses: {
-          manifestUrl: [
-            const RemoteJsonResponse(
-              statusCode: 200,
-              json: {'latest_path': 'schedule-data-v1.json'},
-            ),
-          ],
-          resolvedScheduleUrl: [
+          scheduleUrl: [
             RemoteJsonResponse(statusCode: 200, json: remoteDocument),
           ],
         },
@@ -42,24 +35,25 @@ void main() {
 
       expect(result, isNotNull);
       expect(result?.source, equals(ScheduleDataSource.remote));
-      expect(result?.schedule.version, equals('manifest-remote'));
-      expect(client.requestedUrls.first, equals(manifestUrl));
-      expect(client.requestedUrls.last, equals(resolvedScheduleUrl));
+      expect(result?.schedule.version, equals('direct-remote'));
+      expect(client.requestedUrls, equals([scheduleUrl]));
 
       final preferences = await SharedPreferences.getInstance();
       final rawCache = preferences.getString(ScheduleDataRepository.storageKey);
       expect(rawCache, isNotNull);
       final wrapped = jsonDecode(rawCache!) as Map<String, dynamic>;
-      expect(wrapped['sourceUrl'], equals(resolvedScheduleUrl));
-      expect(wrapped['schemaVersion'], equals('manifest-remote'));
+      expect(wrapped['sourceUrl'], equals(scheduleUrl));
+      expect(wrapped['schemaVersion'], equals('direct-remote'));
     });
 
-    test('returns null when manifest request fails', () async {
-      final manifestUrl = ScheduleDataRepository.defaultManifestUrl;
+    test('returns null when direct schedule request fails', () async {
+      final scheduleUrl = Uri.parse(
+        ScheduleDataRepository.defaultWebsiteBaseUrl,
+      ).resolve(ScheduleDataRepository.scheduleEndpointPath).toString();
 
       final client = _FakeRemoteClient(
         responses: {
-          manifestUrl: const [
+          scheduleUrl: const [
             RemoteJsonResponse(statusCode: 503, json: null),
             RemoteJsonResponse(statusCode: 503, json: null),
           ],
@@ -74,28 +68,7 @@ void main() {
       final result = await repository.fetchRemoteSchedule();
 
       expect(result, isNull);
-      expect(client.requestedUrls.contains(manifestUrl), isTrue);
-    });
-
-    test('returns null when manifest latest_path is missing', () async {
-      final manifestUrl = ScheduleDataRepository.defaultManifestUrl;
-
-      final client = _FakeRemoteClient(
-        responses: {
-          manifestUrl: const [
-            RemoteJsonResponse(statusCode: 200, json: {'unexpected': true}),
-          ],
-        },
-      );
-
-      final repository = ScheduleDataRepository(
-        parser: RailScheduleDocumentParser(),
-        remoteClient: client,
-      );
-
-      final result = await repository.fetchRemoteSchedule();
-
-      expect(result, isNull);
+      expect(client.requestedUrls.contains(scheduleUrl), isTrue);
     });
 
     test(
@@ -114,19 +87,12 @@ void main() {
           ScheduleDataRepository.storageKey: cachedPayload,
         });
 
-        final manifestUrl = ScheduleDataRepository.defaultManifestUrl;
-        final resolvedScheduleUrl = Uri.parse(
-          manifestUrl,
-        ).resolve('schedule-data-v1.json').toString();
+        final scheduleUrl = Uri.parse(
+          ScheduleDataRepository.defaultWebsiteBaseUrl,
+        ).resolve(ScheduleDataRepository.scheduleEndpointPath).toString();
         final client = _FakeRemoteClient(
           responses: {
-            manifestUrl: const [
-              RemoteJsonResponse(
-                statusCode: 200,
-                json: {'latest_path': 'schedule-data-v1.json'},
-              ),
-            ],
-            resolvedScheduleUrl: const [
+            scheduleUrl: const [
               RemoteJsonResponse(statusCode: 200, json: {'invalid': true}),
             ],
           },
