@@ -54,21 +54,14 @@ void main() {
       expect(wrapped['schemaVersion'], equals('manifest-remote'));
     });
 
-    test('falls back to fallback URL when manifest request fails', () async {
+    test('returns null when manifest request fails', () async {
       final manifestUrl = ScheduleDataRepository.defaultManifestUrl;
-      final fallbackUrl = ScheduleDataRepository.defaultFallbackRemoteUrl;
-      final fallbackDocument = _validScheduleDocument(
-        version: 'fallback-remote',
-      );
 
       final client = _FakeRemoteClient(
         responses: {
           manifestUrl: const [
             RemoteJsonResponse(statusCode: 503, json: null),
             RemoteJsonResponse(statusCode: 503, json: null),
-          ],
-          fallbackUrl: [
-            RemoteJsonResponse(statusCode: 200, json: fallbackDocument),
           ],
         },
       );
@@ -80,27 +73,18 @@ void main() {
 
       final result = await repository.fetchRemoteSchedule();
 
-      expect(result, isNotNull);
-      expect(result?.schedule.version, equals('fallback-remote'));
+      expect(result, isNull);
       expect(client.requestedUrls.contains(manifestUrl), isTrue);
-      expect(client.requestedUrls.contains(fallbackUrl), isTrue);
     });
 
-    test('falls back when manifest latest_path is missing', () async {
+    test('returns null when manifest latest_path is missing', () async {
       final manifestUrl = ScheduleDataRepository.defaultManifestUrl;
-      final fallbackUrl = ScheduleDataRepository.defaultFallbackRemoteUrl;
-      final fallbackDocument = _validScheduleDocument(
-        version: 'fallback-on-invalid',
-      );
 
       final client = _FakeRemoteClient(
         responses: {
           manifestUrl: const [
             RemoteJsonResponse(statusCode: 200, json: {'unexpected': true}),
           ],
-          fallbackUrl: [
-            RemoteJsonResponse(statusCode: 200, json: fallbackDocument),
-          ],
         },
       );
 
@@ -111,9 +95,7 @@ void main() {
 
       final result = await repository.fetchRemoteSchedule();
 
-      expect(result, isNotNull);
-      expect(result?.schedule.version, equals('fallback-on-invalid'));
-      expect(client.requestedUrls, contains(fallbackUrl));
+      expect(result, isNull);
     });
 
     test(
@@ -136,8 +118,6 @@ void main() {
         final resolvedScheduleUrl = Uri.parse(
           manifestUrl,
         ).resolve('schedule-data-v1.json').toString();
-        final fallbackUrl = ScheduleDataRepository.defaultFallbackRemoteUrl;
-
         final client = _FakeRemoteClient(
           responses: {
             manifestUrl: const [
@@ -148,10 +128,6 @@ void main() {
             ],
             resolvedScheduleUrl: const [
               RemoteJsonResponse(statusCode: 200, json: {'invalid': true}),
-            ],
-            fallbackUrl: const [
-              RemoteJsonResponse(statusCode: 500, json: null),
-              RemoteJsonResponse(statusCode: 500, json: null),
             ],
           },
         );

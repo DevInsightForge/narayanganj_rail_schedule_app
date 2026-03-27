@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/config/runtime_env.dart';
 import 'panel_shell.dart';
 
 class FooterPanel extends StatelessWidget {
@@ -17,7 +17,8 @@ class FooterPanel extends StatelessWidget {
   final String scheduleVersion;
 
   static final Uri _websiteBaseUri = Uri.parse(
-    dotenv.env['WEBSITE_BASE_URL'] ?? 'http://localhost:5173/',
+    readRuntimeEnv('WEBSITE_BASE_URL') ??
+        'https://narayanganj-rail-schedule.pages.dev/',
   );
   static final Uri _privacyPolicyUri = _websiteBaseUri.resolve(
     'privacy-policy',

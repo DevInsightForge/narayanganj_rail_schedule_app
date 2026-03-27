@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/config/runtime_env.dart';
 import '../../domain/entities/rail_schedule.dart';
 import '../models/rail_schedule_document_parser.dart';
 import 'remote_schedule_client.dart';
@@ -32,9 +33,7 @@ class ScheduleDataRepository {
        _remoteClient = remoteClient ?? RemoteScheduleClientImpl();
 
   static const defaultManifestUrl =
-      'https://devinsightforge.github.io/narayanganj_rail_service/schedule/manifest.json';
-  static const defaultFallbackRemoteUrl =
-      'https://devinsightforge.github.io/narayanganj_rail_service/schedule-data.json';
+      'https://narayanganj-rail-schedule.pages.dev/schedule/manifest.json';
   static const storageKey = 'nrs:schedule-data';
   static const _maxAttempts = 2;
 
@@ -104,54 +103,32 @@ class ScheduleDataRepository {
 
   Future<ScheduleLoadResult?> fetchRemoteSchedule() async {
     final manifestUrl = _resolvedManifestUrl;
-    final fallbackUrl = _resolvedFallbackScheduleUrl;
-
-    _log(
-      'remote_load_start',
-      data: {'manifestUrl': manifestUrl, 'fallbackUrl': fallbackUrl},
-    );
+    _log('remote_load_start', data: {'manifestUrl': manifestUrl});
 
     final manifestResult = await _fetchFromManifest(manifestUrl);
     if (manifestResult != null) {
       return _parseAndPersistRemote(manifestResult);
     }
 
-    final fallbackResult = await _fetchScheduleDocument(
-      url: fallbackUrl,
-      branch: 'fallback',
-    );
-    if (fallbackResult != null) {
-      return _parseAndPersistRemote(fallbackResult);
-    }
-
     _log(
       'remote_load_failed_all_paths',
-      data: const {'fallbackBranch': 'bundled_or_cached'},
+      data: const {'fallbackBranch': 'manifest_only_bundled_or_cached'},
     );
     return null;
   }
 
   String get _resolvedManifestUrl {
-    const value = String.fromEnvironment(
-      'SCHEDULE_MANIFEST_URL',
-      defaultValue: defaultManifestUrl,
-    );
-    return value.trim();
-  }
-
-  String get _resolvedFallbackScheduleUrl {
-    const explicitFallback = String.fromEnvironment(
-      'SCHEDULE_DATA_URL_FALLBACK',
-      defaultValue: defaultFallbackRemoteUrl,
-    );
-    const legacy = String.fromEnvironment(
-      'SCHEDULE_DATA_URL',
-      defaultValue: '',
-    );
-    if (legacy.trim().isNotEmpty) {
-      return legacy.trim();
+    final websiteBaseUrl = readRuntimeEnv('WEBSITE_BASE_URL');
+    if (websiteBaseUrl == null) {
+      return defaultManifestUrl;
     }
-    return explicitFallback.trim();
+
+    final baseUri = Uri.tryParse(websiteBaseUrl);
+    if (baseUri == null) {
+      return defaultManifestUrl;
+    }
+
+    return baseUri.resolve('schedule/manifest.json').toString();
   }
 
   Future<_RemoteScheduleDocument?> _fetchFromManifest(

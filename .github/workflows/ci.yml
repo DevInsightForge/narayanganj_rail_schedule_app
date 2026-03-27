@@ -14,15 +14,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Generate runtime env file
-        env:
-          WEBSITE_BASE_URL: ${{ vars.WEBSITE_BASE_URL }}
-        run: |
-          if [ -z "$WEBSITE_BASE_URL" ]; then
-            WEBSITE_BASE_URL="https://narayanganj-rail-schedule.pages.dev/"
-          fi
-          printf "WEBSITE_BASE_URL=%s\n" "$WEBSITE_BASE_URL" > .env
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
