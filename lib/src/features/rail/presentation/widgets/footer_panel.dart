@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/config/runtime_env.dart';
+import 'panel_palette.dart';
 import 'panel_shell.dart';
 
 class FooterPanel extends StatelessWidget {
@@ -32,17 +33,19 @@ class FooterPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final palette = RailPanelPalette.of(colorScheme);
     final textTheme = Theme.of(context).textTheme;
     final linkStyle = textTheme.bodyMedium?.copyWith(
       fontSize: 13,
-      color: const Color(0xFF171717),
+      color: colorScheme.onSurface,
       decoration: TextDecoration.underline,
-      decorationColor: const Color(0xFF171717),
+      decorationColor: colorScheme.onSurface,
     );
 
     return PanelShell(
-      backgroundColor: const Color(0xFFF5F5F5),
-      borderColor: const Color(0x17171717),
+      backgroundColor: palette.panelBackground,
+      borderColor: palette.panelBorder,
       padding: const EdgeInsets.all(12),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -64,7 +67,7 @@ class FooterPanel extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: textTheme.labelLarge?.copyWith(
                             fontSize: 13,
-                            color: const Color(0xFF171717),
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -74,9 +77,11 @@ class FooterPanel extends StatelessWidget {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text(
-                              'Author: ZèD',
+                              'Author: Zed',
                               style: textTheme.bodySmall?.copyWith(
-                                color: const Color(0xAA171717),
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.68,
+                                ),
                                 fontSize: 12,
                               ),
                             ),
@@ -112,7 +117,7 @@ class FooterPanel extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              const Divider(height: 1, color: Color(0x1A171717)),
+              Divider(height: 1, color: palette.panelBorder),
               const SizedBox(height: 8),
               Center(
                 child: Wrap(
@@ -162,10 +167,11 @@ class _MetaText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
     return RichText(
       text: TextSpan(
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: const Color(0x99171717),
+          color: palette.panelMutedText.withValues(alpha: 0.78),
           fontSize: 10,
           fontWeight: FontWeight.w500,
         ),
@@ -174,7 +180,7 @@ class _MetaText extends StatelessWidget {
           TextSpan(
             text: value,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: const Color(0xCC171717),
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 10,
               fontWeight: FontWeight.w700,
             ),
@@ -218,6 +224,7 @@ class _InlineButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextButton(
       onPressed: onPressed,
       style: TextButton.styleFrom(
@@ -229,7 +236,7 @@ class _InlineButton extends StatelessWidget {
         label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           fontSize: 12,
-          color: const Color(0xFF171717),
+          color: colorScheme.onSurface,
         ),
       ),
     );

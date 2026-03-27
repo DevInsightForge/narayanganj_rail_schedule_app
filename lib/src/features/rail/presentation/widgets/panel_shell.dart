@@ -16,6 +16,7 @@ class PanelShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: padding,
@@ -23,9 +24,9 @@ class PanelShell extends StatelessWidget {
         color: backgroundColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderColor),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0D171717),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 36,
             offset: Offset(0, 14),
           ),

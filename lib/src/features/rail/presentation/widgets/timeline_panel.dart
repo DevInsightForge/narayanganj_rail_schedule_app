@@ -4,6 +4,7 @@ import 'package:timelines_plus/timelines_plus.dart';
 
 import '../../domain/entities/rail_snapshot.dart';
 import '../../domain/services/rail_board_service.dart';
+import 'panel_palette.dart';
 import 'panel_shell.dart';
 
 class TimelinePanel extends StatelessWidget {
@@ -14,11 +15,13 @@ class TimelinePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final boardService = context.read<RailBoardService>();
+    final colorScheme = Theme.of(context).colorScheme;
+    final palette = RailPanelPalette.of(colorScheme);
     final nextService = snapshot.nextService!;
 
     return PanelShell(
-      backgroundColor: const Color(0xFFF8F8F8),
-      borderColor: const Color(0x14171717),
+      backgroundColor: palette.panelBackground,
+      borderColor: palette.panelBorder,
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,9 +53,9 @@ class TimelinePanel extends StatelessWidget {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F1F1),
+                  color: palette.panelElevatedSurface,
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: const Color(0x12171717)),
+                  border: Border.all(color: palette.panelBorder),
                 ),
                 child: Text(
                   'Train ${nextService.trainNo}',
@@ -67,8 +70,8 @@ class TimelinePanel extends StatelessWidget {
           FixedTimeline.tileBuilder(
             theme: TimelineThemeData(
               nodePosition: 0,
-              connectorTheme: const ConnectorThemeData(
-                color: Color(0xFFD5D5D5),
+              connectorTheme: ConnectorThemeData(
+                color: colorScheme.outlineVariant,
                 thickness: 2,
               ),
               indicatorTheme: const IndicatorThemeData(position: 0.5, size: 12),
@@ -83,14 +86,12 @@ class TimelinePanel extends StatelessWidget {
 
                 return DotIndicator(
                   size: isTerminal ? 12 : 10,
-                  color: isTerminal
-                      ? const Color(0xFF171717)
-                      : const Color(0xFFB8B8B8),
+                  color: isTerminal ? colorScheme.primary : colorScheme.outline,
                 );
               },
               connectorBuilder: (context, index, connectorType) {
-                return const SolidLineConnector(
-                  color: Color(0xFFD5D5D5),
+                return SolidLineConnector(
+                  color: colorScheme.outlineVariant,
                   thickness: 2,
                 );
               },
@@ -109,9 +110,9 @@ class TimelinePanel extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF2F2F2),
+                      color: palette.panelSurface,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0x12171717)),
+                      border: Border.all(color: palette.panelBorder),
                     ),
                     child: Row(
                       children: [
@@ -128,7 +129,7 @@ class TimelinePanel extends StatelessWidget {
                                 subtitle,
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
-                                      color: const Color(0xFF5E5E5E),
+                                      color: palette.panelMutedText,
                                       fontSize: 12,
                                     ),
                               ),

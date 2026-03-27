@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/rail_snapshot.dart';
 import '../bloc/rail_board_bloc.dart';
+import 'panel_palette.dart';
 import 'panel_shell.dart';
 
 class HeaderPanel extends StatelessWidget {
@@ -13,12 +14,13 @@ class HeaderPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const formatter = _HeaderFormatter();
+    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
     final nextService = state.snapshot.nextService;
     final isTablet = MediaQuery.of(context).size.width >= 720;
 
     return PanelShell(
-      backgroundColor: const Color(0xFF171717),
-      borderColor: const Color(0x2E171717),
+      backgroundColor: palette.headerBackground,
+      borderColor: palette.panelBorder,
       padding: EdgeInsets.fromLTRB(
         10,
         isTablet ? 12 : 8,
@@ -111,6 +113,7 @@ class _HeroCopy extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,14 +132,14 @@ class _HeroCopy extends StatelessWidget {
         Text(
           'Narayanganj Rail',
           style: textTheme.displayMedium?.copyWith(
-            color: const Color(0xFFF7F7F7),
+            color: palette.headerOn,
             fontSize: 28,
           ),
         ),
         Text(
           'Plan your next commuter trip without digging through the full timetable.',
           style: textTheme.bodyMedium?.copyWith(
-            color: const Color(0xB8F5F5F5),
+            color: palette.headerOn.withValues(alpha: 0.72),
             fontSize: 13,
           ),
         ),
@@ -144,23 +147,23 @@ class _HeroCopy extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0x0DF5F5F5),
+            color: palette.headerSoftFill,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0x1AF5F5F5)),
+            border: Border.all(color: palette.headerSoftBorder),
           ),
           child: Row(
             children: [
               Container(
                 width: 38,
                 height: 38,
-                decoration: const BoxDecoration(
-                  color: Color(0x14F5F5F5),
+                decoration: BoxDecoration(
+                  color: palette.headerOn.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
+                child: Icon(
                   Icons.train_rounded,
-                  color: Color(0xFFF5F5F5),
+                  color: palette.headerOn,
                   size: 18,
                 ),
               ),
@@ -172,14 +175,14 @@ class _HeroCopy extends StatelessWidget {
                     Text(
                       nextServiceLabel,
                       style: textTheme.titleLarge?.copyWith(
-                        color: const Color(0xFFF5F5F5),
+                        color: palette.headerOn,
                         fontSize: 17,
                       ),
                     ),
                     Text(
                       waitLabel,
                       style: textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xB8F5F5F5),
+                        color: palette.headerOn.withValues(alpha: 0.72),
                         fontSize: 12,
                       ),
                     ),
@@ -203,15 +206,18 @@ class _PrimaryBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(maxWidth: 228),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F4F4),
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0x1A171717)),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,7 +225,7 @@ class _PrimaryBadge extends StatelessWidget {
           Text(
             'Next train',
             style: textTheme.bodySmall?.copyWith(
-              color: const Color(0xAA171717),
+              color: colorScheme.onSurface.withValues(alpha: 0.68),
               fontSize: 11,
             ),
           ),
@@ -228,14 +234,14 @@ class _PrimaryBadge extends StatelessWidget {
             departureLabel,
             style: textTheme.headlineMedium?.copyWith(
               fontSize: 26,
-              color: const Color(0xFF171717),
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             waitLabel,
             style: textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF5E5E5E),
+              color: colorScheme.onSurfaceVariant,
               fontSize: 12,
             ),
           ),
@@ -253,17 +259,18 @@ class _InfoPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0x0DF5F5F5),
+        color: palette.headerSoftFill,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0x1AF5F5F5)),
+        border: Border.all(color: palette.headerSoftBorder),
       ),
       child: RichText(
         text: TextSpan(
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: const Color(0x99F5F5F5),
+            color: palette.headerOn.withValues(alpha: 0.65),
             fontSize: 11,
           ),
           children: [
@@ -271,7 +278,7 @@ class _InfoPill extends StatelessWidget {
             TextSpan(
               text: value,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: const Color(0xFFF5F5F5),
+                color: palette.headerOn,
                 fontSize: 12,
               ),
             ),
@@ -331,14 +338,15 @@ class _SelectionStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: const Color(0xADF5F5F5)),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: palette.headerOn.withValues(alpha: 0.7),
+          ),
         ),
         const SizedBox(height: 8),
         SizedBox(
@@ -382,10 +390,13 @@ class _SelectionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
     return Opacity(
       opacity: disabled ? 0.48 : 1,
       child: Material(
-        color: selected ? const Color(0xFFE0E0E0) : const Color(0x0DF5F5F5),
+        color: selected
+            ? palette.headerSelectedChipFill
+            : palette.headerChipFill,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: onPressed,
@@ -396,15 +407,17 @@ class _SelectionChip extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: selected ? Colors.transparent : const Color(0x1AF5F5F5),
+                color: selected
+                    ? palette.headerSelectedChipBorder
+                    : palette.headerChipBorder,
               ),
             ),
             child: Text(
               label,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: selected
-                    ? const Color(0xFF171717)
-                    : const Color(0xFFF5F5F5),
+                    ? palette.headerSelectedChipText
+                    : palette.headerChipText,
                 fontSize: 13,
               ),
             ),
@@ -428,6 +441,7 @@ class _CompactHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -439,7 +453,7 @@ class _CompactHeader extends StatelessWidget {
               Text(
                 'Narayanganj Rail',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: const Color(0xFFF7F7F7),
+                  color: palette.headerOn,
                   fontSize: 20,
                 ),
               ),
@@ -447,7 +461,7 @@ class _CompactHeader extends StatelessWidget {
               Text(
                 currentTime.isEmpty ? 'Dhaka time' : currentTime,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xB8F5F5F5),
+                  color: palette.headerOn.withValues(alpha: 0.72),
                   fontSize: 12,
                 ),
               ),

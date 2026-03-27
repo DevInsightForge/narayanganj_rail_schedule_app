@@ -9,13 +9,17 @@ Future<void> main() async {
   try {
     await dotenv.load(fileName: '.env');
   } catch (_) {}
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Color(0x00000000),
       statusBarIconBrightness: Brightness.dark,
       statusBarBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFFEBEBEB),
+      systemStatusBarContrastEnforced: false,
+      systemNavigationBarColor: Color(0x00000000),
+      systemNavigationBarDividerColor: Color(0x00000000),
       systemNavigationBarIconBrightness: Brightness.dark,
+      systemNavigationBarContrastEnforced: false,
     ),
   );
   runApp(const NarayanganjRailScheduleApp());

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/rail_snapshot.dart';
 import '../../domain/services/rail_board_service.dart';
+import 'panel_palette.dart';
 import 'panel_shell.dart';
 
 class UpcomingPanel extends StatelessWidget {
@@ -13,13 +14,15 @@ class UpcomingPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final boardService = context.read<RailBoardService>();
+    final colorScheme = Theme.of(context).colorScheme;
+    final palette = RailPanelPalette.of(colorScheme);
     final alternatives = snapshot.upcomingServices
         .skip(1)
         .toList(growable: false);
 
     return PanelShell(
-      backgroundColor: const Color(0xFFF8F8F8),
-      borderColor: const Color(0x14171717),
+      backgroundColor: palette.panelBackground,
+      borderColor: palette.panelBorder,
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,7 +42,7 @@ class UpcomingPanel extends StatelessWidget {
           Text(
             '${alternatives.length} alternatives available',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF5E5E5E),
+              color: palette.panelMutedText,
               fontSize: 13,
             ),
           ),
@@ -49,15 +52,15 @@ class UpcomingPanel extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F1F1),
+                color: palette.panelElevatedSurface,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0x12171717)),
+                border: Border.all(color: palette.panelBorder),
               ),
               child: Text(
                 'No later departures are available for the current route selection.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF5E5E5E),
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: palette.panelMutedText),
               ),
             )
           else
@@ -115,12 +118,14 @@ class _AlternativeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final palette = RailPanelPalette.of(colorScheme);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F2),
+        color: palette.panelSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0x12171717)),
+        border: Border.all(color: palette.panelBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,8 +133,8 @@ class _AlternativeRow extends StatelessWidget {
           Container(
             width: 32,
             height: 32,
-            decoration: const BoxDecoration(
-              color: Color(0xFFE0E0E0),
+            decoration: BoxDecoration(
+              color: colorScheme.secondaryContainer,
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
@@ -164,7 +169,7 @@ class _AlternativeRow extends StatelessWidget {
                             waitLabel,
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
-                                  color: const Color(0xFF5E5E5E),
+                                  color: palette.panelMutedText,
                                   fontSize: 12,
                                 ),
                           ),
@@ -188,7 +193,7 @@ class _AlternativeRow extends StatelessWidget {
                               textAlign: TextAlign.end,
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(
-                                    color: const Color(0xFF5E5E5E),
+                                    color: palette.panelMutedText,
                                     fontSize: 12,
                                   ),
                             ),
@@ -199,7 +204,7 @@ class _AlternativeRow extends StatelessWidget {
                     Text(
                       '$periodLabel - Arrives $arrivalLabel',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF5E5E5E),
+                        color: palette.panelMutedText,
                         fontSize: 12,
                       ),
                     ),
@@ -208,7 +213,7 @@ class _AlternativeRow extends StatelessWidget {
                       durationLabel,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         fontSize: 12,
-                        color: const Color(0xFF171717),
+                        color: colorScheme.onSurface,
                       ),
                     ),
                   ],

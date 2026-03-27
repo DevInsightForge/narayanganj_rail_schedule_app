@@ -16,17 +16,21 @@ class RailBoardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFEBEBEB), Color(0xFFF0F0F0)],
+            colors: [
+              colorScheme.surface,
+              colorScheme.surfaceContainerLow,
+            ],
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0x14171717),
+              color: colorScheme.shadow.withValues(alpha: 0.08),
               blurRadius: 120,
               offset: Offset(0, 40),
             ),
@@ -69,13 +73,20 @@ class RailBoardPage extends StatelessWidget {
                           child: Container(
                             padding: EdgeInsets.all(shellPadding),
                             decoration: BoxDecoration(
-                              color: const Color(0xD6F7F7F7),
-                              border: Border.all(
-                                color: const Color(0x1A171717),
+                              color: colorScheme.surface.withValues(
+                                alpha: colorScheme.brightness == Brightness.dark
+                                    ? 0.9
+                                    : 0.86,
                               ),
-                              boxShadow: const [
+                              border: Border.all(
+                                color: colorScheme.outlineVariant
+                                    .withValues(alpha: 0.45),
+                              ),
+                              boxShadow: [
                                 BoxShadow(
-                                  color: Color(0x14171717),
+                                  color: colorScheme.shadow.withValues(
+                                    alpha: 0.08,
+                                  ),
                                   blurRadius: 64,
                                   offset: Offset(0, 20),
                                 ),

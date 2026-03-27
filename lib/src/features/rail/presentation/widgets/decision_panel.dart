@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/rail_snapshot.dart';
 import '../../domain/services/rail_board_service.dart';
+import 'panel_palette.dart';
 import 'panel_shell.dart';
 
 class DecisionPanel extends StatelessWidget {
@@ -13,12 +14,13 @@ class DecisionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final boardService = context.read<RailBoardService>();
+    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
     final nextService = snapshot.nextService!;
     final travelMinutes = nextService.etaMinutes - nextService.waitMinutes;
 
     return PanelShell(
-      backgroundColor: const Color(0xFFF8F8F8),
-      borderColor: const Color(0x14171717),
+      backgroundColor: palette.panelBackground,
+      borderColor: palette.panelBorder,
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,7 +42,7 @@ class DecisionPanel extends StatelessWidget {
           Text(
             'Board at ${snapshot.selectedStationName} and arrive at ${snapshot.destinationStationName} in ${boardService.getEtaLabel(nextService.etaMinutes)}.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: const Color(0xFF5E5E5E),
+              color: palette.panelMutedText,
               fontSize: 14,
             ),
           ),
@@ -113,12 +115,13 @@ class _RouteChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F1F1),
+        color: palette.panelElevatedSurface,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0x12171717)),
+        border: Border.all(color: palette.panelBorder),
       ),
       child: Text(
         label,
@@ -141,13 +144,14 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F2),
+        color: palette.panelSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0x12171717)),
+        border: Border.all(color: palette.panelBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,7 +168,7 @@ class _MetricCard extends StatelessWidget {
           Text(
             detail,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF5E5E5E),
+              color: palette.panelMutedText,
               fontSize: 12,
             ),
           ),
