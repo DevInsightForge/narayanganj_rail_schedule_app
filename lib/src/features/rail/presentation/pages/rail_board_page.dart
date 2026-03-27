@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 
 import '../bloc/rail_board_bloc.dart';
 import '../widgets/decision_panel.dart';
@@ -17,27 +18,42 @@ class RailBoardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.surface,
-              colorScheme.surfaceContainerLow,
+    final isDark = colorScheme.brightness == Brightness.dark;
+    final overlayStyle = SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarIconBrightness: isDark
+          ? Brightness.light
+          : Brightness.dark,
+      systemStatusBarContrastEnforced: false,
+      systemNavigationBarContrastEnforced: false,
+    );
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: overlayStyle,
+      child: Scaffold(
+        body: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                colorScheme.surface,
+                colorScheme.surfaceContainerLow,
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.08),
+                blurRadius: 120,
+                offset: Offset(0, 40),
+              ),
             ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.shadow.withValues(alpha: 0.08),
-              blurRadius: 120,
-              offset: Offset(0, 40),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: BlocBuilder<RailBoardBloc, RailBoardState>(
+          child: SafeArea(
+            child: BlocBuilder<RailBoardBloc, RailBoardState>(
             builder: (context, state) {
               if (state.isLoading) {
                 return const Center(child: CircularProgressIndicator());
@@ -77,10 +93,6 @@ class RailBoardPage extends StatelessWidget {
                                 alpha: colorScheme.brightness == Brightness.dark
                                     ? 0.9
                                     : 0.86,
-                              ),
-                              border: Border.all(
-                                color: colorScheme.outlineVariant
-                                    .withValues(alpha: 0.45),
                               ),
                               boxShadow: [
                                 BoxShadow(
@@ -163,6 +175,7 @@ class RailBoardPage extends StatelessWidget {
                 },
               );
             },
+            ),
           ),
         ),
       ),
