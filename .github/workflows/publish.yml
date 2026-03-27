@@ -96,7 +96,6 @@ jobs:
       - name: Collect release assets
         run: |
           mkdir -p release-assets
-          cp build/app/outputs/bundle/release/app-release.aab release-assets/narayanganj-rail-schedule-${RELEASE_TAG}.aab
           cp build/app/outputs/flutter-apk/app-release.apk release-assets/narayanganj-rail-schedule-${RELEASE_TAG}-universal.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release-assets/narayanganj-rail-schedule-${RELEASE_TAG}-armeabi-v7a.apk
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release-assets/narayanganj-rail-schedule-${RELEASE_TAG}-arm64-v8a.apk
