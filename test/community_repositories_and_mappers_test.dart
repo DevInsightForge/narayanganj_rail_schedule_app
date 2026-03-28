@@ -9,15 +9,17 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/entities
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/rate_limit_policy.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/data/datasources/static_schedule_data_source.dart';
+
+import 'support/bundled_schedule_fixture.dart';
 
 void main() {
+  final bundledSchedule = loadBundledScheduleFixture();
   group('community repository contracts and mappers', () {
     test('maps rail schedule into session templates', () {
       const mapper = RailScheduleTemplateMapper();
       final templates = mapper.map(
         routeId: 'narayanganj_line',
-        schedule: StaticScheduleDataSource.schedule,
+        schedule: bundledSchedule,
       );
 
       expect(templates, isNotEmpty);

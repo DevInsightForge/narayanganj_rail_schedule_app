@@ -1,13 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/data/datasources/static_schedule_data_source.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
 
+import 'support/bundled_schedule_fixture.dart';
+
 void main() {
   group('RailBoardService', () {
-    final service = RailBoardService(
-      schedule: StaticScheduleDataSource.schedule,
-    );
+    final service = RailBoardService(schedule: loadBundledScheduleFixture());
 
     test('returns stations ordered by direction', () {
       final forward = service.getStationsForDirection('dhaka_to_narayanganj');

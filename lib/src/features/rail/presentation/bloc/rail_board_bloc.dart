@@ -3,27 +3,24 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
-import '../../../community/domain/entities/arrival_report.dart';
-import '../../../community/domain/entities/device_identity.dart';
-import '../../../community/domain/entities/predicted_stop_time.dart';
-import '../../../community/domain/entities/session_status_snapshot.dart';
-import '../../../community/domain/entities/train_session.dart';
 import '../../../community/domain/repositories/arrival_report_repository.dart';
 import '../../../community/domain/repositories/device_identity_repository.dart';
 import '../../../community/domain/repositories/prediction_repository.dart';
 import '../../../community/domain/repositories/rate_limit_policy_repository.dart';
 import '../../../community/domain/repositories/session_repository.dart';
-import '../../../community/domain/services/delay_classifier_service.dart';
-import '../../../community/domain/services/downstream_prediction_service.dart';
-import '../../../community/domain/services/report_confidence_service.dart';
 import '../../../community/domain/services/session_lifecycle_service.dart';
-import '../../../community/domain/services/session_status_aggregation_service.dart';
-import '../../data/datasources/static_schedule_data_source.dart';
+import '../../application/models/rail_community_insight_result.dart';
+import '../../application/models/rail_reporting.dart';
+import '../../application/services/rail_community_insight_coordinator.dart';
+import '../../application/services/rail_report_coordinator.dart';
+import '../../application/services/rail_session_resolver.dart';
 import '../../data/repositories/schedule_data_repository.dart';
 import '../../domain/entities/rail_selection.dart';
 import '../../domain/entities/rail_snapshot.dart';
 import '../../domain/repositories/selection_repository.dart';
 import '../../domain/services/rail_board_service.dart';
+import '../../../community/domain/entities/predicted_stop_time.dart';
+import '../../../community/domain/entities/session_status_snapshot.dart';
 
 part 'rail_board_event.dart';
 part 'rail_board_state.dart';
@@ -39,23 +36,32 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     required DeviceIdentityRepository deviceIdentityRepository,
     required RateLimitPolicyRepository rateLimitPolicyRepository,
     this.communityFeaturesEnabled = true,
+    this.enableTicker = true,
     DateTime Function()? nowProvider,
   }) : _boardService = boardService,
        _scheduleDataRepository = scheduleDataRepository,
        _selectionRepository = selectionRepository,
-       _sessionRepository = sessionRepository,
-       _arrivalReportRepository = arrivalReportRepository,
-       _predictionRepository = predictionRepository,
-       _deviceIdentityRepository = deviceIdentityRepository,
-       _rateLimitPolicyRepository = rateLimitPolicyRepository,
        _nowProvider = nowProvider ?? DateTime.now,
-       _sessionLifecycleService = const SessionLifecycleService(),
-       _reportConfidenceService = const ReportConfidenceService(),
-       _downstreamPredictionService = const DownstreamPredictionService(),
-       _sessionStatusAggregationService = const SessionStatusAggregationService(
-         delayClassifierService: DelayClassifierService(),
-         confidenceService: ReportConfidenceService(),
+       _reportCoordinator = RailReportCoordinator(
+         sessionResolver: RailSessionResolver(
+           sessionRepository: sessionRepository,
+           sessionLifecycleService: const SessionLifecycleService(),
+           routeId: _routeId,
+         ),
+         arrivalReportRepository: arrivalReportRepository,
+         deviceIdentityRepository: deviceIdentityRepository,
+         rateLimitPolicyRepository: rateLimitPolicyRepository,
        ),
+       _communityCoordinator = RailCommunityInsightCoordinator(
+         sessionResolver: RailSessionResolver(
+           sessionRepository: sessionRepository,
+           sessionLifecycleService: const SessionLifecycleService(),
+           routeId: _routeId,
+         ),
+         arrivalReportRepository: arrivalReportRepository,
+         predictionRepository: predictionRepository,
+       ),
+       _initialScheduleVersion = boardService.schedule.version,
        _activeSource = ScheduleDataSource.bundled,
        _lastUpdatedAt = null,
        super(const RailBoardState()) {
@@ -68,36 +74,27 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     on<RailBoardArrivalReportRequested>(_onArrivalReportRequested);
 
     add(const RailBoardStarted());
-    _timer = Timer.periodic(
-      const Duration(seconds: 30),
-      (_) => add(const RailBoardTicked()),
-    );
+    if (enableTicker) {
+      _timer = Timer.periodic(
+        const Duration(seconds: 30),
+        (_) => add(const RailBoardTicked()),
+      );
+    }
   }
 
   static const _fallbackErrorMessage =
       'Unable to load schedule data. Please try again.';
   static const _routeId = 'narayanganj_line';
-  static const _staleInsightThresholdSeconds = 10 * 60;
-  static const _reportRateLimitKey = 'arrival_report';
-  static const _reportDedupeBucketMinutes = 2;
-  static const _reportDedupeRetentionMinutes = 10;
 
   RailBoardService _boardService;
   final ScheduleDataRepository _scheduleDataRepository;
   final SelectionRepository _selectionRepository;
-  final SessionRepository _sessionRepository;
-  final ArrivalReportRepository _arrivalReportRepository;
-  final PredictionRepository _predictionRepository;
-  final DeviceIdentityRepository _deviceIdentityRepository;
-  final RateLimitPolicyRepository _rateLimitPolicyRepository;
   final DateTime Function() _nowProvider;
   final bool communityFeaturesEnabled;
-  final SessionLifecycleService _sessionLifecycleService;
-  final ReportConfidenceService _reportConfidenceService;
-  final DownstreamPredictionService _downstreamPredictionService;
-  final SessionStatusAggregationService _sessionStatusAggregationService;
-  final String _bundledVersion = StaticScheduleDataSource.version;
-  final Map<String, DateTime> _recentReportKeys = {};
+  final bool enableTicker;
+  final RailReportCoordinator _reportCoordinator;
+  final RailCommunityInsightCoordinator _communityCoordinator;
+  final String _initialScheduleVersion;
   int _reportAvailabilityRevision = 0;
   Timer? _timer;
 
@@ -229,24 +226,20 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     RailBoardTicked event,
     Emitter<RailBoardState> emit,
   ) async {
-    if (state.status == RailBoardStatus.ready) {
-      if (!communityFeaturesEnabled) {
-        emit(_buildState(state.selection));
-        await _refreshReportAvailability(
-          selection: state.selection,
-          emit: emit,
-        );
-        return;
-      }
-      final now = _nowProvider();
-      emit(_buildState(state.selection));
-      await _refreshReportAvailability(
-        selection: state.selection,
-        emit: emit,
-        now: now,
-      );
-      await _refreshCommunityInsights(selection: state.selection, emit: emit);
+    if (state.status != RailBoardStatus.ready) {
+      return;
     }
+    emit(_buildState(state.selection));
+    final now = _nowProvider();
+    await _refreshReportAvailability(
+      selection: state.selection,
+      emit: emit,
+      now: now,
+    );
+    if (!communityFeaturesEnabled) {
+      return;
+    }
+    await _refreshCommunityInsights(selection: state.selection, emit: emit);
   }
 
   Future<void> _onArrivalReportRequested(
@@ -260,6 +253,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
         state.snapshot.nextService == null) {
       return;
     }
+
     await _refreshReportAvailability(selection: state.selection, emit: emit);
     if (!state.report.isActionEnabled) {
       emit(
@@ -286,154 +280,35 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       ),
     );
 
-    final now = _nowProvider();
-    final selection = state.selection;
-    final session = await _findSessionForCurrentTrain(
-      direction: selection.direction,
-      now: now,
+    final submission = await _reportCoordinator.submit(
+      selection: state.selection,
+      nextService: state.snapshot.nextService,
+      selectedStationName: state.snapshot.selectedStationName,
+      now: _nowProvider(),
     );
-    final boardingStop = session == null
-        ? null
-        : _findSessionStopForStation(
-            session: session,
-            stationId: selection.boardingStationId,
-          );
 
-    if (session == null || boardingStop == null) {
-      emit(
-        state.copyWith(
-          report: state.report.copyWith(
-            status: RailReportSubmissionStatus.error,
-            feedbackMessage:
-                'Arrival reporting is unavailable for the selected station.',
-            clearRetryAfter: true,
+    emit(
+      state.copyWith(
+        report: _deriveReportActionState(
+          state.report.copyWith(
+            status: switch (submission.outcome) {
+              RailReportSubmissionOutcome.success =>
+                RailReportSubmissionStatus.success,
+              RailReportSubmissionOutcome.rateLimited =>
+                RailReportSubmissionStatus.rateLimited,
+              RailReportSubmissionOutcome.error =>
+                RailReportSubmissionStatus.error,
+            },
+            feedbackMessage: submission.feedbackMessage,
+            retryAfterSeconds: submission.retryAfterSeconds,
           ),
+          reason: submission.reason,
         ),
-      );
-      return;
-    }
-    final boardingWindowState = _getBoardingReportWindowState(
-      boardingAt: boardingStop.scheduledAt,
-      now: now,
+      ),
     );
-    if (boardingWindowState != SessionLifecycleState.active) {
-      emit(
-        state.copyWith(
-          report: state.report.copyWith(
-            status: RailReportSubmissionStatus.error,
-            feedbackMessage:
-                'Arrival reporting is not open for this station at this time.',
-            clearRetryAfter: true,
-          ),
-        ),
-      );
-      return;
-    }
 
-    DeviceIdentity identity;
-    try {
-      identity = await _deviceIdentityRepository.readOrCreateIdentity();
-    } catch (_) {
-      emit(
-        state.copyWith(
-          report: _deriveReportActionState(
-            state.report.copyWith(
-              status: RailReportSubmissionStatus.error,
-              feedbackMessage:
-                  'Could not prepare your arrival report right now.',
-              clearRetryAfter: true,
-            ),
-            reason: RailReportActionReason.temporarilyUnavailable,
-          ),
-        ),
-      );
-      return;
-    }
-    await _deviceIdentityRepository.touchIdentity(now);
-    final rateLimitDecision = await _rateLimitPolicyRepository.checkAllowance(
-      key: _reportRateLimitKey,
-      now: now,
-    );
-    if (!rateLimitDecision.allowed) {
-      emit(
-        state.copyWith(
-          report: state.report.copyWith(
-            status: RailReportSubmissionStatus.rateLimited,
-            retryAfterSeconds: rateLimitDecision.retryAfterSeconds,
-            feedbackMessage:
-                'Please wait ${rateLimitDecision.retryAfterSeconds}s before reporting again.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    final dedupeKey = _buildReportDedupeKey(
-      sessionId: session.sessionId,
-      stationId: selection.boardingStationId,
-      deviceId: identity.deviceId,
-      now: now,
-    );
-    if (_isDuplicateReport(dedupeKey: dedupeKey, now: now)) {
-      emit(
-        state.copyWith(
-          report: _deriveReportActionState(
-            state.report.copyWith(
-              status: RailReportSubmissionStatus.success,
-              feedbackMessage:
-                  'Arrival report already recorded for this train.',
-              clearRetryAfter: true,
-            ),
-            reason: RailReportActionReason.alreadySubmitted,
-          ),
-        ),
-      );
-      return;
-    }
-
-    final report = ArrivalReport(
-      reportId: 'report:${now.microsecondsSinceEpoch}',
-      sessionId: session.sessionId,
-      stationId: selection.boardingStationId,
-      deviceId: identity.deviceId,
-      observedArrivalAt: now,
-      submittedAt: now,
-    );
-    try {
-      await _arrivalReportRepository.submitArrivalReport(report);
-      await _rateLimitPolicyRepository.recordEvent(
-        key: _reportRateLimitKey,
-        now: now,
-      );
-      _recentReportKeys[dedupeKey] = now;
-      emit(
-        state.copyWith(
-          report: _deriveReportActionState(
-            state.report.copyWith(
-              status: RailReportSubmissionStatus.success,
-              feedbackMessage:
-                  'Arrival reported for ${state.snapshot.selectedStationName}. Thank you.',
-              clearRetryAfter: true,
-            ),
-            reason: RailReportActionReason.alreadySubmitted,
-          ),
-        ),
-      );
+    if (submission.outcome == RailReportSubmissionOutcome.success) {
       await _refreshCommunityInsights(selection: state.selection, emit: emit);
-    } catch (_) {
-      emit(
-        state.copyWith(
-          report: _deriveReportActionState(
-            state.report.copyWith(
-              status: RailReportSubmissionStatus.error,
-              feedbackMessage:
-                  'Arrival report could not be submitted. Please try again.',
-              clearRetryAfter: true,
-            ),
-            reason: RailReportActionReason.temporarilyUnavailable,
-          ),
-        ),
-      );
     }
   }
 
@@ -449,244 +324,25 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       ),
     );
 
-    try {
-      final now = _nowProvider();
-      final session = await _findSessionForCurrentTrain(
-        direction: selection.direction,
-        now: now,
-      );
-
-      if (session == null) {
-        emit(
-          state.copyWith(
-            community: state.community.copyWith(
-              insightStatus: RailCommunityInsightStatus.empty,
-              lastResolvedInsightStatus: RailCommunityInsightStatus.empty,
-              clearSessionStatus: true,
-              predictedStopTimes: const [],
-              message: 'No active train estimate is available right now.',
-            ),
-          ),
-        );
-        return;
-      }
-
-      final reportsByStation = <String, List<ArrivalReport>>{};
-      for (final stop in session.stops) {
-        reportsByStation[stop.stationId] = await _arrivalReportRepository
-            .fetchStopReports(
-              sessionId: session.sessionId,
-              stationId: stop.stationId,
-            );
-      }
-
-      final observedStops =
-          session.stops
-              .where(
-                (stop) =>
-                    (reportsByStation[stop.stationId] ?? const []).isNotEmpty,
-              )
-              .toList(growable: false)
-            ..sort((a, b) => b.sequence.compareTo(a.sequence));
-
-      if (observedStops.isEmpty) {
-        emit(
-          state.copyWith(
-            community: state.community.copyWith(
-              insightStatus: RailCommunityInsightStatus.empty,
-              lastResolvedInsightStatus: RailCommunityInsightStatus.empty,
-              clearSessionStatus: true,
-              predictedStopTimes: const [],
-              message:
-                  'No community reports are available for this train session yet.',
-            ),
-          ),
-        );
-        return;
-      }
-
-      final referenceStop = observedStops.first;
-      final referenceReports =
-          reportsByStation[referenceStop.stationId] ?? const [];
-      final consensus = _sessionStatusAggregationService.buildStationConsensus(
-        session: session,
-        stationId: referenceStop.stationId,
-        reports: referenceReports,
-        now: now,
-      );
-
-      final sessionState = _sessionLifecycleService.getState(
-        session: session,
-        now: now,
-      );
-      final status = _sessionStatusAggregationService.buildSessionStatus(
-        session: session,
-        state: sessionState,
-        stationId: referenceStop.stationId,
-        reports: referenceReports,
-        now: now,
-      );
-
-      final localPredictions = consensus.observedArrivalAt == null
-          ? const <PredictedStopTime>[]
-          : _downstreamPredictionService.predictFromObservation(
-              session: session,
-              observedStationId: referenceStop.stationId,
-              observedArrivalAt: consensus.observedArrivalAt!,
-              confidence: _reportConfidenceService.evaluate(
-                reports: referenceReports,
-                now: now,
-              ),
-            );
-      final remotePredictions = await _predictionRepository.fetchPredictions(
-        sessionId: session.sessionId,
-      );
-      final predictions = remotePredictions.isNotEmpty
-          ? remotePredictions
-          : localPredictions;
-
-      final isStale = status.freshnessSeconds > _staleInsightThresholdSeconds;
-      emit(
-        state.copyWith(
-          community: state.community.copyWith(
-            insightStatus: isStale
-                ? RailCommunityInsightStatus.stale
-                : RailCommunityInsightStatus.ready,
-            lastResolvedInsightStatus: isStale
-                ? RailCommunityInsightStatus.stale
-                : RailCommunityInsightStatus.ready,
-            sessionStatusSnapshot: status,
-            predictedStopTimes: predictions,
-            message: remotePredictions.isNotEmpty
-                ? 'Estimate synchronized from remote community snapshots.'
-                : 'Estimate based on ${referenceReports.length} report(s) from ${referenceStop.stationName}.',
-          ),
+    final result = await _communityCoordinator.load(
+      direction: selection.direction,
+      nextService: state.snapshot.nextService,
+      now: _nowProvider(),
+    );
+    final mappedStatus = _mapInsightKind(result.kind);
+    emit(
+      state.copyWith(
+        community: state.community.copyWith(
+          insightStatus: mappedStatus,
+          lastResolvedInsightStatus: mappedStatus,
+          sessionStatusSnapshot: result.sessionStatusSnapshot,
+          clearSessionStatus: result.sessionStatusSnapshot == null,
+          predictedStopTimes: result.predictedStopTimes,
+          message: result.message,
+          clearMessage: result.message == null,
         ),
-      );
-    } catch (_) {
-      emit(
-        state.copyWith(
-          community: state.community.copyWith(
-            insightStatus: RailCommunityInsightStatus.error,
-            lastResolvedInsightStatus: RailCommunityInsightStatus.error,
-            clearSessionStatus: true,
-            predictedStopTimes: const [],
-            message:
-                'Community estimate is temporarily unavailable. Official schedule remains available.',
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<TrainSession?> _findSessionForCurrentTrain({
-    required String direction,
-    required DateTime now,
-  }) async {
-    final trainNo = state.snapshot.nextService?.trainNo;
-    if (trainNo == null) {
-      return null;
-    }
-    final sessions = await _fetchRouteSessions(now);
-    final candidates = sessions
-        .where(
-          (session) =>
-              session.directionId == direction && session.trainNo == trainNo,
-        )
-        .toList(growable: false);
-    if (candidates.isEmpty) {
-      return null;
-    }
-    for (final session in candidates) {
-      if (_sessionLifecycleService.getState(session: session, now: now) ==
-          SessionLifecycleState.active) {
-        return session;
-      }
-    }
-    for (final session in candidates) {
-      if (_sessionLifecycleService.getState(session: session, now: now) ==
-          SessionLifecycleState.upcoming) {
-        return session;
-      }
-    }
-    return candidates.last;
-  }
-
-  SessionStop? _findSessionStopForStation({
-    required TrainSession session,
-    required String stationId,
-  }) {
-    for (final stop in session.stops) {
-      if (stop.stationId == stationId) {
-        return stop;
-      }
-    }
-    return null;
-  }
-
-  SessionLifecycleState _getBoardingReportWindowState({
-    required DateTime boardingAt,
-    required DateTime now,
-  }) {
-    final eligibilityStart = boardingAt.subtract(
-      Duration(minutes: _sessionLifecycleService.preDepartureMinutes),
+      ),
     );
-    final eligibilityEnd = boardingAt.add(
-      Duration(minutes: _sessionLifecycleService.postDepartureMinutes),
-    );
-    if (now.isBefore(eligibilityStart)) {
-      return SessionLifecycleState.upcoming;
-    }
-    if (now.isAfter(eligibilityEnd)) {
-      return SessionLifecycleState.expired;
-    }
-    return SessionLifecycleState.active;
-  }
-
-  Future<List<TrainSession>> _fetchRouteSessions(DateTime now) async {
-    final today = DateTime(now.year, now.month, now.day);
-    final tomorrow = today.add(const Duration(days: 1));
-    final todaySessions = await _sessionRepository.fetchSessions(
-      routeId: _routeId,
-      serviceDate: today,
-    );
-    final tomorrowSessions = await _sessionRepository.fetchSessions(
-      routeId: _routeId,
-      serviceDate: tomorrow,
-    );
-    final sessions = [...todaySessions, ...tomorrowSessions]
-      ..sort((a, b) => a.departureAt.compareTo(b.departureAt));
-    return sessions;
-  }
-
-  String _buildReportDedupeKey({
-    required String sessionId,
-    required String stationId,
-    required String deviceId,
-    required DateTime now,
-  }) {
-    final bucket =
-        now.millisecondsSinceEpoch ~/
-        const Duration(minutes: _reportDedupeBucketMinutes).inMilliseconds;
-    return '$sessionId:$stationId:$deviceId:$bucket';
-  }
-
-  bool _isDuplicateReport({required String dedupeKey, required DateTime now}) {
-    _pruneRecentReportKeys(now);
-    return _recentReportKeys.containsKey(dedupeKey);
-  }
-
-  void _pruneRecentReportKeys(DateTime now) {
-    final cutoff = now.subtract(
-      const Duration(minutes: _reportDedupeRetentionMinutes),
-    );
-    final expired = _recentReportKeys.entries
-        .where((entry) => entry.value.isBefore(cutoff))
-        .map((entry) => entry.key)
-        .toList(growable: false);
-    for (final key in expired) {
-      _recentReportKeys.remove(key);
-    }
   }
 
   Future<void> _refreshReportAvailability({
@@ -707,135 +363,20 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       return;
     }
 
-    final referenceNow = now ?? _nowProvider();
-    final session = await _findSessionForCurrentTrain(
-      direction: selection.direction,
-      now: referenceNow,
+    final availability = await _reportCoordinator.resolveAvailability(
+      selection: selection,
+      nextService: state.snapshot.nextService,
+      now: now ?? _nowProvider(),
     );
-    final boardingStop = session == null
-        ? null
-        : _findSessionStopForStation(
-            session: session,
-            stationId: selection.boardingStationId,
-          );
-
-    if (session == null ||
-        boardingStop == null ||
-        state.snapshot.nextService == null) {
-      final nextReport = _deriveReportActionState(
-        state.report,
-        reason: RailReportActionReason.noSession,
-      );
-      if (revision == _reportAvailabilityRevision &&
-          nextReport != state.report) {
-        emit(state.copyWith(report: nextReport));
-      }
-      return;
-    }
-
-    final boardingWindowState = _getBoardingReportWindowState(
-      boardingAt: boardingStop.scheduledAt,
-      now: referenceNow,
-    );
-    if (boardingWindowState == SessionLifecycleState.upcoming) {
-      final nextReport = _deriveReportActionState(
-        state.report,
-        reason: RailReportActionReason.beforeWindow,
-        now: referenceNow,
-        boardingAt: boardingStop.scheduledAt,
-      );
-      if (revision == _reportAvailabilityRevision &&
-          nextReport != state.report) {
-        emit(state.copyWith(report: nextReport));
-      }
-      return;
-    }
-    if (boardingWindowState == SessionLifecycleState.expired) {
-      final nextReport = _deriveReportActionState(
-        state.report,
-        reason: RailReportActionReason.afterWindow,
-      );
-      if (revision == _reportAvailabilityRevision &&
-          nextReport != state.report) {
-        emit(state.copyWith(report: nextReport));
-      }
-      return;
-    }
-
-    DeviceIdentity identity;
-    try {
-      identity = await _deviceIdentityRepository.readOrCreateIdentity();
-    } catch (_) {
-      final nextReport = _deriveReportActionState(
-        state.report,
-        reason: RailReportActionReason.temporarilyUnavailable,
-      );
-      if (revision == _reportAvailabilityRevision &&
-          nextReport != state.report) {
-        emit(state.copyWith(report: nextReport));
-      }
-      return;
-    }
-    bool hasSubmitted;
-    try {
-      hasSubmitted = await _hasSubmittedForSession(
-        session: session,
-        stationId: selection.boardingStationId,
-        deviceId: identity.deviceId,
-        now: referenceNow,
-      );
-    } catch (_) {
-      final nextReport = _deriveReportActionState(
-        state.report,
-        reason: RailReportActionReason.verificationLimitedEligible,
-      );
-      if (revision == _reportAvailabilityRevision &&
-          nextReport != state.report) {
-        emit(state.copyWith(report: nextReport));
-      }
-      return;
-    }
-
-    if (hasSubmitted) {
-      final nextReport = _deriveReportActionState(
-        state.report,
-        reason: RailReportActionReason.alreadySubmitted,
-      );
-      if (revision == _reportAvailabilityRevision &&
-          nextReport != state.report) {
-        emit(state.copyWith(report: nextReport));
-      }
-      return;
-    }
-
     final nextReport = _deriveReportActionState(
       state.report,
-      reason: RailReportActionReason.eligible,
+      reason: availability.reason,
+      now: now ?? _nowProvider(),
+      boardingAt: availability.boardingAt,
     );
     if (revision == _reportAvailabilityRevision && nextReport != state.report) {
       emit(state.copyWith(report: nextReport));
     }
-  }
-
-  Future<bool> _hasSubmittedForSession({
-    required TrainSession session,
-    required String stationId,
-    required String deviceId,
-    required DateTime now,
-  }) async {
-    _pruneRecentReportKeys(now);
-    final dedupePrefix = '${session.sessionId}:$stationId:$deviceId:';
-    final hasRecent = _recentReportKeys.keys.any(
-      (key) => key.startsWith(dedupePrefix),
-    );
-    if (hasRecent) {
-      return true;
-    }
-    final reports = await _arrivalReportRepository.fetchStopReports(
-      sessionId: session.sessionId,
-      stationId: stationId,
-    );
-    return reports.any((report) => report.deviceId == deviceId);
   }
 
   RailBoardReportState _deriveReportActionState(
@@ -870,10 +411,8 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
         return 'No reportable train session is available right now.';
       case RailReportActionReason.beforeWindow:
         if (now != null && boardingAt != null) {
-          final eligibilityStart = boardingAt.subtract(
-            Duration(minutes: _sessionLifecycleService.preDepartureMinutes),
-          );
-          final remainingMinutes = eligibilityStart
+          final remainingMinutes = boardingAt
+              .subtract(const Duration(minutes: 5))
               .difference(now)
               .inMinutes
               .clamp(0, 9999);
@@ -891,6 +430,17 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       case RailReportActionReason.verificationLimitedEligible:
         return 'Live verification is unavailable. You can still submit one arrival report for this station.';
     }
+  }
+
+  RailCommunityInsightStatus _mapInsightKind(RailCommunityInsightKind kind) {
+    return switch (kind) {
+      RailCommunityInsightKind.idle => RailCommunityInsightStatus.idle,
+      RailCommunityInsightKind.loading => RailCommunityInsightStatus.loading,
+      RailCommunityInsightKind.ready => RailCommunityInsightStatus.ready,
+      RailCommunityInsightKind.stale => RailCommunityInsightStatus.stale,
+      RailCommunityInsightKind.empty => RailCommunityInsightStatus.empty,
+      RailCommunityInsightKind.error => RailCommunityInsightStatus.error,
+    };
   }
 
   RailBoardState _buildState(RailSelection selection) {
@@ -917,7 +467,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
               dataSourceLabel: sourceLabel,
               lastUpdatedAt: _lastUpdatedAt,
               scheduleVersion: _boardService.schedule.version.isEmpty
-                  ? _bundledVersion
+                  ? _initialScheduleVersion
                   : _boardService.schedule.version,
             ),
       ),

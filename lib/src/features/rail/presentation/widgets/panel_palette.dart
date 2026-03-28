@@ -1,83 +1,111 @@
 import 'package:flutter/material.dart';
 
-class RailPanelPalette {
-  const RailPanelPalette({
-    required this.panelBackground,
-    required this.panelSurface,
-    required this.panelElevatedSurface,
-    required this.panelBorder,
-    required this.panelMutedText,
-    required this.headerBackground,
-    required this.headerOn,
-    required this.headerSoftFill,
-    required this.headerSoftBorder,
-    required this.headerChipFill,
-    required this.headerChipBorder,
-    required this.headerChipText,
-    required this.headerSelectedChipFill,
-    required this.headerSelectedChipBorder,
-    required this.headerSelectedChipText,
-    required this.noticeIconTint,
-    required this.noticeIconBackground,
+enum RailPanelSurface { shell, primary, secondary, accent }
+
+class RailBoardTokens {
+  const RailBoardTokens({
+    required this.isTablet,
+    required this.isWide,
+    required this.maxContentWidth,
+    required this.pagePadding,
+    required this.panelPadding,
+    required this.panelGap,
+    required this.sectionGap,
+    required this.itemGap,
+    required this.compactGap,
+    required this.heroRadius,
+    required this.panelRadius,
+    required this.chipRadius,
+    required this.boardStart,
+    required this.boardEnd,
+    required this.shellSurface,
+    required this.primarySurface,
+    required this.secondarySurface,
+    required this.accentSurface,
+    required this.border,
+    required this.textMuted,
+    required this.accent,
+    required this.accentSoft,
     required this.shadow,
+    required this.success,
+    required this.warning,
   });
 
-  final Color panelBackground;
-  final Color panelSurface;
-  final Color panelElevatedSurface;
-  final Color panelBorder;
-  final Color panelMutedText;
-  final Color headerBackground;
-  final Color headerOn;
-  final Color headerSoftFill;
-  final Color headerSoftBorder;
-  final Color headerChipFill;
-  final Color headerChipBorder;
-  final Color headerChipText;
-  final Color headerSelectedChipFill;
-  final Color headerSelectedChipBorder;
-  final Color headerSelectedChipText;
-  final Color noticeIconTint;
-  final Color noticeIconBackground;
+  final bool isTablet;
+  final bool isWide;
+  final double maxContentWidth;
+  final EdgeInsets pagePadding;
+  final EdgeInsets panelPadding;
+  final double panelGap;
+  final double sectionGap;
+  final double itemGap;
+  final double compactGap;
+  final double heroRadius;
+  final double panelRadius;
+  final double chipRadius;
+  final Color boardStart;
+  final Color boardEnd;
+  final Color shellSurface;
+  final Color primarySurface;
+  final Color secondarySurface;
+  final Color accentSurface;
+  final Color border;
+  final Color textMuted;
+  final Color accent;
+  final Color accentSoft;
   final Color shadow;
+  final Color success;
+  final Color warning;
 
-  factory RailPanelPalette.of(ColorScheme colorScheme) {
-    final isDarkTheme = colorScheme.brightness == Brightness.dark;
-    final headerOn = colorScheme.onSurface;
+  factory RailBoardTokens.of(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final width = MediaQuery.sizeOf(context).width;
+    final isTablet = width >= 900;
+    final isWide = width >= 700;
 
-    return RailPanelPalette(
-      panelBackground: colorScheme.surfaceContainerLow,
-      panelSurface: colorScheme.surfaceContainer,
-      panelElevatedSurface: colorScheme.surfaceContainerHighest,
-      panelBorder: colorScheme.outlineVariant.withValues(alpha: 0.45),
-      panelMutedText: colorScheme.onSurfaceVariant,
-      headerBackground: isDarkTheme
-          ? colorScheme.surfaceContainerHigh
-          : colorScheme.surfaceContainerHigh,
-      headerOn: headerOn,
-      headerSoftFill: headerOn.withValues(alpha: isDarkTheme ? 0.08 : 0.05),
-      headerSoftBorder: headerOn.withValues(alpha: isDarkTheme ? 0.2 : 0.14),
-      headerChipFill: isDarkTheme
-          ? const Color(0xFF3A3A3A)
-          : const Color(0xFFE2E2E2),
-      headerChipBorder: isDarkTheme
-          ? const Color(0xFF5A5A5A)
-          : const Color(0xFFC7C7C7),
-      headerChipText: isDarkTheme
-          ? const Color(0xFFF1F1F1)
-          : const Color(0xFF202020),
-      headerSelectedChipFill: isDarkTheme
-          ? const Color(0xFFE6E6E6)
-          : const Color(0xFF2A2A2A),
-      headerSelectedChipBorder: isDarkTheme
-          ? const Color(0xFFF2F2F2)
-          : const Color(0xFF3A3A3A),
-      headerSelectedChipText: isDarkTheme
-          ? const Color(0xFF1A1A1A)
-          : const Color(0xFFF2F2F2),
-      noticeIconTint: colorScheme.primary,
-      noticeIconBackground: colorScheme.primary.withValues(alpha: 0.1),
-      shadow: colorScheme.shadow,
+    return RailBoardTokens(
+      isTablet: isTablet,
+      isWide: isWide,
+      maxContentWidth: isTablet ? 1180 : 760,
+      pagePadding: EdgeInsets.fromLTRB(
+        isTablet ? 28 : 16,
+        isTablet ? 24 : 12,
+        isTablet ? 28 : 16,
+        isTablet ? 28 : 20,
+      ),
+      panelPadding: EdgeInsets.all(isTablet ? 20 : 16),
+      panelGap: isTablet ? 18 : 12,
+      sectionGap: isTablet ? 16 : 12,
+      itemGap: 12,
+      compactGap: 8,
+      heroRadius: 28,
+      panelRadius: 24,
+      chipRadius: 16,
+      boardStart: colorScheme.surface,
+      boardEnd: colorScheme.surfaceContainerLow,
+      shellSurface: colorScheme.surface.withValues(
+        alpha: theme.brightness == Brightness.dark ? 0.94 : 0.88,
+      ),
+      primarySurface: colorScheme.surfaceContainerLowest,
+      secondarySurface: colorScheme.surfaceContainerLow,
+      accentSurface: colorScheme.primaryContainer.withValues(alpha: 0.72),
+      border: colorScheme.outlineVariant.withValues(alpha: 0.55),
+      textMuted: colorScheme.onSurfaceVariant,
+      accent: colorScheme.primary,
+      accentSoft: colorScheme.primary.withValues(alpha: 0.1),
+      shadow: colorScheme.shadow.withValues(alpha: 0.12),
+      success: const Color(0xFF1D7A44),
+      warning: const Color(0xFF9B5C00),
     );
+  }
+
+  Color surfaceFor(RailPanelSurface surface) {
+    return switch (surface) {
+      RailPanelSurface.shell => shellSurface,
+      RailPanelSurface.primary => primarySurface,
+      RailPanelSurface.secondary => secondarySurface,
+      RailPanelSurface.accent => accentSurface,
+    };
   }
 }

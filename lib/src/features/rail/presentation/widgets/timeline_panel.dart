@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:timelines_plus/timelines_plus.dart';
 
 import '../../../community/domain/entities/predicted_stop_time.dart';
 import '../../domain/entities/rail_snapshot.dart';
 import '../../domain/services/rail_board_service.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
+import 'rail_primitives.dart';
 
 class TimelinePanel extends StatelessWidget {
   const TimelinePanel({
@@ -21,177 +21,169 @@ class TimelinePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final boardService = context.read<RailBoardService>();
-    final colorScheme = Theme.of(context).colorScheme;
-    final palette = RailPanelPalette.of(colorScheme);
-    final nextService = snapshot.nextService!;
+    final tokens = RailBoardTokens.of(context);
+    final nextService = snapshot.nextService;
+
+    if (nextService == null) {
+      return const PanelShell(
+        child: RailStateMessage(
+          title: 'Journey trace unavailable',
+          message:
+              'A stop-by-stop trace appears when a matching train is found.',
+          icon: Icons.timeline_rounded,
+        ),
+      );
+    }
+
     final predictedByStation = {
       for (final prediction in predictedStopTimes)
         prediction.stationId: prediction,
     };
 
     return PanelShell(
-      backgroundColor: palette.panelBackground,
-      borderColor: palette.panelBorder,
-      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Journey trace',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontSize: 11,
-                        letterSpacing: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Scheduled and estimated stops',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: palette.panelElevatedSurface,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: palette.panelBorder),
-                ),
-                child: Text(
-                  'Train ${nextService.trainNo}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelLarge?.copyWith(fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          FixedTimeline.tileBuilder(
-            theme: TimelineThemeData(
-              nodePosition: 0,
-              connectorTheme: ConnectorThemeData(
-                color: colorScheme.outlineVariant,
-                thickness: 2,
-              ),
-              indicatorTheme: const IndicatorThemeData(position: 0.5, size: 12),
+          RailSectionHeader(
+            eyebrow: 'Journey trace',
+            title: 'Scheduled and estimated stops',
+            subtitle:
+                'Track the stop sequence for train ${nextService.trainNo} from boarding to destination.',
+            trailing: RailPill(
+              label: 'Train',
+              value: '${nextService.trainNo}',
+              accent: true,
             ),
-            builder: TimelineTileBuilder.connected(
-              contentsAlign: ContentsAlign.basic,
-              connectionDirection: ConnectionDirection.before,
-              itemCount: nextService.stops.length,
-              indicatorBuilder: (context, index) {
-                final isTerminal =
-                    index == 0 || index == nextService.stops.length - 1;
-
-                return DotIndicator(
-                  size: isTerminal ? 12 : 10,
-                  color: isTerminal ? colorScheme.primary : colorScheme.outline,
-                );
-              },
-              connectorBuilder: (context, index, connectorType) {
-                return SolidLineConnector(
-                  color: colorScheme.outlineVariant,
-                  thickness: 2,
-                );
-              },
-              contentsBuilder: (context, index) {
-                final stop = nextService.stops[index];
-                final isFirst = index == 0;
-                final isLast = index == nextService.stops.length - 1;
-                final subtitle = isFirst
-                    ? 'Board here'
-                    : isLast
-                    ? 'Arrive here'
-                    : 'Intermediate stop';
-                final predicted = predictedByStation[stop.stationId];
-
-                return Padding(
-                  padding: EdgeInsets.only(left: 14, bottom: isLast ? 0 : 10),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: palette.panelSurface,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: palette.panelBorder),
-                    ),
+          ),
+          SizedBox(height: tokens.sectionGap),
+          Column(
+            children: [
+              for (var i = 0; i < nextService.stops.length; i++) ...[
+                _StopCard(
+                  stop: nextService.stops[i],
+                  scheduledLabel: boardService.formatTimeAmPm(
+                    nextService.stops[i].time,
+                  ),
+                  predicted: predictedByStation[nextService.stops[i].stationId],
+                  isFirst: i == 0,
+                  isLast: i == nextService.stops.length - 1,
+                ),
+                if (i < nextService.stops.length - 1)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Row(
                       children: [
+                        const SizedBox(width: 16),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                stop.stationName,
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                subtitle,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: palette.panelMutedText,
-                                      fontSize: 12,
-                                    ),
-                              ),
-                              if (predicted != null) ...[
-                                const SizedBox(height: 3),
-                                Text(
-                                  'Estimate ${_formatEstimate(boardService, predicted.predictedAt)}',
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: colorScheme.primary,
-                                        fontSize: 11,
-                                      ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              boardService.formatTimeAmPm(stop.time),
-                              style: Theme.of(
-                                context,
-                              ).textTheme.labelLarge?.copyWith(fontSize: 13),
-                            ),
-                            if (predicted != null)
-                              Text(
-                                'Scheduled',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmall?.copyWith(fontSize: 10),
-                              ),
-                          ],
+                          child: Divider(color: tokens.border, height: 1),
                         ),
                       ],
                     ),
                   ),
-                );
-              },
-            ),
+              ],
+            ],
           ),
         ],
       ),
     );
   }
+}
 
-  String _formatEstimate(RailBoardService boardService, DateTime value) {
-    final hour = value.hour.toString().padLeft(2, '0');
-    final minute = value.minute.toString().padLeft(2, '0');
-    return boardService.formatTimeAmPm('$hour:$minute');
+class _StopCard extends StatelessWidget {
+  const _StopCard({
+    required this.stop,
+    required this.scheduledLabel,
+    required this.predicted,
+    required this.isFirst,
+    required this.isLast,
+  });
+
+  final RailStopSnapshot stop;
+  final String scheduledLabel;
+  final PredictedStopTime? predicted;
+  final bool isFirst;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final boardService = context.read<RailBoardService>();
+    final tokens = RailBoardTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: tokens.secondarySurface,
+        borderRadius: BorderRadius.circular(tokens.chipRadius),
+        border: Border.all(color: tokens.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: isFirst || isLast
+                  ? tokens.accentSoft
+                  : tokens.primarySurface,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              isFirst
+                  ? Icons.login_rounded
+                  : isLast
+                  ? Icons.flag_rounded
+                  : Icons.more_horiz_rounded,
+              size: 18,
+              color: tokens.accent,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(stop.stationName, style: textTheme.titleMedium),
+                const SizedBox(height: 4),
+                Text(
+                  isFirst
+                      ? 'Board here'
+                      : isLast
+                      ? 'Arrive here'
+                      : 'Intermediate stop',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: tokens.textMuted,
+                  ),
+                ),
+                if (predicted != null) ...[
+                  const SizedBox(height: 8),
+                  RailPill(
+                    label: 'Estimate',
+                    value: boardService.formatTimeAmPm(
+                      '${predicted!.predictedAt.hour.toString().padLeft(2, '0')}:${predicted!.predictedAt.minute.toString().padLeft(2, '0')}',
+                    ),
+                    accent: true,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(scheduledLabel, style: textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(
+                'Scheduled',
+                style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

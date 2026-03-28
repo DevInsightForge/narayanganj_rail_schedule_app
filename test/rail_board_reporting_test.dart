@@ -12,22 +12,23 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/entities
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/arrival_report_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/prediction_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/data/datasources/static_schedule_data_source.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/models/rail_schedule_document_parser.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/schedule_data_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/application/models/rail_reporting.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/selection_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_bloc.dart';
 
+import 'support/bundled_schedule_fixture.dart';
+
 void main() {
+  final bundledSchedule = loadBundledScheduleFixture();
   group('RailBoardBloc arrival reporting', () {
     test('submits one-tap arrival report when session is eligible', () async {
       final reports = FakeArrivalReportRepository();
       final bloc = RailBoardBloc(
-        boardService: RailBoardService(
-          schedule: StaticScheduleDataSource.schedule,
-        ),
+        boardService: RailBoardService(schedule: bundledSchedule),
         scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(
           const RailSelection(
@@ -84,9 +85,7 @@ void main() {
 
     test('reports rate-limited when local policy blocks submission', () async {
       final bloc = RailBoardBloc(
-        boardService: RailBoardService(
-          schedule: StaticScheduleDataSource.schedule,
-        ),
+        boardService: RailBoardService(schedule: bundledSchedule),
         scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(
           const RailSelection(
@@ -130,9 +129,7 @@ void main() {
 
     test('fails gracefully when no active report window exists', () async {
       final bloc = RailBoardBloc(
-        boardService: RailBoardService(
-          schedule: StaticScheduleDataSource.schedule,
-        ),
+        boardService: RailBoardService(schedule: bundledSchedule),
         scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(
           const RailSelection(
@@ -167,9 +164,7 @@ void main() {
     test('builds ready community insights from fresh reports', () async {
       final session = _seedSessions().first;
       final bloc = RailBoardBloc(
-        boardService: RailBoardService(
-          schedule: StaticScheduleDataSource.schedule,
-        ),
+        boardService: RailBoardService(schedule: bundledSchedule),
         scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(
           const RailSelection(
@@ -213,9 +208,7 @@ void main() {
         final session = _seedSessions().first;
         final reports = _FlakyArrivalReportRepository();
         final bloc = RailBoardBloc(
-          boardService: RailBoardService(
-            schedule: StaticScheduleDataSource.schedule,
-          ),
+          boardService: RailBoardService(schedule: bundledSchedule),
           scheduleDataRepository: _FakeScheduleDataRepository(),
           selectionRepository: _InMemorySelectionRepository(
             const RailSelection(
@@ -262,9 +255,7 @@ void main() {
     test('marks community insights error when repositories fail', () async {
       final session = _seedSessions().first;
       final bloc = RailBoardBloc(
-        boardService: RailBoardService(
-          schedule: StaticScheduleDataSource.schedule,
-        ),
+        boardService: RailBoardService(schedule: bundledSchedule),
         scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(
           const RailSelection(
@@ -299,9 +290,7 @@ void main() {
     test('marks community insights as stale when reports are old', () async {
       final session = _seedSessions().first;
       final bloc = RailBoardBloc(
-        boardService: RailBoardService(
-          schedule: StaticScheduleDataSource.schedule,
-        ),
+        boardService: RailBoardService(schedule: bundledSchedule),
         scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(
           const RailSelection(
@@ -340,9 +329,7 @@ void main() {
 
     test('disables reporting before eligibility window opens', () async {
       final bloc = RailBoardBloc(
-        boardService: RailBoardService(
-          schedule: StaticScheduleDataSource.schedule,
-        ),
+        boardService: RailBoardService(schedule: bundledSchedule),
         scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(
           const RailSelection(
@@ -372,9 +359,7 @@ void main() {
 
     test('enables reporting at eligibility window start boundary', () async {
       final bloc = RailBoardBloc(
-        boardService: RailBoardService(
-          schedule: StaticScheduleDataSource.schedule,
-        ),
+        boardService: RailBoardService(schedule: bundledSchedule),
         scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(
           const RailSelection(
@@ -405,9 +390,7 @@ void main() {
       'marks reporting unavailable when matching train session is no longer next',
       () async {
         final bloc = RailBoardBloc(
-          boardService: RailBoardService(
-            schedule: StaticScheduleDataSource.schedule,
-          ),
+          boardService: RailBoardService(schedule: bundledSchedule),
           scheduleDataRepository: _FakeScheduleDataRepository(),
           selectionRepository: _InMemorySelectionRepository(
             const RailSelection(
@@ -440,9 +423,7 @@ void main() {
       () async {
         final reports = _FetchFailingArrivalReportRepository();
         final bloc = RailBoardBloc(
-          boardService: RailBoardService(
-            schedule: StaticScheduleDataSource.schedule,
-          ),
+          boardService: RailBoardService(schedule: bundledSchedule),
           scheduleDataRepository: _FakeScheduleDataRepository(),
           selectionRepository: _InMemorySelectionRepository(
             const RailSelection(
@@ -484,9 +465,7 @@ void main() {
     test('recomputes reporting eligibility on tick transition', () async {
       DateTime now = DateTime(2026, 3, 28, 4, 24);
       final bloc = RailBoardBloc(
-        boardService: RailBoardService(
-          schedule: StaticScheduleDataSource.schedule,
-        ),
+        boardService: RailBoardService(schedule: bundledSchedule),
         scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(
           const RailSelection(
@@ -526,9 +505,7 @@ void main() {
       () async {
         final reports = FakeArrivalReportRepository();
         final bloc = RailBoardBloc(
-          boardService: RailBoardService(
-            schedule: StaticScheduleDataSource.schedule,
-          ),
+          boardService: RailBoardService(schedule: bundledSchedule),
           scheduleDataRepository: _FakeScheduleDataRepository(),
           selectionRepository: _InMemorySelectionRepository(
             const RailSelection(

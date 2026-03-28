@@ -5,6 +5,7 @@ import '../../domain/entities/rail_snapshot.dart';
 import '../bloc/rail_board_bloc.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
+import 'rail_primitives.dart';
 
 class HeaderPanel extends StatelessWidget {
   const HeaderPanel({super.key, required this.view});
@@ -13,60 +14,99 @@ class HeaderPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const formatter = _HeaderFormatter();
-    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
+    final tokens = RailBoardTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final nextService = view.snapshot.nextService;
-    final isTablet = MediaQuery.of(context).size.width >= 720;
+    final boardService = context.read<RailBoardBloc>().boardService;
 
     return PanelShell(
-      backgroundColor: palette.headerBackground,
-      borderColor: palette.panelBorder,
-      padding: EdgeInsets.fromLTRB(
-        10,
-        isTablet ? 12 : 8,
-        10,
-        isTablet ? 10 : 8,
-      ),
+      surface: RailPanelSurface.accent,
+      padding: tokens.panelPadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isTablet)
+          Wrap(
+            spacing: tokens.compactGap,
+            runSpacing: tokens.compactGap,
+            children: [
+              RailPill(
+                label: 'Dhaka time',
+                value: view.snapshot.currentTime.isEmpty
+                    ? 'Unavailable'
+                    : view.snapshot.currentTime,
+                icon: Icons.schedule_rounded,
+                accent: true,
+              ),
+              RailPill(
+                label: 'Schedule',
+                value: view.snapshot.dataSourceLabel,
+                icon: Icons.storage_rounded,
+                accent: true,
+              ),
+            ],
+          ),
+          SizedBox(height: tokens.sectionGap),
+          if (tokens.isWide)
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: _HeroCopy(
-                    currentTime: view.snapshot.currentTime,
-                    nextServiceLabel: nextService == null
-                        ? 'No train right now'
-                        : formatter.formatTimeAmPm(nextService.departureTime),
-                    waitLabel: nextService == null
-                        ? 'No departure for this route'
-                        : formatter.getWaitLabel(nextService.waitMinutes),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Narayanganj Commuter',
+                        style: textTheme.displaySmall,
+                      ),
+                      SizedBox(height: tokens.compactGap),
+                      Text(
+                        nextService == null
+                            ? 'Your schedule-first rail board is ready. Pick a direction to see the best departure, stop trace, and backup options.'
+                            : 'Next departure leaves ${boardService.getWaitLabel(nextService.waitMinutes).toLowerCase()} and reaches ${view.snapshot.destinationStationName} in ${boardService.getEtaLabel(nextService.etaMinutes).toLowerCase()}.',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: tokens.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 14),
-                _PrimaryBadge(
-                  departureLabel: nextService == null
-                      ? 'No train'
-                      : formatter.formatTimeAmPm(nextService.departureTime),
-                  waitLabel: nextService == null
-                      ? 'Unavailable'
-                      : formatter.getWaitLabel(nextService.waitMinutes),
+                SizedBox(width: tokens.panelGap),
+                _DepartureHero(
+                  title: nextService == null
+                      ? 'No departure'
+                      : boardService.formatTimeAmPm(nextService.departureTime),
+                  detail: nextService == null
+                      ? 'Try another route selection'
+                      : 'Train ${nextService.trainNo} - ${boardService.getWaitLabel(nextService.waitMinutes)}',
                 ),
               ],
             )
           else
-            _CompactHeader(
-              currentTime: view.snapshot.currentTime,
-              departureLabel: nextService == null
-                  ? 'No train'
-                  : formatter.formatTimeAmPm(nextService.departureTime),
-              waitLabel: nextService == null
-                  ? 'Unavailable'
-                  : formatter.getWaitLabel(nextService.waitMinutes),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Narayanganj Commuter', style: textTheme.headlineMedium),
+                SizedBox(height: tokens.compactGap),
+                Text(
+                  nextService == null
+                      ? 'Choose your route to get the next commuter option and later departures.'
+                      : 'Next departure leaves ${boardService.getWaitLabel(nextService.waitMinutes).toLowerCase()}.',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: tokens.textMuted,
+                  ),
+                ),
+                SizedBox(height: tokens.sectionGap),
+                _DepartureHero(
+                  title: nextService == null
+                      ? 'No departure'
+                      : boardService.formatTimeAmPm(nextService.departureTime),
+                  detail: nextService == null
+                      ? 'No train available right now'
+                      : 'Train ${nextService.trainNo} - ${boardService.getEtaLabel(nextService.etaMinutes)} total',
+                ),
+              ],
             ),
-          SizedBox(height: isTablet ? 14 : 10),
+          SizedBox(height: tokens.sectionGap),
           _SelectionStrip(
             label: 'Direction',
             options: view.directionOptions,
@@ -75,7 +115,7 @@ class HeaderPanel extends StatelessWidget {
               RailBoardDirectionChanged(value),
             ),
           ),
-          SizedBox(height: isTablet ? 10 : 8),
+          SizedBox(height: tokens.itemGap),
           _SelectionStrip(
             label: 'Boarding',
             options: view.boardingStations,
@@ -84,7 +124,7 @@ class HeaderPanel extends StatelessWidget {
               RailBoardBoardingChanged(value),
             ),
           ),
-          SizedBox(height: isTablet ? 10 : 8),
+          SizedBox(height: tokens.itemGap),
           _SelectionStrip(
             label: 'Destination',
             options: view.destinationStations,
@@ -99,227 +139,42 @@ class HeaderPanel extends StatelessWidget {
   }
 }
 
-class _HeroCopy extends StatelessWidget {
-  const _HeroCopy({
-    required this.currentTime,
-    required this.nextServiceLabel,
-    required this.waitLabel,
-  });
+class _DepartureHero extends StatelessWidget {
+  const _DepartureHero({required this.title, required this.detail});
 
-  final String currentTime;
-  final String nextServiceLabel;
-  final String waitLabel;
+  final String title;
+  final String detail;
 
   @override
   Widget build(BuildContext context) {
+    final tokens = RailBoardTokens.of(context);
     final textTheme = Theme.of(context).textTheme;
-    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _InfoPill(
-              label: 'Live commuter board',
-              value: currentTime.isEmpty ? 'Dhaka time' : currentTime,
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Text(
-          'Narayanganj Commuter',
-          style: textTheme.displayMedium?.copyWith(
-            color: palette.headerOn,
-            fontSize: 28,
-          ),
-        ),
-        Text(
-          'Plan your next commuter trip without digging through the full timetable.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: palette.headerOn.withValues(alpha: 0.72),
-            fontSize: 13,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: palette.headerSoftFill,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: palette.headerSoftBorder),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: palette.headerOn.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.train_rounded,
-                  color: palette.headerOn,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      nextServiceLabel,
-                      style: textTheme.titleLarge?.copyWith(
-                        color: palette.headerOn,
-                        fontSize: 17,
-                      ),
-                    ),
-                    Text(
-                      waitLabel,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: palette.headerOn.withValues(alpha: 0.72),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PrimaryBadge extends StatelessWidget {
-  const _PrimaryBadge({required this.departureLabel, required this.waitLabel});
-
-  final String departureLabel;
-  final String waitLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(maxWidth: 228),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      width: tokens.isWide ? 260 : double.infinity,
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.45),
-        ),
+        color: tokens.primarySurface,
+        borderRadius: BorderRadius.circular(tokens.heroRadius),
+        border: Border.all(color: tokens.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Next train',
-            style: textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurface.withValues(alpha: 0.68),
-              fontSize: 11,
-            ),
+            'Next departure',
+            style: textTheme.labelMedium?.copyWith(color: tokens.textMuted),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+          Text(title, style: textTheme.headlineMedium),
+          const SizedBox(height: 6),
           Text(
-            departureLabel,
-            style: textTheme.headlineMedium?.copyWith(
-              fontSize: 26,
-              color: colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            waitLabel,
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              fontSize: 12,
-            ),
+            detail,
+            style: textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
           ),
         ],
       ),
     );
-  }
-}
-
-class _InfoPill extends StatelessWidget {
-  const _InfoPill({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: palette.headerSoftFill,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: palette.headerSoftBorder),
-      ),
-      child: RichText(
-        text: TextSpan(
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: palette.headerOn.withValues(alpha: 0.65),
-            fontSize: 11,
-          ),
-          children: [
-            TextSpan(text: '$label  '),
-            TextSpan(
-              text: value,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: palette.headerOn,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HeaderFormatter {
-  const _HeaderFormatter();
-
-  String formatTimeAmPm(String time24) {
-    final parts = time24.split(':');
-    final hour24 = int.tryParse(parts.isNotEmpty ? parts[0] : '0') ?? 0;
-    final minute = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
-    final period = hour24 >= 12 ? 'PM' : 'AM';
-    final hour12 = hour24 % 12 == 0 ? 12 : hour24 % 12;
-    return '$hour12:${minute.toString().padLeft(2, '0')} $period';
-  }
-
-  String getWaitLabel(int waitMinutes) {
-    if (waitMinutes <= 0) {
-      return 'Now';
-    }
-
-    final hours = waitMinutes ~/ 60;
-    final minutes = waitMinutes % 60;
-
-    if (hours == 0) {
-      return 'In $minutes min';
-    }
-
-    if (minutes == 0) {
-      return hours == 1 ? 'In 1 hour' : 'In $hours hours';
-    }
-
-    return hours == 1
-        ? 'In 1 hour $minutes min'
-        : 'In $hours hours $minutes min';
   }
 }
 
@@ -338,37 +193,27 @@ class _SelectionStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
+    final tokens = RailBoardTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: palette.headerOn.withValues(alpha: 0.7),
-          ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 40,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const ClampingScrollPhysics(),
-            itemBuilder: (context, index) {
-              final option = options[index];
-
-              return _SelectionChip(
-                label: option.label,
-                selected: option.value == value,
-                disabled: option.disabled,
-                onPressed: option.disabled
-                    ? null
-                    : () => onPressed(option.value),
-              );
-            },
-            separatorBuilder: (context, index) => const SizedBox(width: 8),
-            itemCount: options.length,
-          ),
+        Text(label, style: Theme.of(context).textTheme.labelLarge),
+        SizedBox(height: tokens.compactGap),
+        Wrap(
+          spacing: tokens.compactGap,
+          runSpacing: tokens.compactGap,
+          children: options
+              .map(
+                (option) => _SelectionChip(
+                  label: option.label,
+                  selected: option.value == value,
+                  disabled: option.disabled,
+                  onPressed: option.disabled
+                      ? null
+                      : () => onPressed(option.value),
+                ),
+              )
+              .toList(growable: false),
         ),
       ],
     );
@@ -390,93 +235,22 @@ class _SelectionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
+    final tokens = RailBoardTokens.of(context);
     return Opacity(
-      opacity: disabled ? 0.48 : 1,
-      child: Material(
-        color: selected
-            ? palette.headerSelectedChipFill
-            : palette.headerChipFill,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: selected
-                    ? palette.headerSelectedChipBorder
-                    : palette.headerChipBorder,
-              ),
-            ),
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: selected
-                    ? palette.headerSelectedChipText
-                    : palette.headerChipText,
-                fontSize: 13,
-              ),
-            ),
+      opacity: disabled ? 0.45 : 1,
+      child: FilledButton.tonal(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          foregroundColor: selected ? Colors.white : null,
+          backgroundColor: selected ? tokens.accent : tokens.primarySurface,
+          side: BorderSide(color: selected ? tokens.accent : tokens.border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(tokens.chipRadius),
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         ),
+        child: Text(label),
       ),
-    );
-  }
-}
-
-class _CompactHeader extends StatelessWidget {
-  const _CompactHeader({
-    required this.currentTime,
-    required this.departureLabel,
-    required this.waitLabel,
-  });
-
-  final String currentTime;
-  final String departureLabel;
-  final String waitLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Narayanganj Commuter',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: palette.headerOn,
-                  fontSize: 20,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                currentTime.isEmpty ? 'Dhaka time' : currentTime,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: palette.headerOn.withValues(alpha: 0.72),
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        SizedBox(
-          width: 128,
-          child: _PrimaryBadge(
-            departureLabel: departureLabel,
-            waitLabel: waitLabel,
-          ),
-        ),
-      ],
     );
   }
 }

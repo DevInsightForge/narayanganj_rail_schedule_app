@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/models/rail_schedule_document_parser.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/remote_schedule_client.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/schedule_data_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/schedule_remote_source.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -12,125 +12,96 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    test('loads schedule through direct website API path', () async {
-      final scheduleUrl = Uri.parse(
-        ScheduleDataRepository.defaultWebsiteBaseUrl,
-      ).resolve(ScheduleDataRepository.scheduleEndpointPath).toString();
-      final remoteDocument = _validScheduleDocument(version: 'direct-remote');
-
-      final client = _FakeRemoteClient(
-        responses: {
-          scheduleUrl: [
-            RemoteJsonResponse(statusCode: 200, json: remoteDocument),
-          ],
-        },
+    test('loads schedule through remote config source', () async {
+      final remoteDocument = _validScheduleDocument(version: 'rc-remote');
+      final source = _FakeRemoteSource(
+        payloads: [
+          RemoteSchedulePayload(
+            sourceLabel: 'firebase_remote_config:schedule_data_json',
+            document: remoteDocument,
+          ),
+        ],
       );
-
       final repository = ScheduleDataRepository(
         parser: RailScheduleDocumentParser(),
-        remoteClient: client,
+        remoteSource: source,
       );
 
       final result = await repository.fetchRemoteSchedule();
 
       expect(result, isNotNull);
       expect(result?.source, equals(ScheduleDataSource.remote));
-      expect(result?.schedule.version, equals('direct-remote'));
-      expect(client.requestedUrls, equals([scheduleUrl]));
+      expect(result?.schedule.version, equals('rc-remote'));
 
       final preferences = await SharedPreferences.getInstance();
       final rawCache = preferences.getString(ScheduleDataRepository.storageKey);
       expect(rawCache, isNotNull);
       final wrapped = jsonDecode(rawCache!) as Map<String, dynamic>;
-      expect(wrapped['sourceUrl'], equals(scheduleUrl));
-      expect(wrapped['schemaVersion'], equals('direct-remote'));
+      expect(
+        wrapped['sourceUrl'],
+        equals('firebase_remote_config:schedule_data_json'),
+      );
+      expect(wrapped['schemaVersion'], equals('rc-remote'));
     });
 
-    test('returns null when direct schedule request fails', () async {
-      final scheduleUrl = Uri.parse(
-        ScheduleDataRepository.defaultWebsiteBaseUrl,
-      ).resolve(ScheduleDataRepository.scheduleEndpointPath).toString();
-
-      final client = _FakeRemoteClient(
-        responses: {
-          scheduleUrl: const [
-            RemoteJsonResponse(statusCode: 503, json: null),
-            RemoteJsonResponse(statusCode: 503, json: null),
-          ],
-        },
-      );
-
+    test('returns null when remote source has no payload', () async {
       final repository = ScheduleDataRepository(
         parser: RailScheduleDocumentParser(),
-        remoteClient: client,
+        remoteSource: _FakeRemoteSource(payloads: const []),
       );
 
       final result = await repository.fetchRemoteSchedule();
 
       expect(result, isNull);
-      expect(client.requestedUrls.contains(scheduleUrl), isTrue);
     });
 
-    test(
-      'keeps previous cached schedule when remote schema is invalid',
-      () async {
-        final cachedDocument = _validScheduleDocument(version: 'cached-v1');
-        final cachedPayload = jsonEncode({
-          'fetchedAt': DateTime(2026, 3, 27, 8).toUtc().toIso8601String(),
-          'sourceUrl': 'https://cached.example/schedule-data.json',
-          'schemaVersion': 'cached-v1',
-          'checksum': '',
-          'document': cachedDocument,
-        });
+    test('skips update when remote version is unchanged', () async {
+      final cachedDocument = _validScheduleDocument(version: 'v1');
+      final cachedPayload = jsonEncode({
+        'fetchedAt': DateTime(2026, 3, 27, 8).toUtc().toIso8601String(),
+        'sourceUrl': 'firebase_remote_config:schedule_data_json',
+        'schemaVersion': 'v1',
+        'checksum': '',
+        'document': cachedDocument,
+      });
+      SharedPreferences.setMockInitialValues({
+        ScheduleDataRepository.storageKey: cachedPayload,
+      });
 
-        SharedPreferences.setMockInitialValues({
-          ScheduleDataRepository.storageKey: cachedPayload,
-        });
+      final repository = ScheduleDataRepository(
+        parser: RailScheduleDocumentParser(),
+        remoteSource: _FakeRemoteSource(
+          payloads: [
+            RemoteSchedulePayload(
+              sourceLabel: 'firebase_remote_config:schedule_data_json',
+              document: _validScheduleDocument(version: 'v1'),
+            ),
+          ],
+        ),
+      );
 
-        final scheduleUrl = Uri.parse(
-          ScheduleDataRepository.defaultWebsiteBaseUrl,
-        ).resolve(ScheduleDataRepository.scheduleEndpointPath).toString();
-        final client = _FakeRemoteClient(
-          responses: {
-            scheduleUrl: const [
-              RemoteJsonResponse(statusCode: 200, json: {'invalid': true}),
-            ],
-          },
-        );
+      final remoteResult = await repository.fetchRemoteSchedule();
+      final cachedResult = await repository.readStoredSchedule();
 
-        final repository = ScheduleDataRepository(
-          parser: RailScheduleDocumentParser(),
-          remoteClient: client,
-        );
-
-        final remoteResult = await repository.fetchRemoteSchedule();
-        final cachedResult = await repository.readStoredSchedule();
-
-        expect(remoteResult, isNull);
-        expect(cachedResult, isNotNull);
-        expect(cachedResult?.schedule.version, equals('cached-v1'));
-      },
-    );
+      expect(remoteResult, isNull);
+      expect(cachedResult, isNotNull);
+      expect(cachedResult?.schedule.version, equals('v1'));
+    });
   });
 }
 
-class _FakeRemoteClient implements RemoteScheduleClient {
-  _FakeRemoteClient({required Map<String, List<RemoteJsonResponse>> responses})
-    : _responses = responses.map(
-        (key, value) => MapEntry(key, List<RemoteJsonResponse>.from(value)),
-      );
+class _FakeRemoteSource implements ScheduleRemoteSource {
+  _FakeRemoteSource({required List<RemoteSchedulePayload> payloads})
+    : _payloads = List<RemoteSchedulePayload>.from(payloads);
 
-  final Map<String, List<RemoteJsonResponse>> _responses;
-  final List<String> requestedUrls = [];
+  final List<RemoteSchedulePayload> _payloads;
 
   @override
-  Future<RemoteJsonResponse> getJson(String url) async {
-    requestedUrls.add(url);
-    final queue = _responses[url];
-    if (queue == null || queue.isEmpty) {
-      return const RemoteJsonResponse(statusCode: 404, json: null);
+  Future<RemoteSchedulePayload?> fetchSchedule() async {
+    if (_payloads.isEmpty) {
+      return null;
     }
-    return queue.removeAt(0);
+    return _payloads.removeAt(0);
   }
 }
 

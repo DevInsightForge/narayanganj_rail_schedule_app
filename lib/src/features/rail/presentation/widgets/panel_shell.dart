@@ -1,34 +1,34 @@
 import 'package:flutter/material.dart';
 
+import 'panel_palette.dart';
+
 class PanelShell extends StatelessWidget {
   const PanelShell({
     super.key,
     required this.child,
-    required this.backgroundColor,
-    required this.borderColor,
-    this.padding = const EdgeInsets.all(12),
+    this.surface = RailPanelSurface.primary,
+    this.padding,
   });
 
   final Widget child;
-  final Color backgroundColor;
-  final Color borderColor;
-  final EdgeInsetsGeometry padding;
+  final RailPanelSurface surface;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final tokens = RailBoardTokens.of(context);
     return Container(
       width: double.infinity,
-      padding: padding,
+      padding: padding ?? tokens.panelPadding,
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
+        color: tokens.surfaceFor(surface),
+        borderRadius: BorderRadius.circular(tokens.panelRadius),
+        border: Border.all(color: tokens.border),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.08),
-            blurRadius: 36,
-            offset: Offset(0, 14),
+            color: tokens.shadow,
+            blurRadius: 32,
+            offset: const Offset(0, 18),
           ),
         ],
       ),

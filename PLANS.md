@@ -13,6 +13,8 @@ Narayanganj Commuter is evolving into a schedule-first, community-powered train 
 - Community insight flow now handles repository failures with explicit degraded error state.
 - Offline-queued reports now retry on periodic ticks with dedupe and cooldown-aware sync attempts.
 - Legacy chat planning/contracts existed previously and have been removed from active code and roadmap.
+- App startup, board orchestration, and rail UI design tokens need a release-focused refactor before store submission.
+- Startup composition is now split from the app shell, rail board coordination is being extracted into focused services, and the UI is moving onto shared rail tokens/primitives.
 
 ## Product Vision
 Provide a clear, trustworthy commuter companion where users always see official schedule first and optionally benefit from structured, anonymous community arrival signals and explainable delay predictions.
@@ -152,6 +154,15 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - Risks/dependencies: deterministic session ID contract must stay stable across clients.
 - Test expectations: generated-session repository tests and regression validation.
 
+### Milestone 8: Release Refactor and Store Hardening
+- Objective: slim startup/composition, extract board orchestration, redesign the rail UI, and complete store-preflight checks.
+- Scope: app bootstrap split, schedule boot flow hardening, community/report coordinator extraction, rail design system rebuild, responsive/accessibility regression coverage, and Android/iOS release sanity review.
+- Architecture impact: composition root moves out of `app.dart`, bloc responsibilities shrink, and presentation tokens/components become centralized.
+- Key tasks: keep bundled schedule as baseline truth, make remote sync post-render only, extract community/report logic into focused services, replace one-off spacing/font sizes with shared tokens, and verify platform metadata/assets/runtime assumptions.
+- Acceptance criteria: analyze/tests stay green, startup remains resilient with Firebase disabled or failed, rail UI states are visually consistent across breakpoints, and release prerequisites are documented.
+- Risks/dependencies: current dirty worktree, platform signing/environment drift, and missing Firebase platform config artifacts where applicable.
+- Test expectations: startup/schedule flow tests, extracted coordinator tests, widget responsiveness/state tests, and release build sanity where the local environment permits.
+
 ## Risks and Open Questions
 - Firestore rules cannot fully prevent intentional abuse without server-side validation.
 - Session document freshness and ownership of derived snapshots need operational governance.
@@ -174,6 +185,8 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - [x] Milestone 5 initial implementation complete.
 - [x] Milestone 6 complete.
 - [x] Milestone 7 complete.
+- [ ] Milestone 8 in progress.
+- [x] Milestone 8 complete.
 
 ## Decision Log
 - 2026-03-28: Kept schedule-first baseline as non-negotiable.
@@ -206,4 +219,13 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - 2026-03-28: Removed app-resume-triggered recomputation to avoid unnecessary refresh load; periodic tick remains the refresh driver.
 - 2026-03-28: Consolidated community estimate and reporting into a single `Reported Delay` action card while keeping session-level delay independent from boarding/destination station changes.
 - 2026-03-28: Removed offline report queueing and automatic retry; failed report submissions now stay non-persistent and require explicit user retry.
+- 2026-03-28: Replaced website URL schedule fetch path with Firebase Remote Config schedule payload ingestion and version-based silent update gating.
+- 2026-03-28: Replaced hardcoded bundled schedule source with `assets/data/schedule.json` asset loading and aligned tests to JSON-backed schedule fixtures.
+- 2026-03-28: Unified schedule access behind a single Remote Config-backed source that sets bundled asset JSON as the default payload and serves both bootstrap and repository update paths.
+- 2026-03-28: Started Milestone 8 to split startup/composition, redesign the rail board UI, and run store-readiness hardening before release.
+- 2026-03-28: Split app startup into bootstrap/composition layers so `main.dart` only boots runtime state and `app.dart` remains an app shell.
+- 2026-03-28: Extracted rail reporting and community insight orchestration into dedicated application coordinators to reduce `RailBoardBloc` responsibility.
+- 2026-03-28: Rebuilt the rail board UI around shared tokens, panel surfaces, and reusable primitives to normalize spacing, typography, and responsive behavior.
+- 2026-03-28: Added release preflight documentation covering signing, App Check, env requirements, missing native Firebase config files, and platform-specific follow-up work.
+- 2026-03-28: Hardened mobile App Check defaults so non-debug builds use production integrity providers instead of debug providers.
 

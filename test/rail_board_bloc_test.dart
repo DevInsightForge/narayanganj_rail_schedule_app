@@ -7,7 +7,6 @@ import 'package:narayanganj_rail_schedule/src/features/community/data/repositori
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/train_session.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/data/datasources/static_schedule_data_source.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/models/rail_schedule_document_parser.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/schedule_data_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_schedule.dart';
@@ -16,13 +15,14 @@ import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_bloc.dart';
 
+import 'support/bundled_schedule_fixture.dart';
+
 void main() {
+  final bundledSchedule = loadBundledScheduleFixture();
   group('RailBoardBloc startup', () {
     test('loads bundled data when cached and remote are unavailable', () async {
       final bloc = RailBoardBloc(
-        boardService: RailBoardService(
-          schedule: StaticScheduleDataSource.schedule,
-        ),
+        boardService: RailBoardService(schedule: bundledSchedule),
         scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(),
         sessionRepository: FakeSessionRepository(seed: _seedSessions()),
@@ -41,7 +41,7 @@ void main() {
     });
 
     test('loads cached first, then remote when available', () async {
-      final cachedSchedule = StaticScheduleDataSource.schedule;
+      final cachedSchedule = bundledSchedule;
       final remoteSchedule = RailSchedule(
         version: '2026.04.remote',
         stations: cachedSchedule.stations,
@@ -50,9 +50,7 @@ void main() {
       );
 
       final bloc = RailBoardBloc(
-        boardService: RailBoardService(
-          schedule: StaticScheduleDataSource.schedule,
-        ),
+        boardService: RailBoardService(schedule: bundledSchedule),
         scheduleDataRepository: _FakeScheduleDataRepository(
           stored: ScheduleLoadResult(
             schedule: cachedSchedule,

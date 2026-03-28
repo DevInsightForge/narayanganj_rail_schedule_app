@@ -3,14 +3,14 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/services.dart';
 
 import 'src/app.dart';
-import 'src/core/firebase/firebase_bootstrap.dart';
+import 'src/bootstrap/app_bootstrap.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await dotenv.load(fileName: '.env');
   } catch (_) {}
-  final firebaseRuntime = await FirebaseBootstrap().initialize();
+  final composition = await AppBootstrap().initialize();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  runApp(NarayanganjRailScheduleApp(firebaseRuntime: firebaseRuntime));
+  runApp(NarayanganjRailScheduleApp(composition: composition));
 }

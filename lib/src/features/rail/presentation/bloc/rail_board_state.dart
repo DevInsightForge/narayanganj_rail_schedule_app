@@ -10,16 +10,6 @@ enum RailReportSubmissionStatus {
   error,
 }
 
-enum RailReportActionReason {
-  noSession,
-  beforeWindow,
-  afterWindow,
-  alreadySubmitted,
-  temporarilyUnavailable,
-  eligible,
-  verificationLimitedEligible,
-}
-
 enum RailCommunityInsightStatus { idle, loading, ready, stale, empty, error }
 
 class RailBoardViewState extends Equatable {
