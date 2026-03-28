@@ -14,6 +14,7 @@ class NoticePanel extends StatelessWidget {
         message:
             'Timetable values are approximate and transcribed from source images. Confirm official Bangladesh Railway updates before leaving.',
         icon: Icons.info_outline_rounded,
+        compact: true,
       ),
     );
   }

@@ -27,8 +27,8 @@ class PanelShell extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: tokens.shadow,
-            blurRadius: 32,
-            offset: const Offset(0, 18),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),

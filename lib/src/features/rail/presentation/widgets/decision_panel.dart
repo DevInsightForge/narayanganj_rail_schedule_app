@@ -156,7 +156,7 @@ class _CommunityPanel extends StatelessWidget {
 
     return PanelShell(
       surface: RailPanelSurface.secondary,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -197,11 +197,13 @@ class _CommunityPanel extends StatelessWidget {
             ),
           ],
           SizedBox(height: tokens.sectionGap),
+          Divider(color: tokens.border, height: 1),
+          SizedBox(height: tokens.sectionGap),
           if (report.actionHint != null &&
               report.actionHint!.isNotEmpty &&
               report.actionReason != RailReportActionReason.eligible)
             Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 report.actionHint!,
                 style: Theme.of(
@@ -223,6 +225,17 @@ class _CommunityPanel extends StatelessWidget {
                     : Icons.flag_rounded,
               ),
               label: Text(_buttonLabel(report)),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(36),
+                visualDensity: const VisualDensity(
+                  horizontal: -2,
+                  vertical: -2,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+              ),
             ),
           ),
         ],

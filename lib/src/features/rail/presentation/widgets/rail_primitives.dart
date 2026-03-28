@@ -30,12 +30,12 @@ class RailSectionHeader extends StatelessWidget {
               Text(
                 eyebrow!,
                 style: textTheme.labelMedium?.copyWith(
-                  letterSpacing: 1.2,
+                  letterSpacing: 0.8,
                   color: tokens.textMuted,
                 ),
               ),
             if (eyebrow != null) SizedBox(height: tokens.compactGap),
-            Text(title, style: textTheme.headlineSmall),
+            Text(title, style: textTheme.titleLarge),
             if (subtitle != null) SizedBox(height: tokens.compactGap),
             if (subtitle != null)
               Text(
@@ -91,7 +91,7 @@ class RailPill extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
         color: accent ? tokens.accentSoft : tokens.secondarySurface,
         borderRadius: BorderRadius.circular(tokens.chipRadius),
@@ -100,14 +100,14 @@ class RailPill extends StatelessWidget {
         ),
       ),
       child: Wrap(
-        spacing: 8,
-        runSpacing: 4,
+        spacing: 6,
+        runSpacing: 3,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           if (icon != null)
             Icon(
               icon,
-              size: 16,
+              size: 14,
               color: accent ? tokens.accent : tokens.textMuted,
             ),
           RichText(
@@ -118,7 +118,7 @@ class RailPill extends StatelessWidget {
               children: [
                 TextSpan(text: value == null ? label : '$label  '),
                 if (value != null)
-                  TextSpan(text: value!, style: textTheme.labelLarge),
+                  TextSpan(text: value!, style: textTheme.labelMedium),
               ],
             ),
           ),
@@ -148,35 +148,49 @@ class RailMetricTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(9),
       decoration: BoxDecoration(
         color: tokens.secondarySurface,
         borderRadius: BorderRadius.circular(tokens.chipRadius),
         border: Border.all(color: tokens.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              if (icon != null) Icon(icon, size: 16, color: tokens.textMuted),
-              if (icon != null) const SizedBox(width: 8),
-              Expanded(
-                child: Text(
+          if (icon != null)
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: tokens.accentSoft,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, size: 13, color: tokens.accent),
+            ),
+          if (icon != null) const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
                   label,
                   style: textTheme.labelMedium?.copyWith(
                     color: tokens.textMuted,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 2),
+                Text(value, style: textTheme.titleMedium),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          Text(value, style: textTheme.titleLarge),
-          const SizedBox(height: 4),
-          Text(
-            detail,
-            style: textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              detail,
+              textAlign: TextAlign.end,
+              style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),
+            ),
           ),
         ],
       ),
@@ -191,12 +205,14 @@ class RailStateMessage extends StatelessWidget {
     required this.message,
     required this.icon,
     this.action,
+    this.compact = false,
   });
 
   final String title;
   final String message;
   final IconData icon;
   final Widget? action;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -205,38 +221,78 @@ class RailStateMessage extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(tokens.panelPadding.left),
+      padding: EdgeInsets.all(
+        compact ? tokens.itemGap : tokens.panelPadding.left,
+      ),
       decoration: BoxDecoration(
         color: tokens.secondarySurface,
         borderRadius: BorderRadius.circular(tokens.chipRadius),
         border: Border.all(color: tokens.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: tokens.accentSoft,
-              borderRadius: BorderRadius.circular(14),
+      child: compact
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: tokens.accentSoft,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, size: 14, color: tokens.accent),
+                ),
+                SizedBox(width: tokens.itemGap),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: textTheme.labelLarge),
+                      SizedBox(height: tokens.compactGap),
+                      Text(
+                        message,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: tokens.textMuted,
+                        ),
+                      ),
+                      if (action case final actionWidget?) ...[
+                        SizedBox(height: tokens.itemGap),
+                        actionWidget,
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: tokens.accentSoft,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, size: 18, color: tokens.accent),
+                ),
+                const SizedBox(height: 8),
+                Text(title, style: textTheme.titleMedium),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: tokens.textMuted,
+                  ),
+                ),
+                if (action case final actionWidget?) ...[
+                  const SizedBox(height: 10),
+                  actionWidget,
+                ],
+              ],
             ),
-            alignment: Alignment.center,
-            child: Icon(icon, color: tokens.accent),
-          ),
-          const SizedBox(height: 12),
-          Text(title, style: textTheme.titleMedium),
-          const SizedBox(height: 6),
-          Text(
-            message,
-            style: textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
-          ),
-          if (action case final actionWidget?) ...[
-            const SizedBox(height: 16),
-            actionWidget,
-          ],
-        ],
-      ),
     );
   }
 }

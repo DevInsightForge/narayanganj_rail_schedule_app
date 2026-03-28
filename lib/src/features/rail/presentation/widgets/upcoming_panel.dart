@@ -93,61 +93,71 @@ class _UpcomingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = RailBoardTokens.of(context);
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
       decoration: BoxDecoration(
         color: tokens.secondarySurface,
         borderRadius: BorderRadius.circular(tokens.chipRadius),
         border: Border.all(color: tokens.border),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 34,
-            height: 34,
+            width: 24,
+            height: 24,
             decoration: BoxDecoration(
               color: tokens.accentSoft,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,
             child: Text(
               '$index',
-              style: Theme.of(context).textTheme.labelLarge,
+              style: Theme.of(context).textTheme.labelMedium,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      departureLabel,
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Expanded(
+                      child: Text(
+                        departureLabel,
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
                     ),
+                    SizedBox(width: tokens.itemGap),
                     Text(
-                      waitLabel,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
+                      arrivalLabel,
+                      textAlign: TextAlign.end,
+                      style: Theme.of(context).textTheme.labelLarge,
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '$periodLabel - Arrives $arrivalLabel',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  durationLabel,
-                  style: Theme.of(context).textTheme.labelLarge,
+                const SizedBox(height: 2),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '$periodLabel • $waitLabel',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: tokens.textMuted,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: tokens.itemGap),
+                    Text(
+                      durationLabel,
+                      textAlign: TextAlign.end,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: tokens.textMuted),
+                    ),
+                  ],
                 ),
               ],
             ),

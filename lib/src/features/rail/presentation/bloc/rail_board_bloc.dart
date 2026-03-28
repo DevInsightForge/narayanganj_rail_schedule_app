@@ -416,7 +416,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
               .difference(now)
               .inMinutes
               .clamp(0, 9999);
-          return 'Reporting opens in $remainingMinutes minute(s).';
+          return 'Reporting opens in ${_formatReportWindowWait(remainingMinutes)}.';
         }
         return 'Reporting is not open yet for this train.';
       case RailReportActionReason.afterWindow:
@@ -430,6 +430,18 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       case RailReportActionReason.verificationLimitedEligible:
         return 'Live verification is unavailable. You can still submit one arrival report for this station.';
     }
+  }
+
+  String _formatReportWindowWait(int remainingMinutes) {
+    if (remainingMinutes < 60) {
+      return '$remainingMinutes min';
+    }
+    final hours = remainingMinutes ~/ 60;
+    final minutes = remainingMinutes % 60;
+    if (minutes == 0) {
+      return '$hours hr';
+    }
+    return '$hours hr $minutes min';
   }
 
   RailCommunityInsightStatus _mapInsightKind(RailCommunityInsightKind kind) {

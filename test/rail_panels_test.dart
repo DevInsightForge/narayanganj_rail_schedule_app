@@ -7,6 +7,7 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/entities
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/notice_panel.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/footer_panel.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/rail_primitives.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/timeline_panel.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/upcoming_panel.dart';
@@ -119,6 +120,38 @@ void main() {
 
     expect(find.text('Travel note'), findsOneWidget);
     expect(find.text('Rail board unavailable'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('footer panel opens drawer with static policy content', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(size: Size(390, 844)),
+          child: Scaffold(
+            body: Padding(
+              padding: EdgeInsets.all(16),
+              child: FooterPanel(
+                dataSourceLabel: 'Bundled schedule',
+                lastUpdatedAt: null,
+                scheduleVersion: 'v1',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Details'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('App details'), findsOneWidget);
+    expect(find.text('About'), findsOneWidget);
+    expect(find.text('Privacy Policy'), findsOneWidget);
+    expect(find.text('Terms of Service'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

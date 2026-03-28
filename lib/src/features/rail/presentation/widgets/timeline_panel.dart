@@ -70,10 +70,10 @@ class TimelinePanel extends StatelessWidget {
                 ),
                 if (i < nextService.stops.length - 1)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
                       children: [
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Divider(color: tokens.border, height: 1),
                         ),
@@ -111,23 +111,23 @@ class _StopCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
       decoration: BoxDecoration(
         color: tokens.secondarySurface,
         borderRadius: BorderRadius.circular(tokens.chipRadius),
         border: Border.all(color: tokens.border),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 34,
-            height: 34,
+            width: 24,
+            height: 24,
             decoration: BoxDecoration(
               color: isFirst || isLast
                   ? tokens.accentSoft
                   : tokens.primarySurface,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,
             child: Icon(
@@ -136,17 +136,17 @@ class _StopCard extends StatelessWidget {
                   : isLast
                   ? Icons.flag_rounded
                   : Icons.more_horiz_rounded,
-              size: 18,
+              size: 14,
               color: tokens.accent,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(stop.stationName, style: textTheme.titleMedium),
-                const SizedBox(height: 4),
+                Text(stop.stationName, style: textTheme.labelLarge),
+                const SizedBox(height: 1),
                 Text(
                   isFirst
                       ? 'Board here'
@@ -158,7 +158,7 @@ class _StopCard extends StatelessWidget {
                   ),
                 ),
                 if (predicted != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   RailPill(
                     label: 'Estimate',
                     value: boardService.formatTimeAmPm(
@@ -170,12 +170,13 @@ class _StopCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(scheduledLabel, style: textTheme.titleMedium),
-              const SizedBox(height: 4),
+              Text(scheduledLabel, style: textTheme.labelLarge),
+              const SizedBox(height: 1),
               Text(
                 'Scheduled',
                 style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),

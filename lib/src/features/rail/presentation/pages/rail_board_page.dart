@@ -131,7 +131,7 @@ class _ReadyBoardContent extends StatelessWidget {
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: tokens.maxContentWidth),
             child: Container(
-              padding: tokens.pagePadding,
+              padding: tokens.panelPadding,
               decoration: BoxDecoration(
                 color: tokens.shellSurface,
                 borderRadius: BorderRadius.circular(tokens.heroRadius),

@@ -27,8 +27,6 @@ class RailBoardTokens {
     required this.accent,
     required this.accentSoft,
     required this.shadow,
-    required this.success,
-    required this.warning,
   });
 
   final bool isTablet;
@@ -54,8 +52,6 @@ class RailBoardTokens {
   final Color accent;
   final Color accentSoft;
   final Color shadow;
-  final Color success;
-  final Color warning;
 
   factory RailBoardTokens.of(BuildContext context) {
     final theme = Theme.of(context);
@@ -67,21 +63,21 @@ class RailBoardTokens {
     return RailBoardTokens(
       isTablet: isTablet,
       isWide: isWide,
-      maxContentWidth: isTablet ? 1180 : 760,
+      maxContentWidth: isTablet ? 1040 : 700,
       pagePadding: EdgeInsets.fromLTRB(
-        isTablet ? 28 : 16,
-        isTablet ? 24 : 12,
-        isTablet ? 28 : 16,
-        isTablet ? 28 : 20,
+        isTablet ? 20 : 10,
+        isTablet ? 16 : 8,
+        isTablet ? 20 : 10,
+        isTablet ? 18 : 12,
       ),
-      panelPadding: EdgeInsets.all(isTablet ? 20 : 16),
-      panelGap: isTablet ? 18 : 12,
-      sectionGap: isTablet ? 16 : 12,
-      itemGap: 12,
-      compactGap: 8,
-      heroRadius: 28,
-      panelRadius: 24,
-      chipRadius: 16,
+      panelPadding: EdgeInsets.all(isTablet ? 16 : 12),
+      panelGap: isTablet ? 12 : 8,
+      sectionGap: isTablet ? 10 : 8,
+      itemGap: isTablet ? 8 : 6,
+      compactGap: isTablet ? 6 : 4,
+      heroRadius: 20,
+      panelRadius: 18,
+      chipRadius: 12,
       boardStart: colorScheme.surface,
       boardEnd: colorScheme.surfaceContainerLow,
       shellSurface: colorScheme.surface.withValues(
@@ -89,14 +85,16 @@ class RailBoardTokens {
       ),
       primarySurface: colorScheme.surfaceContainerLowest,
       secondarySurface: colorScheme.surfaceContainerLow,
-      accentSurface: colorScheme.primaryContainer.withValues(alpha: 0.72),
+      accentSurface: theme.brightness == Brightness.dark
+          ? colorScheme.surfaceContainerHigh
+          : colorScheme.surfaceContainerHighest,
       border: colorScheme.outlineVariant.withValues(alpha: 0.55),
       textMuted: colorScheme.onSurfaceVariant,
       accent: colorScheme.primary,
-      accentSoft: colorScheme.primary.withValues(alpha: 0.1),
+      accentSoft: colorScheme.onSurface.withValues(
+        alpha: theme.brightness == Brightness.dark ? 0.1 : 0.06,
+      ),
       shadow: colorScheme.shadow.withValues(alpha: 0.12),
-      success: const Color(0xFF1D7A44),
-      warning: const Color(0xFF9B5C00),
     );
   }
 

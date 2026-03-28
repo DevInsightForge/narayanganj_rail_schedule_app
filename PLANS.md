@@ -228,4 +228,5 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - 2026-03-28: Rebuilt the rail board UI around shared tokens, panel surfaces, and reusable primitives to normalize spacing, typography, and responsive behavior.
 - 2026-03-28: Added release preflight documentation covering signing, App Check, env requirements, missing native Firebase config files, and platform-specific follow-up work.
 - 2026-03-28: Hardened mobile App Check defaults so non-debug builds use production integrity providers instead of debug providers.
+- 2026-03-28: Reworked footer metadata into an app-owned bottom sheet and replaced external privacy/terms links with static in-app legal copy tied to the current feature set.
 
