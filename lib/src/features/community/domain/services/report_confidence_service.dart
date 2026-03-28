@@ -3,7 +3,7 @@ import '../entities/report_confidence.dart';
 
 class ReportConfidenceService {
   const ReportConfidenceService({
-    this.freshnessWindowSeconds = 30 * 60,
+    this.freshnessWindowSeconds = 15 * 60,
     this.agreementToleranceMinutes = 3,
   });
 

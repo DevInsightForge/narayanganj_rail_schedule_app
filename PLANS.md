@@ -31,6 +31,7 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - Firebase client SDK only.
 - No Admin SDK, no Cloud Functions requirement, no paid backend requirement for MVP.
 - Tight report eligibility window for commuter operations: scheduled departure `-5m` to `+60m`.
+- Community freshness tuning for commuter operations: confidence freshness window `15m`, stale insight threshold `10m`.
 - Confidence v1 uses deterministic recency + agreement.
 - Client-side safeguards are layered but not perfect abuse prevention.
 
@@ -177,6 +178,7 @@ Provide a clear, trustworthy commuter companion where users always see official 
 ## Decision Log
 - 2026-03-28: Kept schedule-first baseline as non-negotiable.
 - 2026-03-28: Tuned reporting eligibility window for short intercity commuter behavior (`-5m` to `+60m`).
+- 2026-03-28: Tuned commuter freshness windows (`15m` confidence decay, `10m` stale insight threshold) for short-route signal relevance.
 - 2026-03-28: Chose recency+agreement confidence model for v1.
 - 2026-03-28: Removed chat from product and technical scope.
 - 2026-03-28: Adopted Firebase client-only integration strategy for MVP.

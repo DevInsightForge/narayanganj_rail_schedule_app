@@ -75,7 +75,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
   static const _fallbackErrorMessage =
       'Unable to load schedule data. Please try again.';
   static const _routeId = 'narayanganj_line';
-  static const _staleInsightThresholdSeconds = 20 * 60;
+  static const _staleInsightThresholdSeconds = 10 * 60;
   static const _reportRateLimitKey = 'arrival_report';
   static const _reportDedupeBucketMinutes = 2;
   static const _reportDedupeRetentionMinutes = 10;
