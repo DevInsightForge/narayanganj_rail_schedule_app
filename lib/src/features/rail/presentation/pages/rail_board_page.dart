@@ -89,7 +89,7 @@ class RailBoardPage extends StatelessWidget {
                   }
 
                   return _ReadyBoardContent(
-                    tabletBreakpoint: _tabletBreakpoint,
+                    tabletBreakpoint: RailBoardPage._tabletBreakpoint,
                     colorScheme: colorScheme,
                   );
                 },

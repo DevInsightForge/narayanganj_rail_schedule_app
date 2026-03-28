@@ -4,6 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
 import '../../../community/domain/entities/arrival_report.dart';
+import '../../../community/domain/entities/device_identity.dart';
 import '../../../community/domain/entities/predicted_stop_time.dart';
 import '../../../community/domain/entities/session_status_snapshot.dart';
 import '../../../community/domain/entities/train_session.dart';
@@ -96,8 +97,8 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
   final DownstreamPredictionService _downstreamPredictionService;
   final SessionStatusAggregationService _sessionStatusAggregationService;
   final String _bundledVersion = StaticScheduleDataSource.version;
-  final List<_PendingArrivalReport> _pendingReports = [];
   final Map<String, DateTime> _recentReportKeys = {};
+  int _reportAvailabilityRevision = 0;
   Timer? _timer;
 
   ScheduleDataSource _activeSource;
@@ -177,12 +178,21 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     required RailSelection selection,
     required Emitter<RailBoardState> emit,
   }) async {
+    final previousDirection = state.selection.direction;
+    final previousTrainNo = state.snapshot.nextService?.trainNo;
     await _selectionRepository.write(selection);
     emit(_buildState(selection));
+    await _refreshReportAvailability(selection: selection, emit: emit);
     if (!communityFeaturesEnabled) {
       return;
     }
-    await _refreshCommunityInsights(selection: selection, emit: emit);
+    final nextDirection = state.selection.direction;
+    final nextTrainNo = state.snapshot.nextService?.trainNo;
+    final trainContextChanged =
+        previousDirection != nextDirection || previousTrainNo != nextTrainNo;
+    if (trainContextChanged) {
+      await _refreshCommunityInsights(selection: selection, emit: emit);
+    }
   }
 
   Future<void> _onDirectionChanged(
@@ -222,11 +232,19 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     if (state.status == RailBoardStatus.ready) {
       if (!communityFeaturesEnabled) {
         emit(_buildState(state.selection));
+        await _refreshReportAvailability(
+          selection: state.selection,
+          emit: emit,
+        );
         return;
       }
       final now = _nowProvider();
-      await _drainPendingReports(now: now);
       emit(_buildState(state.selection));
+      await _refreshReportAvailability(
+        selection: state.selection,
+        emit: emit,
+        now: now,
+      );
       await _refreshCommunityInsights(selection: state.selection, emit: emit);
     }
   }
@@ -242,6 +260,21 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
         state.snapshot.nextService == null) {
       return;
     }
+    await _refreshReportAvailability(selection: state.selection, emit: emit);
+    if (!state.report.isActionEnabled) {
+      emit(
+        state.copyWith(
+          report: state.report.copyWith(
+            status: RailReportSubmissionStatus.error,
+            feedbackMessage:
+                state.report.actionHint ??
+                'Reporting is not available for this train yet.',
+            clearRetryAfter: true,
+          ),
+        ),
+      );
+      return;
+    }
 
     emit(
       state.copyWith(
@@ -255,18 +288,41 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
 
     final now = _nowProvider();
     final selection = state.selection;
-    final session = await _findEligibleSession(selection: selection, now: now);
+    final session = await _findSessionForCurrentTrain(
+      direction: selection.direction,
+      now: now,
+    );
+    final boardingStop = session == null
+        ? null
+        : _findSessionStopForStation(
+            session: session,
+            stationId: selection.boardingStationId,
+          );
 
-    if (session == null ||
-        !_sessionLifecycleService.isReportEligible(
-          session: session,
-          now: now,
-        )) {
+    if (session == null || boardingStop == null) {
       emit(
         state.copyWith(
           report: state.report.copyWith(
             status: RailReportSubmissionStatus.error,
-            feedbackMessage: 'No active report window for this trip right now.',
+            feedbackMessage:
+                'Arrival reporting is unavailable for the selected station.',
+            clearRetryAfter: true,
+          ),
+        ),
+      );
+      return;
+    }
+    final boardingWindowState = _getBoardingReportWindowState(
+      boardingAt: boardingStop.scheduledAt,
+      now: now,
+    );
+    if (boardingWindowState != SessionLifecycleState.active) {
+      emit(
+        state.copyWith(
+          report: state.report.copyWith(
+            status: RailReportSubmissionStatus.error,
+            feedbackMessage:
+                'Arrival reporting is not open for this station at this time.',
             clearRetryAfter: true,
           ),
         ),
@@ -274,7 +330,25 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       return;
     }
 
-    final identity = await _deviceIdentityRepository.readOrCreateIdentity();
+    DeviceIdentity identity;
+    try {
+      identity = await _deviceIdentityRepository.readOrCreateIdentity();
+    } catch (_) {
+      emit(
+        state.copyWith(
+          report: _deriveReportActionState(
+            state.report.copyWith(
+              status: RailReportSubmissionStatus.error,
+              feedbackMessage:
+                  'Could not prepare your arrival report right now.',
+              clearRetryAfter: true,
+            ),
+            reason: RailReportActionReason.temporarilyUnavailable,
+          ),
+        ),
+      );
+      return;
+    }
     await _deviceIdentityRepository.touchIdentity(now);
     final rateLimitDecision = await _rateLimitPolicyRepository.checkAllowance(
       key: _reportRateLimitKey,
@@ -303,10 +377,14 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     if (_isDuplicateReport(dedupeKey: dedupeKey, now: now)) {
       emit(
         state.copyWith(
-          report: state.report.copyWith(
-            status: RailReportSubmissionStatus.success,
-            feedbackMessage: 'Arrival already reported recently.',
-            clearRetryAfter: true,
+          report: _deriveReportActionState(
+            state.report.copyWith(
+              status: RailReportSubmissionStatus.success,
+              feedbackMessage:
+                  'Arrival report already recorded for this train.',
+              clearRetryAfter: true,
+            ),
+            reason: RailReportActionReason.alreadySubmitted,
           ),
         ),
       );
@@ -328,31 +406,31 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
         now: now,
       );
       _recentReportKeys[dedupeKey] = now;
-      _pendingReports.removeWhere((pending) => pending.dedupeKey == dedupeKey);
       emit(
         state.copyWith(
-          report: state.report.copyWith(
-            status: RailReportSubmissionStatus.success,
-            feedbackMessage:
-                'Arrival reported for ${state.snapshot.selectedStationName}.',
-            clearRetryAfter: true,
+          report: _deriveReportActionState(
+            state.report.copyWith(
+              status: RailReportSubmissionStatus.success,
+              feedbackMessage:
+                  'Arrival reported for ${state.snapshot.selectedStationName}. Thank you.',
+              clearRetryAfter: true,
+            ),
+            reason: RailReportActionReason.alreadySubmitted,
           ),
         ),
       );
       await _refreshCommunityInsights(selection: state.selection, emit: emit);
     } catch (_) {
-      if (_pendingReports.every((pending) => pending.dedupeKey != dedupeKey)) {
-        _pendingReports.add(
-          _PendingArrivalReport(report: report, dedupeKey: dedupeKey),
-        );
-      }
       emit(
         state.copyWith(
-          report: state.report.copyWith(
-            status: RailReportSubmissionStatus.offlineQueue,
-            feedbackMessage:
-                'Report queued locally and will sync when services recover.',
-            clearRetryAfter: true,
+          report: _deriveReportActionState(
+            state.report.copyWith(
+              status: RailReportSubmissionStatus.error,
+              feedbackMessage:
+                  'Arrival report could not be submitted. Please try again.',
+              clearRetryAfter: true,
+            ),
+            reason: RailReportActionReason.temporarilyUnavailable,
           ),
         ),
       );
@@ -367,15 +445,14 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       state.copyWith(
         community: state.community.copyWith(
           insightStatus: RailCommunityInsightStatus.loading,
-          clearMessage: true,
         ),
       ),
     );
 
     try {
       final now = _nowProvider();
-      final session = await _findCommunitySession(
-        selection: selection,
+      final session = await _findSessionForCurrentTrain(
+        direction: selection.direction,
         now: now,
       );
 
@@ -384,9 +461,10 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
           state.copyWith(
             community: state.community.copyWith(
               insightStatus: RailCommunityInsightStatus.empty,
+              lastResolvedInsightStatus: RailCommunityInsightStatus.empty,
               clearSessionStatus: true,
               predictedStopTimes: const [],
-              message: 'No active or upcoming session insights right now.',
+              message: 'No active train estimate is available right now.',
             ),
           ),
         );
@@ -416,9 +494,11 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
           state.copyWith(
             community: state.community.copyWith(
               insightStatus: RailCommunityInsightStatus.empty,
+              lastResolvedInsightStatus: RailCommunityInsightStatus.empty,
               clearSessionStatus: true,
               predictedStopTimes: const [],
-              message: 'No community reports yet for this train session.',
+              message:
+                  'No community reports are available for this train session yet.',
             ),
           ),
         );
@@ -472,11 +552,14 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
             insightStatus: isStale
                 ? RailCommunityInsightStatus.stale
                 : RailCommunityInsightStatus.ready,
+            lastResolvedInsightStatus: isStale
+                ? RailCommunityInsightStatus.stale
+                : RailCommunityInsightStatus.ready,
             sessionStatusSnapshot: status,
             predictedStopTimes: predictions,
             message: remotePredictions.isNotEmpty
-                ? 'Estimate synchronized from Firebase session snapshot.'
-                : 'Estimate based on ${referenceReports.length} report(s) at ${referenceStop.stationName}.',
+                ? 'Estimate synchronized from remote community snapshots.'
+                : 'Estimate based on ${referenceReports.length} report(s) from ${referenceStop.stationName}.',
           ),
         ),
       );
@@ -485,70 +568,79 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
         state.copyWith(
           community: state.community.copyWith(
             insightStatus: RailCommunityInsightStatus.error,
+            lastResolvedInsightStatus: RailCommunityInsightStatus.error,
             clearSessionStatus: true,
             predictedStopTimes: const [],
             message:
-                'Community data is temporarily unavailable. Schedule baseline remains available.',
+                'Community estimate is temporarily unavailable. Official schedule remains available.',
           ),
         ),
       );
     }
   }
 
-  Future<TrainSession?> _findEligibleSession({
-    required RailSelection selection,
+  Future<TrainSession?> _findSessionForCurrentTrain({
+    required String direction,
     required DateTime now,
   }) async {
+    final trainNo = state.snapshot.nextService?.trainNo;
+    if (trainNo == null) {
+      return null;
+    }
     final sessions = await _fetchRouteSessions(now);
-    for (final session in sessions) {
-      final fromIndex = session.stops.indexWhere(
-        (stop) => stop.stationId == selection.boardingStationId,
-      );
-      final toIndex = session.stops.indexWhere(
-        (stop) => stop.stationId == selection.destinationStationId,
-      );
-      if (fromIndex < 0 || toIndex < 0 || fromIndex >= toIndex) {
-        continue;
-      }
-      if (_sessionLifecycleService.isReportEligible(
-        session: session,
-        now: now,
-      )) {
+    final candidates = sessions
+        .where(
+          (session) =>
+              session.directionId == direction && session.trainNo == trainNo,
+        )
+        .toList(growable: false);
+    if (candidates.isEmpty) {
+      return null;
+    }
+    for (final session in candidates) {
+      if (_sessionLifecycleService.getState(session: session, now: now) ==
+          SessionLifecycleState.active) {
         return session;
+      }
+    }
+    for (final session in candidates) {
+      if (_sessionLifecycleService.getState(session: session, now: now) ==
+          SessionLifecycleState.upcoming) {
+        return session;
+      }
+    }
+    return candidates.last;
+  }
+
+  SessionStop? _findSessionStopForStation({
+    required TrainSession session,
+    required String stationId,
+  }) {
+    for (final stop in session.stops) {
+      if (stop.stationId == stationId) {
+        return stop;
       }
     }
     return null;
   }
 
-  Future<TrainSession?> _findCommunitySession({
-    required RailSelection selection,
+  SessionLifecycleState _getBoardingReportWindowState({
+    required DateTime boardingAt,
     required DateTime now,
-  }) async {
-    final sessions = await _fetchRouteSessions(now);
-    TrainSession? nextUpcoming;
-    for (final session in sessions) {
-      final fromIndex = session.stops.indexWhere(
-        (stop) => stop.stationId == selection.boardingStationId,
-      );
-      final toIndex = session.stops.indexWhere(
-        (stop) => stop.stationId == selection.destinationStationId,
-      );
-      if (fromIndex < 0 || toIndex < 0 || fromIndex >= toIndex) {
-        continue;
-      }
-      final sessionState = _sessionLifecycleService.getState(
-        session: session,
-        now: now,
-      );
-      if (sessionState == SessionLifecycleState.active) {
-        return session;
-      }
-      if (sessionState == SessionLifecycleState.upcoming &&
-          session.departureAt.isAfter(now)) {
-        nextUpcoming ??= session;
-      }
+  }) {
+    final eligibilityStart = boardingAt.subtract(
+      Duration(minutes: _sessionLifecycleService.preDepartureMinutes),
+    );
+    final eligibilityEnd = boardingAt.add(
+      Duration(minutes: _sessionLifecycleService.postDepartureMinutes),
+    );
+    if (now.isBefore(eligibilityStart)) {
+      return SessionLifecycleState.upcoming;
     }
-    return nextUpcoming;
+    if (now.isAfter(eligibilityEnd)) {
+      return SessionLifecycleState.expired;
+    }
+    return SessionLifecycleState.active;
   }
 
   Future<List<TrainSession>> _fetchRouteSessions(DateTime now) async {
@@ -597,38 +689,207 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     }
   }
 
-  Future<void> _drainPendingReports({required DateTime now}) async {
-    if (_pendingReports.isEmpty) {
+  Future<void> _refreshReportAvailability({
+    required RailSelection selection,
+    required Emitter<RailBoardState> emit,
+    DateTime? now,
+  }) async {
+    final revision = ++_reportAvailabilityRevision;
+    if (state.status != RailBoardStatus.ready || !communityFeaturesEnabled) {
+      final nextReport = _deriveReportActionState(
+        state.report.copyWith(clearActionHint: true),
+        reason: RailReportActionReason.noSession,
+      );
+      if (revision == _reportAvailabilityRevision &&
+          nextReport != state.report) {
+        emit(state.copyWith(report: nextReport));
+      }
       return;
     }
-    _pruneRecentReportKeys(now);
-    final sent = <String>{};
-    for (final pending in List<_PendingArrivalReport>.from(_pendingReports)) {
-      if (_isDuplicateReport(dedupeKey: pending.dedupeKey, now: now)) {
-        sent.add(pending.dedupeKey);
-        continue;
-      }
-      final decision = await _rateLimitPolicyRepository.checkAllowance(
-        key: _reportRateLimitKey,
-        now: now,
+
+    final referenceNow = now ?? _nowProvider();
+    final session = await _findSessionForCurrentTrain(
+      direction: selection.direction,
+      now: referenceNow,
+    );
+    final boardingStop = session == null
+        ? null
+        : _findSessionStopForStation(
+            session: session,
+            stationId: selection.boardingStationId,
+          );
+
+    if (session == null ||
+        boardingStop == null ||
+        state.snapshot.nextService == null) {
+      final nextReport = _deriveReportActionState(
+        state.report,
+        reason: RailReportActionReason.noSession,
       );
-      if (!decision.allowed) {
-        continue;
+      if (revision == _reportAvailabilityRevision &&
+          nextReport != state.report) {
+        emit(state.copyWith(report: nextReport));
       }
-      try {
-        await _arrivalReportRepository.submitArrivalReport(pending.report);
-        await _rateLimitPolicyRepository.recordEvent(
-          key: _reportRateLimitKey,
-          now: now,
-        );
-        _recentReportKeys[pending.dedupeKey] = now;
-        sent.add(pending.dedupeKey);
-      } catch (_) {}
+      return;
     }
-    if (sent.isNotEmpty) {
-      _pendingReports.removeWhere(
-        (pending) => sent.contains(pending.dedupeKey),
+
+    final boardingWindowState = _getBoardingReportWindowState(
+      boardingAt: boardingStop.scheduledAt,
+      now: referenceNow,
+    );
+    if (boardingWindowState == SessionLifecycleState.upcoming) {
+      final nextReport = _deriveReportActionState(
+        state.report,
+        reason: RailReportActionReason.beforeWindow,
+        now: referenceNow,
+        boardingAt: boardingStop.scheduledAt,
       );
+      if (revision == _reportAvailabilityRevision &&
+          nextReport != state.report) {
+        emit(state.copyWith(report: nextReport));
+      }
+      return;
+    }
+    if (boardingWindowState == SessionLifecycleState.expired) {
+      final nextReport = _deriveReportActionState(
+        state.report,
+        reason: RailReportActionReason.afterWindow,
+      );
+      if (revision == _reportAvailabilityRevision &&
+          nextReport != state.report) {
+        emit(state.copyWith(report: nextReport));
+      }
+      return;
+    }
+
+    DeviceIdentity identity;
+    try {
+      identity = await _deviceIdentityRepository.readOrCreateIdentity();
+    } catch (_) {
+      final nextReport = _deriveReportActionState(
+        state.report,
+        reason: RailReportActionReason.temporarilyUnavailable,
+      );
+      if (revision == _reportAvailabilityRevision &&
+          nextReport != state.report) {
+        emit(state.copyWith(report: nextReport));
+      }
+      return;
+    }
+    bool hasSubmitted;
+    try {
+      hasSubmitted = await _hasSubmittedForSession(
+        session: session,
+        stationId: selection.boardingStationId,
+        deviceId: identity.deviceId,
+        now: referenceNow,
+      );
+    } catch (_) {
+      final nextReport = _deriveReportActionState(
+        state.report,
+        reason: RailReportActionReason.verificationLimitedEligible,
+      );
+      if (revision == _reportAvailabilityRevision &&
+          nextReport != state.report) {
+        emit(state.copyWith(report: nextReport));
+      }
+      return;
+    }
+
+    if (hasSubmitted) {
+      final nextReport = _deriveReportActionState(
+        state.report,
+        reason: RailReportActionReason.alreadySubmitted,
+      );
+      if (revision == _reportAvailabilityRevision &&
+          nextReport != state.report) {
+        emit(state.copyWith(report: nextReport));
+      }
+      return;
+    }
+
+    final nextReport = _deriveReportActionState(
+      state.report,
+      reason: RailReportActionReason.eligible,
+    );
+    if (revision == _reportAvailabilityRevision && nextReport != state.report) {
+      emit(state.copyWith(report: nextReport));
+    }
+  }
+
+  Future<bool> _hasSubmittedForSession({
+    required TrainSession session,
+    required String stationId,
+    required String deviceId,
+    required DateTime now,
+  }) async {
+    _pruneRecentReportKeys(now);
+    final dedupePrefix = '${session.sessionId}:$stationId:$deviceId:';
+    final hasRecent = _recentReportKeys.keys.any(
+      (key) => key.startsWith(dedupePrefix),
+    );
+    if (hasRecent) {
+      return true;
+    }
+    final reports = await _arrivalReportRepository.fetchStopReports(
+      sessionId: session.sessionId,
+      stationId: stationId,
+    );
+    return reports.any((report) => report.deviceId == deviceId);
+  }
+
+  RailBoardReportState _deriveReportActionState(
+    RailBoardReportState base, {
+    required RailReportActionReason reason,
+    DateTime? now,
+    DateTime? boardingAt,
+  }) {
+    final hint = _reportActionHint(
+      reason: reason,
+      now: now,
+      boardingAt: boardingAt,
+    );
+    return base.copyWith(
+      actionReason: reason,
+      isActionEnabled:
+          reason == RailReportActionReason.eligible ||
+          reason == RailReportActionReason.verificationLimitedEligible,
+      hasReportedCurrentSession:
+          reason == RailReportActionReason.alreadySubmitted,
+      actionHint: hint,
+    );
+  }
+
+  String _reportActionHint({
+    required RailReportActionReason reason,
+    DateTime? now,
+    DateTime? boardingAt,
+  }) {
+    switch (reason) {
+      case RailReportActionReason.noSession:
+        return 'No reportable train session is available right now.';
+      case RailReportActionReason.beforeWindow:
+        if (now != null && boardingAt != null) {
+          final eligibilityStart = boardingAt.subtract(
+            Duration(minutes: _sessionLifecycleService.preDepartureMinutes),
+          );
+          final remainingMinutes = eligibilityStart
+              .difference(now)
+              .inMinutes
+              .clamp(0, 9999);
+          return 'Reporting opens in $remainingMinutes minute(s).';
+        }
+        return 'Reporting is not open yet for this train.';
+      case RailReportActionReason.afterWindow:
+        return 'Reporting window has closed for this train.';
+      case RailReportActionReason.alreadySubmitted:
+        return 'You have already reported arrival for this train at this station.';
+      case RailReportActionReason.temporarilyUnavailable:
+        return 'Reporting is temporarily unavailable. Please try again shortly.';
+      case RailReportActionReason.eligible:
+        return 'Reporting is open for your selected boarding station.';
+      case RailReportActionReason.verificationLimitedEligible:
+        return 'Live verification is unavailable. You can still submit one arrival report for this station.';
     }
   }
 
@@ -672,11 +933,4 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     _timer?.cancel();
     await super.close();
   }
-}
-
-class _PendingArrivalReport {
-  const _PendingArrivalReport({required this.report, required this.dedupeKey});
-
-  final ArrivalReport report;
-  final String dedupeKey;
 }

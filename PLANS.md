@@ -199,4 +199,11 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - 2026-03-28: Added explicit operational requirement to enable Firestore TTL on `station_reports.submittedAt` for automatic 7-day cleanup.
 - 2026-03-28: Added runtime community feature gating so Firebase-disabled mode hides community estimate/report UI and bypasses report submission and insight refresh logic.
 - 2026-03-28: Refactored `RailBoardState` into `view`, `report`, and `community` slices and moved board page rendering to selector-based composition to reduce unnecessary rebuilds and improve component-level state access.
+- 2026-03-28: Removed manual community refresh control and standardized background-driven refresh only (tick + app resume).
+- 2026-03-28: Hardened report action contract with typed action reasons, centralized action-state derivation, and explicit guided hints for each lock/unlock condition.
+- 2026-03-28: Enforced one-time report locking per `session+station+device` and added boundary tests for eligibility window open/close transitions.
+- 2026-03-28: Added offline-first guardrail so remote verification failures do not block in-window reporting when local evidence of prior submission is unavailable.
+- 2026-03-28: Removed app-resume-triggered recomputation to avoid unnecessary refresh load; periodic tick remains the refresh driver.
+- 2026-03-28: Consolidated community estimate and reporting into a single `Reported Delay` action card while keeping session-level delay independent from boarding/destination station changes.
+- 2026-03-28: Removed offline report queueing and automatic retry; failed report submissions now stay non-persistent and require explicit user retry.
 

@@ -8,7 +8,16 @@ enum RailReportSubmissionStatus {
   success,
   rateLimited,
   error,
-  offlineQueue,
+}
+
+enum RailReportActionReason {
+  noSession,
+  beforeWindow,
+  afterWindow,
+  alreadySubmitted,
+  temporarilyUnavailable,
+  eligible,
+  verificationLimitedEligible,
 }
 
 enum RailCommunityInsightStatus { idle, loading, ready, stale, empty, error }
@@ -73,16 +82,29 @@ class RailBoardReportState extends Equatable {
     this.status = RailReportSubmissionStatus.idle,
     this.feedbackMessage,
     this.retryAfterSeconds,
+    this.actionReason = RailReportActionReason.noSession,
+    this.isActionEnabled = false,
+    this.hasReportedCurrentSession = false,
+    this.actionHint,
   });
 
   final RailReportSubmissionStatus status;
   final String? feedbackMessage;
   final int? retryAfterSeconds;
+  final RailReportActionReason actionReason;
+  final bool isActionEnabled;
+  final bool hasReportedCurrentSession;
+  final String? actionHint;
 
   RailBoardReportState copyWith({
     RailReportSubmissionStatus? status,
     String? feedbackMessage,
     int? retryAfterSeconds,
+    RailReportActionReason? actionReason,
+    bool? isActionEnabled,
+    bool? hasReportedCurrentSession,
+    String? actionHint,
+    bool clearActionHint = false,
     bool clearFeedback = false,
     bool clearRetryAfter = false,
   }) {
@@ -94,17 +116,31 @@ class RailBoardReportState extends Equatable {
       retryAfterSeconds: clearRetryAfter
           ? null
           : retryAfterSeconds ?? this.retryAfterSeconds,
+      actionReason: actionReason ?? this.actionReason,
+      isActionEnabled: isActionEnabled ?? this.isActionEnabled,
+      hasReportedCurrentSession:
+          hasReportedCurrentSession ?? this.hasReportedCurrentSession,
+      actionHint: clearActionHint ? null : actionHint ?? this.actionHint,
     );
   }
 
   @override
-  List<Object?> get props => [status, feedbackMessage, retryAfterSeconds];
+  List<Object?> get props => [
+    status,
+    feedbackMessage,
+    retryAfterSeconds,
+    actionReason,
+    isActionEnabled,
+    hasReportedCurrentSession,
+    actionHint,
+  ];
 }
 
 class RailBoardCommunityState extends Equatable {
   const RailBoardCommunityState({
     this.featuresEnabled = true,
     this.insightStatus = RailCommunityInsightStatus.idle,
+    this.lastResolvedInsightStatus = RailCommunityInsightStatus.idle,
     this.sessionStatusSnapshot,
     this.predictedStopTimes = const [],
     this.message,
@@ -112,6 +148,7 @@ class RailBoardCommunityState extends Equatable {
 
   final bool featuresEnabled;
   final RailCommunityInsightStatus insightStatus;
+  final RailCommunityInsightStatus lastResolvedInsightStatus;
   final SessionStatusSnapshot? sessionStatusSnapshot;
   final List<PredictedStopTime> predictedStopTimes;
   final String? message;
@@ -119,6 +156,7 @@ class RailBoardCommunityState extends Equatable {
   RailBoardCommunityState copyWith({
     bool? featuresEnabled,
     RailCommunityInsightStatus? insightStatus,
+    RailCommunityInsightStatus? lastResolvedInsightStatus,
     SessionStatusSnapshot? sessionStatusSnapshot,
     List<PredictedStopTime>? predictedStopTimes,
     String? message,
@@ -128,6 +166,8 @@ class RailBoardCommunityState extends Equatable {
     return RailBoardCommunityState(
       featuresEnabled: featuresEnabled ?? this.featuresEnabled,
       insightStatus: insightStatus ?? this.insightStatus,
+      lastResolvedInsightStatus:
+          lastResolvedInsightStatus ?? this.lastResolvedInsightStatus,
       sessionStatusSnapshot: clearSessionStatus
           ? null
           : sessionStatusSnapshot ?? this.sessionStatusSnapshot,
@@ -140,6 +180,7 @@ class RailBoardCommunityState extends Equatable {
   List<Object?> get props => [
     featuresEnabled,
     insightStatus,
+    lastResolvedInsightStatus,
     sessionStatusSnapshot,
     predictedStopTimes,
     message,

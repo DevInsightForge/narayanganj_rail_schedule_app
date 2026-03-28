@@ -44,12 +44,14 @@ void main() {
         nowProvider: () => DateTime(2026, 3, 28, 4, 25),
       );
 
-      await bloc.stream.firstWhere(
+      await _waitForState(
+        bloc,
         (state) => state.status == RailBoardStatus.ready,
       );
       bloc.add(const RailBoardArrivalReportRequested());
 
-      final reportState = await bloc.stream.firstWhere(
+      final reportState = await _waitForState(
+        bloc,
         (state) =>
             state.reportSubmissionStatus == RailReportSubmissionStatus.success,
       );
@@ -59,6 +61,24 @@ void main() {
         stationId: 'dhaka',
       );
       expect(stored, isNotEmpty);
+      expect(
+        reportState.reportSubmissionStatus,
+        RailReportSubmissionStatus.success,
+      );
+      expect(reportState.report.hasReportedCurrentSession, isTrue);
+      expect(reportState.report.isActionEnabled, isFalse);
+
+      bloc.add(const RailBoardArrivalReportRequested());
+      await _waitForState(
+        bloc,
+        (state) =>
+            state.reportSubmissionStatus == RailReportSubmissionStatus.error,
+      );
+      final storedAfterRetry = await reports.fetchStopReports(
+        sessionId: _seedSessions().first.sessionId,
+        stationId: 'dhaka',
+      );
+      expect(storedAfterRetry.length, equals(1));
       await bloc.close();
     });
 
@@ -92,12 +112,14 @@ void main() {
         nowProvider: () => DateTime(2026, 3, 28, 4, 25),
       );
 
-      await bloc.stream.firstWhere(
+      await _waitForState(
+        bloc,
         (state) => state.status == RailBoardStatus.ready,
       );
       bloc.add(const RailBoardArrivalReportRequested());
 
-      final reportState = await bloc.stream.firstWhere(
+      final reportState = await _waitForState(
+        bloc,
         (state) =>
             state.reportSubmissionStatus ==
             RailReportSubmissionStatus.rateLimited,
@@ -127,19 +149,18 @@ void main() {
         nowProvider: () => DateTime(2026, 3, 28, 2, 0),
       );
 
-      await bloc.stream.firstWhere(
+      await _waitForState(
+        bloc,
         (state) => state.status == RailBoardStatus.ready,
       );
       bloc.add(const RailBoardArrivalReportRequested());
 
-      final reportState = await bloc.stream.firstWhere(
+      final reportState = await _waitForState(
+        bloc,
         (state) =>
             state.reportSubmissionStatus == RailReportSubmissionStatus.error,
       );
-      expect(
-        reportState.reportFeedbackMessage,
-        contains('No active report window'),
-      );
+      expect(reportState.reportFeedbackMessage, contains('Reporting opens in'));
       await bloc.close();
     });
 
@@ -165,18 +186,19 @@ void main() {
               sessionId: session.sessionId,
               stationId: 'dhaka',
               deviceId: 'dev-1',
-              observedArrivalAt: DateTime(2026, 3, 28, 4, 32),
-              submittedAt: DateTime(2026, 3, 28, 4, 33),
+              observedArrivalAt: DateTime(2026, 3, 28, 4, 24),
+              submittedAt: DateTime(2026, 3, 28, 4, 24),
             ),
           ],
         ),
         predictionRepository: FakePredictionRepository(),
         deviceIdentityRepository: FakeDeviceIdentityRepository(),
         rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
-        nowProvider: () => DateTime(2026, 3, 28, 4, 35),
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
       );
 
-      final insightState = await bloc.stream.firstWhere(
+      final insightState = await _waitForState(
+        bloc,
         (state) =>
             state.communityInsightStatus == RailCommunityInsightStatus.ready,
       );
@@ -186,7 +208,7 @@ void main() {
     });
 
     test(
-      'retries offline-queued reports on tick when repository recovers',
+      'does not queue failed reports and retries only on explicit submit',
       () async {
         final session = _seedSessions().first;
         final reports = _FlakyArrivalReportRepository();
@@ -207,24 +229,31 @@ void main() {
           predictionRepository: FakePredictionRepository(),
           deviceIdentityRepository: FakeDeviceIdentityRepository(),
           rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
-          nowProvider: () => DateTime(2026, 3, 28, 4, 35),
+          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
         );
 
-        await bloc.stream.firstWhere(
+        await _waitForState(
+          bloc,
           (state) => state.status == RailBoardStatus.ready,
         );
         bloc.add(const RailBoardArrivalReportRequested());
 
-        await bloc.stream.firstWhere(
+        await _waitForState(
+          bloc,
           (state) =>
-              state.reportSubmissionStatus ==
-              RailReportSubmissionStatus.offlineQueue,
+              state.reportSubmissionStatus == RailReportSubmissionStatus.error,
         );
+        expect(reports.submitted.length, equals(0));
 
         reports.failSubmission = false;
-        bloc.add(const RailBoardTicked());
-        await Future<void>.delayed(const Duration(milliseconds: 20));
-        expect(reports.submitted.length, equals(2));
+        bloc.add(const RailBoardArrivalReportRequested());
+        await _waitForState(
+          bloc,
+          (state) =>
+              state.reportSubmissionStatus ==
+              RailReportSubmissionStatus.success,
+        );
+        expect(reports.submitted.length, equals(1));
 
         await bloc.close();
       },
@@ -249,10 +278,11 @@ void main() {
         predictionRepository: _ThrowingPredictionRepository(),
         deviceIdentityRepository: FakeDeviceIdentityRepository(),
         rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
-        nowProvider: () => DateTime(2026, 3, 28, 4, 35),
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
       );
 
-      final failedInsightState = await bloc.stream.firstWhere(
+      final failedInsightState = await _waitForState(
+        bloc,
         (state) =>
             state.communityInsightStatus == RailCommunityInsightStatus.error,
       );
@@ -296,14 +326,198 @@ void main() {
         predictionRepository: FakePredictionRepository(),
         deviceIdentityRepository: FakeDeviceIdentityRepository(),
         rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
-        nowProvider: () => DateTime(2026, 3, 28, 4, 35),
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
       );
 
-      final insightState = await bloc.stream.firstWhere(
+      final insightState = await _waitForState(
+        bloc,
         (state) =>
             state.communityInsightStatus == RailCommunityInsightStatus.stale,
       );
       expect(insightState.sessionStatusSnapshot, isNotNull);
+      await bloc.close();
+    });
+
+    test('disables reporting before eligibility window opens', () async {
+      final bloc = RailBoardBloc(
+        boardService: RailBoardService(
+          schedule: StaticScheduleDataSource.schedule,
+        ),
+        scheduleDataRepository: _FakeScheduleDataRepository(),
+        selectionRepository: _InMemorySelectionRepository(
+          const RailSelection(
+            direction: 'dhaka_to_narayanganj',
+            boardingStationId: 'dhaka',
+            destinationStationId: 'narayanganj',
+          ),
+        ),
+        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        predictionRepository: FakePredictionRepository(),
+        deviceIdentityRepository: FakeDeviceIdentityRepository(),
+        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+        nowProvider: () => DateTime(2026, 3, 28, 4, 24),
+      );
+
+      final state = await _waitForState(
+        bloc,
+        (state) =>
+            state.status == RailBoardStatus.ready &&
+            state.report.actionReason == RailReportActionReason.beforeWindow,
+      );
+      expect(state.report.isActionEnabled, isFalse);
+      expect(state.report.actionHint, contains('Reporting opens in'));
+      await bloc.close();
+    });
+
+    test('enables reporting at eligibility window start boundary', () async {
+      final bloc = RailBoardBloc(
+        boardService: RailBoardService(
+          schedule: StaticScheduleDataSource.schedule,
+        ),
+        scheduleDataRepository: _FakeScheduleDataRepository(),
+        selectionRepository: _InMemorySelectionRepository(
+          const RailSelection(
+            direction: 'dhaka_to_narayanganj',
+            boardingStationId: 'dhaka',
+            destinationStationId: 'narayanganj',
+          ),
+        ),
+        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        predictionRepository: FakePredictionRepository(),
+        deviceIdentityRepository: FakeDeviceIdentityRepository(),
+        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+      );
+
+      final state = await _waitForState(
+        bloc,
+        (state) =>
+            state.status == RailBoardStatus.ready &&
+            state.report.actionReason == RailReportActionReason.eligible,
+      );
+      expect(state.report.isActionEnabled, isTrue);
+      await bloc.close();
+    });
+
+    test(
+      'marks reporting unavailable when matching train session is no longer next',
+      () async {
+        final bloc = RailBoardBloc(
+          boardService: RailBoardService(
+            schedule: StaticScheduleDataSource.schedule,
+          ),
+          scheduleDataRepository: _FakeScheduleDataRepository(),
+          selectionRepository: _InMemorySelectionRepository(
+            const RailSelection(
+              direction: 'dhaka_to_narayanganj',
+              boardingStationId: 'dhaka',
+              destinationStationId: 'narayanganj',
+            ),
+          ),
+          sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+          arrivalReportRepository: FakeArrivalReportRepository(),
+          predictionRepository: FakePredictionRepository(),
+          deviceIdentityRepository: FakeDeviceIdentityRepository(),
+          rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+          nowProvider: () => DateTime(2026, 3, 28, 5, 31),
+        );
+
+        final state = await _waitForState(
+          bloc,
+          (state) =>
+              state.status == RailBoardStatus.ready &&
+              state.report.actionReason == RailReportActionReason.noSession,
+        );
+        expect(state.report.isActionEnabled, isFalse);
+        await bloc.close();
+      },
+    );
+
+    test(
+      'allows reporting when remote verification fails but window is eligible',
+      () async {
+        final reports = _FetchFailingArrivalReportRepository();
+        final bloc = RailBoardBloc(
+          boardService: RailBoardService(
+            schedule: StaticScheduleDataSource.schedule,
+          ),
+          scheduleDataRepository: _FakeScheduleDataRepository(),
+          selectionRepository: _InMemorySelectionRepository(
+            const RailSelection(
+              direction: 'dhaka_to_narayanganj',
+              boardingStationId: 'dhaka',
+              destinationStationId: 'narayanganj',
+            ),
+          ),
+          sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+          arrivalReportRepository: reports,
+          predictionRepository: FakePredictionRepository(),
+          deviceIdentityRepository: FakeDeviceIdentityRepository(),
+          rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+        );
+
+        final eligibleState = await _waitForState(
+          bloc,
+          (state) =>
+              state.status == RailBoardStatus.ready &&
+              state.report.actionReason ==
+                  RailReportActionReason.verificationLimitedEligible,
+        );
+        expect(eligibleState.report.isActionEnabled, isTrue);
+
+        reports.failFetch = false;
+        bloc.add(const RailBoardArrivalReportRequested());
+        final submittedState = await _waitForState(
+          bloc,
+          (state) =>
+              state.reportSubmissionStatus ==
+              RailReportSubmissionStatus.success,
+        );
+        expect(submittedState.report.hasReportedCurrentSession, isTrue);
+        await bloc.close();
+      },
+    );
+
+    test('recomputes reporting eligibility on tick transition', () async {
+      DateTime now = DateTime(2026, 3, 28, 4, 24);
+      final bloc = RailBoardBloc(
+        boardService: RailBoardService(
+          schedule: StaticScheduleDataSource.schedule,
+        ),
+        scheduleDataRepository: _FakeScheduleDataRepository(),
+        selectionRepository: _InMemorySelectionRepository(
+          const RailSelection(
+            direction: 'dhaka_to_narayanganj',
+            boardingStationId: 'dhaka',
+            destinationStationId: 'narayanganj',
+          ),
+        ),
+        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        predictionRepository: FakePredictionRepository(),
+        deviceIdentityRepository: FakeDeviceIdentityRepository(),
+        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+        nowProvider: () => now,
+      );
+
+      await _waitForState(
+        bloc,
+        (state) =>
+            state.status == RailBoardStatus.ready &&
+            state.report.actionReason == RailReportActionReason.beforeWindow,
+      );
+      now = DateTime(2026, 3, 28, 4, 25);
+      bloc.add(const RailBoardTicked());
+      final unlocked = await _waitForState(
+        bloc,
+        (state) =>
+            state.report.actionReason == RailReportActionReason.eligible &&
+            state.report.isActionEnabled,
+      );
+      expect(unlocked.report.isActionEnabled, isTrue);
       await bloc.close();
     });
 
@@ -332,14 +546,14 @@ void main() {
           nowProvider: () => DateTime(2026, 3, 28, 4, 25),
         );
 
-        final ready = await bloc.stream.firstWhere(
+        final ready = await _waitForState(
+          bloc,
           (state) => state.status == RailBoardStatus.ready,
         );
         expect(ready.communityFeaturesEnabled, isFalse);
         expect(ready.communityInsightStatus, RailCommunityInsightStatus.idle);
 
         bloc.add(const RailBoardArrivalReportRequested());
-        await Future<void>.delayed(const Duration(milliseconds: 20));
 
         expect(
           bloc.state.reportSubmissionStatus,
@@ -354,6 +568,17 @@ void main() {
       },
     );
   });
+}
+
+Future<RailBoardState> _waitForState(
+  RailBoardBloc bloc,
+  bool Function(RailBoardState) predicate,
+) async {
+  final current = bloc.state;
+  if (predicate(current)) {
+    return current;
+  }
+  return bloc.stream.firstWhere(predicate);
 }
 
 class _FakeScheduleDataRepository extends ScheduleDataRepository {
@@ -427,10 +652,10 @@ class _FlakyArrivalReportRepository implements ArrivalReportRepository {
 
   @override
   Future<void> submitArrivalReport(ArrivalReport report) async {
-    submitted.add(report);
     if (failSubmission) {
       throw StateError('offline');
     }
+    submitted.add(report);
   }
 }
 
@@ -453,5 +678,31 @@ class _ThrowingPredictionRepository implements PredictionRepository {
     required String sessionId,
   }) {
     throw StateError('failed');
+  }
+}
+
+class _FetchFailingArrivalReportRepository implements ArrivalReportRepository {
+  bool failFetch = true;
+  final List<ArrivalReport> _submitted = [];
+
+  @override
+  Future<List<ArrivalReport>> fetchStopReports({
+    required String sessionId,
+    required String stationId,
+  }) async {
+    if (failFetch) {
+      throw StateError('remote_fetch_failed');
+    }
+    return _submitted
+        .where(
+          (report) =>
+              report.sessionId == sessionId && report.stationId == stationId,
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> submitArrivalReport(ArrivalReport report) async {
+    _submitted.add(report);
   }
 }
