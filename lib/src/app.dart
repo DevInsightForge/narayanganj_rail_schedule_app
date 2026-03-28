@@ -11,22 +11,19 @@ import 'features/community/data/repositories/fake/fake_arrival_report_repository
 import 'features/community/data/repositories/fake/fake_device_identity_repository.dart';
 import 'features/community/data/repositories/fake/fake_prediction_repository.dart';
 import 'features/community/data/repositories/fake/fake_rate_limit_policy_repository.dart';
-import 'features/community/data/repositories/fake/fake_session_repository.dart';
 import 'features/community/data/repositories/firebase/firebase_arrival_report_repository.dart';
 import 'features/community/data/repositories/firebase/firebase_device_identity_repository.dart';
 import 'features/community/data/repositories/firebase/firebase_prediction_repository.dart';
-import 'features/community/data/repositories/firebase/firebase_session_repository.dart';
+import 'features/community/data/repositories/local/generated_session_repository.dart';
 import 'features/community/data/repositories/resilient/resilient_arrival_report_repository.dart';
 import 'features/community/data/repositories/resilient/resilient_device_identity_repository.dart';
 import 'features/community/data/repositories/resilient/resilient_prediction_repository.dart';
-import 'features/community/data/repositories/resilient/resilient_session_repository.dart';
 import 'features/community/domain/entities/rate_limit_policy.dart';
 import 'features/community/domain/repositories/arrival_report_repository.dart';
 import 'features/community/domain/repositories/device_identity_repository.dart';
 import 'features/community/domain/repositories/prediction_repository.dart';
 import 'features/community/domain/repositories/rate_limit_policy_repository.dart';
 import 'features/community/domain/repositories/session_repository.dart';
-import 'features/community/domain/services/train_session_factory.dart';
 import 'features/rail/data/datasources/static_schedule_data_source.dart';
 import 'features/rail/data/models/rail_schedule_document_parser.dart';
 import 'features/rail/data/repositories/schedule_data_repository.dart';
@@ -51,32 +48,11 @@ class NarayanganjRailScheduleApp extends StatelessWidget {
       routeId: 'narayanganj_line',
       schedule: StaticScheduleDataSource.schedule,
     );
-    final sessionFactory = const TrainSessionFactory();
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final tomorrow = today.add(const Duration(days: 1));
-    final seededSessions = [
-      for (final template in templates) ...[
-        sessionFactory.create(template: template, serviceDate: today),
-        sessionFactory.create(template: template, serviceDate: tomorrow),
-      ],
-    ];
-
-    final fallbackSessionRepository = FakeSessionRepository(
-      seed: seededSessions,
-    );
+    final sessionRepository = GeneratedSessionRepository(templates: templates);
     final fallbackArrivalReportRepository = FakeArrivalReportRepository();
     final fallbackPredictionRepository = FakePredictionRepository();
     final fallbackDeviceIdentityRepository = FakeDeviceIdentityRepository();
 
-    final sessionRepository = firebaseRuntime.initialized
-        ? ResilientSessionRepository(
-            primary: FirebaseSessionRepository(
-              firestore: FirebaseFirestore.instance,
-            ),
-            fallback: fallbackSessionRepository,
-          )
-        : fallbackSessionRepository;
     final arrivalReportRepository = firebaseRuntime.initialized
         ? ResilientArrivalReportRepository(
             primary: FirebaseArrivalReportRepository(

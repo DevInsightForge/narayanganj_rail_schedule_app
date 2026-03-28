@@ -47,8 +47,9 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - `RateLimitPolicy`
 
 ## Firebase Data Model Draft
-- `train_sessions/{sessionId}`
-  - `sessionId`, `templateId`, `routeId`, `directionId`, `trainNo`, `serviceDate`, `stops[]`
+- Virtual `train_sessions` generated client-side from schedule templates:
+  - `sessionId = <routeId>:<directionId>:<trainNo>:<YYYYMMDD>`
+  - `serviceDate`, stop sequence, and schedule timestamps are deterministic from bundled timetable.
 - `station_reports/{reportId}`
   - `reportId`, `sessionId`, `routeId`, `stationId`, `reporterUid`, `observedArrivalAt`, `submittedAt`
 - `session_status_snapshots/{sessionId}/predicted_stops/{stationId}`
@@ -60,6 +61,7 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - Require authenticated user for writes using Firebase Anonymous Auth.
 - Restrict report writes so `reporterUid == request.auth.uid`.
 - Validate essential fields (`sessionId`, `stationId`, timestamps) and enforce bounded payload shape.
+- Keep report timestamps within a recent 7-day server-time window.
 - Restrict profile metadata writes to own `uid` document and keep profile reads disabled at rule level.
 - Use App Check where possible for abuse reduction.
 - Keep rules/indexes versioned in repo (`firestore.rules`, `firestore.indexes.json`, `firebase.json`) to avoid drift.
@@ -139,6 +141,15 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - Risks/dependencies: environment setup drift.
 - Test expectations: full suite plus targeted smoke coverage.
 
+### Milestone 7: Operational Session Publishing Workflow
+- Objective: replace persisted session-doc dependency with deterministic dynamic session generation.
+- Scope: local/generated session repository, runtime wiring cleanup, and retention rule hardening.
+- Architecture impact: removes unnecessary remote session collection dependency and simplifies operations.
+- Key tasks: generate sessions on-demand from schedule templates, remove seed export tooling, enforce 7-day report write window.
+- Acceptance criteria: app resolves current/next sessions without `train_sessions` collection and report lifecycle is bounded.
+- Risks/dependencies: deterministic session ID contract must stay stable across clients.
+- Test expectations: generated-session repository tests and regression validation.
+
 ## Risks and Open Questions
 - Firestore rules cannot fully prevent intentional abuse without server-side validation.
 - Session document freshness and ownership of derived snapshots need operational governance.
@@ -160,6 +171,7 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - [x] Milestone 4 initial implementation complete.
 - [x] Milestone 5 initial implementation complete.
 - [x] Milestone 6 complete.
+- [x] Milestone 7 complete.
 
 ## Decision Log
 - 2026-03-28: Kept schedule-first baseline as non-negotiable.
@@ -179,4 +191,6 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - 2026-03-28: Tightened `user_profiles` rules to owner-write metadata only with client reads disabled.
 - 2026-03-28: Hardened Firebase env parsing so blank values are treated as missing to reduce release-time misconfiguration risk.
 - 2026-03-28: Closed Milestone 6 after release hardening, security-rule tightening, anonymous-flow cleanup, and regression test verification.
+- 2026-03-28: Replaced persisted `train_sessions` dependency with deterministic dynamic session generation from local templates and removed seed-export tooling.
+- 2026-03-28: Enforced 7-day report timestamp window in Firestore rules to align with automatic cleanup policy.
 

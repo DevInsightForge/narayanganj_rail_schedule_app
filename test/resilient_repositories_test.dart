@@ -2,37 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/resilient/resilient_arrival_report_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/resilient/resilient_device_identity_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/resilient/resilient_prediction_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/resilient/resilient_session_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/data_origin.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/device_identity.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/predicted_stop_time.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/report_confidence.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/train_session.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/arrival_report_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/device_identity_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/prediction_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/session_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
 
 void main() {
-  test('resilient session repository falls back when primary fails', () async {
-    final fallbackSession = _session();
-    final repository = ResilientSessionRepository(
-      primary: _ThrowingSessionRepository(),
-      fallback: _InMemorySessionRepository([fallbackSession]),
-    );
-
-    final sessions = await repository.fetchSessions(
-      routeId: 'route',
-      serviceDate: DateTime(2026, 3, 28),
-    );
-
-    expect(sessions.length, equals(1));
-    expect(sessions.first.sessionId, equals(fallbackSession.sessionId));
-  });
-
   test(
     'resilient arrival repository always stores local fallback first',
     () async {
@@ -95,68 +74,6 @@ void main() {
 
     expect(identity.deviceId, equals('fallback-user'));
   });
-}
-
-TrainSession _session() {
-  const factory = TrainSessionFactory();
-  final template = ScheduleTemplate(
-    templateId: 't',
-    routeId: 'route',
-    directionId: 'dir',
-    trainNo: 1,
-    servicePeriod: 'morning',
-    stops: const [
-      StationStop(
-        stationId: 'a',
-        stationName: 'A',
-        sequence: 0,
-        scheduledTime: '04:30',
-      ),
-      StationStop(
-        stationId: 'b',
-        stationName: 'B',
-        sequence: 1,
-        scheduledTime: '04:40',
-      ),
-    ],
-  );
-  return factory.create(template: template, serviceDate: DateTime(2026, 3, 28));
-}
-
-class _ThrowingSessionRepository implements SessionRepository {
-  @override
-  Future<List<TrainSession>> fetchSessions({
-    required String routeId,
-    required DateTime serviceDate,
-  }) async => throw StateError('fail');
-
-  @override
-  Future<TrainSession?> fetchNextEligibleSession({
-    required String routeId,
-    required String fromStationId,
-    required String toStationId,
-    required DateTime now,
-  }) async => throw StateError('fail');
-}
-
-class _InMemorySessionRepository implements SessionRepository {
-  _InMemorySessionRepository(this._sessions);
-
-  final List<TrainSession> _sessions;
-
-  @override
-  Future<List<TrainSession>> fetchSessions({
-    required String routeId,
-    required DateTime serviceDate,
-  }) async => _sessions;
-
-  @override
-  Future<TrainSession?> fetchNextEligibleSession({
-    required String routeId,
-    required String fromStationId,
-    required String toStationId,
-    required DateTime now,
-  }) async => _sessions.isEmpty ? null : _sessions.first;
 }
 
 class _ThrowingArrivalRepository implements ArrivalReportRepository {

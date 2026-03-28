@@ -58,8 +58,9 @@ FIREBASE_APPCHECK_WEB_KEY=
 ## Firebase Security Baseline
 
 - Firestore config is versioned in [firebase.json](firebase.json), [firestore.rules](firestore.rules), and [firestore.indexes.json](firestore.indexes.json).
+- Train sessions are generated dynamically from bundled schedule templates using deterministic session IDs.
 - `station_reports` writes require Firebase Anonymous Auth and enforce `reporterUid == request.auth.uid`.
-- `train_sessions` and `session_status_snapshots` are read-only to clients.
+- `session_status_snapshots` is read-only to clients.
 - `user_profiles` is owner-write metadata only (no client reads).
 
 ## Showcase
