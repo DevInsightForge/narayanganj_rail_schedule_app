@@ -62,7 +62,7 @@ class FooterPanel extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Narayanganj Rail Schedule',
+                          'Narayanganj Commuter',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: textTheme.labelLarge?.copyWith(

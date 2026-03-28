@@ -8,8 +8,6 @@ void main() {
     final env = <String, String>{
       'FIREBASE_ENABLED': 'true',
       'FIREBASE_API_KEY': 'key',
-      'FIREBASE_APP_ID': 'app',
-      'FIREBASE_MESSAGING_SENDER_ID': 'sender',
       'FIREBASE_PROJECT_ID': 'project',
       'FIREBASE_APPCHECK_ENABLED': 'true',
     };
@@ -30,17 +28,20 @@ void main() {
     expect(appCheckActivated, isFalse);
   });
 
-  test('returns disabled runtime when options are absent', () async {
-    final bootstrap = FirebaseBootstrap(
-      optionsFactory: const FirebaseOptionsFactory(envReader: _emptyEnv),
-      initializer: ({name, options}) =>
-          Future<FirebaseApp>.error(StateError('should not initialize')),
-    );
+  test(
+    'returns disabled runtime when firebase is explicitly disabled',
+    () async {
+      final bootstrap = FirebaseBootstrap(
+        optionsFactory: const FirebaseOptionsFactory(envReader: _disabledEnv),
+        initializer: ({name, options}) =>
+            Future<FirebaseApp>.error(StateError('should not initialize')),
+      );
 
-    final runtime = await bootstrap.initialize();
-    expect(runtime.enabled, isFalse);
-    expect(runtime.initialized, isFalse);
-  });
+      final runtime = await bootstrap.initialize();
+      expect(runtime.enabled, isFalse);
+      expect(runtime.initialized, isFalse);
+    },
+  );
 }
 
-String? _emptyEnv(String key) => null;
+String? _disabledEnv(String key) => key == 'FIREBASE_ENABLED' ? 'false' : null;

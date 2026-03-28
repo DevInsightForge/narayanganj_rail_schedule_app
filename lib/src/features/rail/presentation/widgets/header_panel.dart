@@ -130,7 +130,7 @@ class _HeroCopy extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         Text(
-          'Narayanganj Rail',
+          'Narayanganj Commuter',
           style: textTheme.displayMedium?.copyWith(
             color: palette.headerOn,
             fontSize: 28,
@@ -451,7 +451,7 @@ class _CompactHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Narayanganj Rail',
+                'Narayanganj Commuter',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: palette.headerOn,
                   fontSize: 20,

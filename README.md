@@ -1,4 +1,4 @@
-# Narayanganj Rail Schedule
+# Narayanganj Commuter
 
 [![CI](https://github.com/DevInsightForge/narayanganj_rail_schedule_app/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DevInsightForge/narayanganj_rail_schedule_app/actions/workflows/ci.yml)
 [![Publish](https://github.com/DevInsightForge/narayanganj_rail_schedule_app/actions/workflows/publish.yml/badge.svg)](https://github.com/DevInsightForge/narayanganj_rail_schedule_app/actions/workflows/publish.yml)
@@ -40,15 +40,17 @@ Optional root `.env`:
 
 ```env
 WEBSITE_BASE_URL=https://narayanganj-rail-schedule.pages.dev/
-FIREBASE_ENABLED=false
+# Optional override: set false to force-disable Firebase
+# FIREBASE_ENABLED=false
 FIREBASE_APPCHECK_ENABLED=false
-FIREBASE_API_KEY=
-FIREBASE_APP_ID=
-FIREBASE_MESSAGING_SENDER_ID=
+# Minimal required Firebase values
 FIREBASE_PROJECT_ID=
-FIREBASE_AUTH_DOMAIN=
-FIREBASE_STORAGE_BUCKET=
-FIREBASE_IOS_BUNDLE_ID=
+FIREBASE_API_KEY=
+# Optional platform API key overrides
+FIREBASE_WEB_API_KEY=
+FIREBASE_ANDROID_API_KEY=
+FIREBASE_IOS_API_KEY=
+# Optional web analytics
 FIREBASE_MEASUREMENT_ID=
 FIREBASE_APPCHECK_WEB_KEY=
 ```

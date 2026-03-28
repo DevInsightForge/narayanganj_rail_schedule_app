@@ -6,8 +6,6 @@ void main() {
     final env = <String, String>{
       'FIREBASE_ENABLED': 'true',
       'FIREBASE_API_KEY': 'key',
-      'FIREBASE_APP_ID': 'app',
-      'FIREBASE_MESSAGING_SENDER_ID': 'sender',
       'FIREBASE_PROJECT_ID': 'project',
     };
     final factory = FirebaseOptionsFactory(envReader: (key) => env[key]);
@@ -17,6 +15,7 @@ void main() {
     expect(options, isNotNull);
     expect(factory.isEnabled, isTrue);
     expect(options?.projectId, equals('project'));
+    expect(options?.storageBucket, equals('project.firebasestorage.app'));
   });
 
   test('returns null options when firebase is disabled', () {
@@ -27,4 +26,15 @@ void main() {
     expect(factory.create(), isNull);
     expect(factory.isEnabled, isFalse);
   });
+
+  test('returns null options when required env values are missing', () {
+    final factory = const FirebaseOptionsFactory(envReader: _emptyEnv);
+
+    final options = factory.create();
+
+    expect(factory.isEnabled, isTrue);
+    expect(options, isNull);
+  });
 }
+
+String? _emptyEnv(String key) => null;

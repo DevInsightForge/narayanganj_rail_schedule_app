@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Role and Objective
-- Build production-ready, maintainable Flutter code for Narayanganj Rail Schedule.
+- Build production-ready, maintainable Flutter code for Narayanganj Commuter.
 - Preserve the schedule-first baseline while adding Firebase-backed community status features.
 - Keep behavior deterministic, testable, and resilient under degraded connectivity.
 

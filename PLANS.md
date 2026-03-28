@@ -1,7 +1,7 @@
 # PLANS.md
 
 ## Project Overview
-Narayanganj Rail Schedule is evolving into a schedule-first, community-powered train status companion for the Narayanganj route. Official timetable remains baseline truth. Community reports and inferred predictions are a secondary signal layer powered by Firebase client SDKs.
+Narayanganj Commuter is evolving into a schedule-first, community-powered train status companion for the Narayanganj route. Official timetable remains baseline truth. Community reports and inferred predictions are a secondary signal layer powered by Firebase client SDKs.
 
 ## Current State Assessment
 - Layered architecture exists across presentation, domain, and data.
@@ -175,3 +175,5 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - 2026-03-28: Added queued report retry drain on tick with bounded dedupe retention and rate-limit-aware sync attempts.
 - 2026-03-28: Added explicit community insight error state fallback when repository calls fail.
 - 2026-03-28: Added Firebase Firestore rules/indexes config files to lock a client-only MVP security baseline.
+- 2026-03-28: Standardized Firebase initialization on env-driven options with minimal required keys (`FIREBASE_PROJECT_ID`, `FIREBASE_API_KEY`) and derived domains (`authDomain`, `storageBucket`) while keeping platform app IDs hardcoded.
+

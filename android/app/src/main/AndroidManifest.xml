@@ -1,12 +1,13 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.devinsightforge.narayanganjcommuter">
     <application
-        android:label="Narayanganj Rail Schedule"
+        android:label="Narayanganj Commuter"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="false"
         android:allowBackup="false">
         <activity
-            android:name=".MainActivity"
+            android:name="com.devinsightforge.narayanganjcommuter.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""

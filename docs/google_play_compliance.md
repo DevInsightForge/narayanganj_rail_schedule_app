@@ -4,8 +4,8 @@ _Last reviewed: March 27, 2026._
 
 ## App Identity
 
-- **Android application ID**: `com.narayanganj.railschedule`
-- **Android namespace**: `com.narayanganj.railschedule`
+- **Android application ID**: `com.devinsightforge.narayanganjcommuter`
+- **Android namespace**: `com.devinsightforge.narayanganjcommuter`
 
 ## Current Technical Compliance Posture
 

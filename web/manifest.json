@@ -1,6 +1,6 @@
 {
-    "name": "Narayanganj Rail Schedule",
-    "short_name": "Narayanganj Rail",
+    "name": "Narayanganj Commuter",
+    "short_name": "Narayanganj Commuter",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#171717",
