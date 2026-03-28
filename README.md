@@ -14,6 +14,9 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. It turns
 - Direction, boarding, and destination switching with deterministic state reconciliation
 - Remote schedule loading from fixed website API endpoint with strict validation
 - Safe fallback chain: `remote API -> cached valid payload -> bundled static data`
+- Community arrival reporting with anonymous Firebase identity
+- Community delay and downstream prediction insights with confidence and freshness labels
+- Resilient Firebase sync with local fallback and offline queue behavior
 - Structured logging for remote loading branches and validation failures
 - Android system bars styled to match app surface (no default gray status bar)
 
@@ -37,7 +40,25 @@ Optional root `.env`:
 
 ```env
 WEBSITE_BASE_URL=https://narayanganj-rail-schedule.pages.dev/
+FIREBASE_ENABLED=false
+FIREBASE_APPCHECK_ENABLED=false
+FIREBASE_API_KEY=
+FIREBASE_APP_ID=
+FIREBASE_MESSAGING_SENDER_ID=
+FIREBASE_PROJECT_ID=
+FIREBASE_AUTH_DOMAIN=
+FIREBASE_STORAGE_BUCKET=
+FIREBASE_IOS_BUNDLE_ID=
+FIREBASE_MEASUREMENT_ID=
+FIREBASE_APPCHECK_WEB_KEY=
 ```
+
+## Firebase Security Baseline
+
+- Firestore config is versioned in [firebase.json](firebase.json), [firestore.rules](firestore.rules), and [firestore.indexes.json](firestore.indexes.json).
+- `station_reports` writes require Firebase Anonymous Auth and enforce `reporterUid == request.auth.uid`.
+- `train_sessions` and `session_status_snapshots` are read-only to clients.
+- `user_profiles` is restricted to owner read/write.
 
 ## Showcase
 

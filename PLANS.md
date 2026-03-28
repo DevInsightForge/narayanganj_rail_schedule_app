@@ -63,6 +63,7 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - Validate essential fields (`sessionId`, `stationId`, timestamps) and enforce bounded payload shape.
 - Restrict profile writes to own `uid` document.
 - Use App Check where possible for abuse reduction.
+- Keep rules/indexes versioned in repo (`firestore.rules`, `firestore.indexes.json`, `firebase.json`) to avoid drift.
 - Document tradeoff: without trusted backend, validation and abuse prevention remain partially client- and rule-based.
 
 ## Feature Breakdown
@@ -159,7 +160,7 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - [x] Milestone 3 initial implementation complete.
 - [x] Milestone 4 initial implementation complete.
 - [x] Milestone 5 initial implementation complete.
-- [ ] Milestone 6 pending release hardening.
+- [ ] Milestone 6 in progress.
 
 ## Decision Log
 - 2026-03-28: Kept schedule-first baseline as non-negotiable.
@@ -173,3 +174,4 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - 2026-03-28: Removed remaining chat lifecycle remnants from domain service and tests.
 - 2026-03-28: Added queued report retry drain on tick with bounded dedupe retention and rate-limit-aware sync attempts.
 - 2026-03-28: Added explicit community insight error state fallback when repository calls fail.
+- 2026-03-28: Added Firebase Firestore rules/indexes config files to lock a client-only MVP security baseline.
