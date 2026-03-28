@@ -86,10 +86,10 @@ FIREBASE_APPCHECK_WEB_KEY=
 ## Showcase
 
 ### Header and Decision Panel
-![Header and decision panel](docs/screenshots/01-header-decision-panel.png)
+![Header and decision panel](docs/screenshots/01-header-decision-panel.jpg)
 
-### Journey Trace Panel
-![Journey trace panel](docs/screenshots/02-journey-trace-panel.png)
+### Community Report and Journey Timeline Panel
+![Community report and journey timeline panel](docs/screenshots/02-community-report-journey-timeline-panel.jpg)
 
-### Upcoming Trains Panel
-![Upcoming trains panel](docs/screenshots/03-upcoming-trains-panel.png)
+### Backup Schedules Panel
+![Backup schedules panel](docs/screenshots/03-backup-schedules-panel.jpg)
