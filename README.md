@@ -63,6 +63,11 @@ FIREBASE_APPCHECK_WEB_KEY=
 - `session_status_snapshots` is read-only to clients.
 - `user_profiles` is owner-write metadata only (no client reads).
 
+## Firestore Retention
+
+- Configure Firestore TTL for `station_reports.submittedAt` with a 7-day policy in Firebase Console.
+- Keep `firestore.rules` aligned with TTL by enforcing report writes within the same 7-day server-time window.
+
 ## Showcase
 
 ### Header and Decision Panel

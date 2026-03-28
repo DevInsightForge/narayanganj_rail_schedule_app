@@ -66,6 +66,7 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - Use App Check where possible for abuse reduction.
 - Keep rules/indexes versioned in repo (`firestore.rules`, `firestore.indexes.json`, `firebase.json`) to avoid drift.
 - Document tradeoff: without trusted backend, validation and abuse prevention remain partially client- and rule-based.
+- Configure Firestore TTL on `station_reports.submittedAt` to enforce automatic cleanup after 7 days.
 
 ## Feature Breakdown
 - Baseline schedule browsing and route selection.
@@ -193,4 +194,5 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - 2026-03-28: Closed Milestone 6 after release hardening, security-rule tightening, anonymous-flow cleanup, and regression test verification.
 - 2026-03-28: Replaced persisted `train_sessions` dependency with deterministic dynamic session generation from local templates and removed seed-export tooling.
 - 2026-03-28: Enforced 7-day report timestamp window in Firestore rules to align with automatic cleanup policy.
+- 2026-03-28: Added explicit operational requirement to enable Firestore TTL on `station_reports.submittedAt` for automatic 7-day cleanup.
 
