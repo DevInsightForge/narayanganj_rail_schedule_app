@@ -1,0 +1,45 @@
+import '../entities/session_status_snapshot.dart';
+import '../entities/train_session.dart';
+
+class SessionLifecycleService {
+  const SessionLifecycleService({
+    this.preDepartureMinutes = 15,
+    this.postDepartureMinutes = 90,
+  });
+
+  final int preDepartureMinutes;
+  final int postDepartureMinutes;
+
+  SessionLifecycleState getState({
+    required TrainSession session,
+    required DateTime now,
+  }) {
+    final eligibilityStart = session.departureAt.subtract(
+      Duration(minutes: preDepartureMinutes),
+    );
+    final eligibilityEnd = session.departureAt.add(
+      Duration(minutes: postDepartureMinutes),
+    );
+
+    if (now.isBefore(eligibilityStart)) {
+      return SessionLifecycleState.upcoming;
+    }
+    if (now.isAfter(eligibilityEnd)) {
+      return SessionLifecycleState.expired;
+    }
+    return SessionLifecycleState.active;
+  }
+
+  bool isReportEligible({
+    required TrainSession session,
+    required DateTime now,
+  }) {
+    final state = getState(session: session, now: now);
+    return state == SessionLifecycleState.active;
+  }
+
+  bool isChatEligible({required TrainSession session, required DateTime now}) {
+    final state = getState(session: session, now: now);
+    return state == SessionLifecycleState.active;
+  }
+}
