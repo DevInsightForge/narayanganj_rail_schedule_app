@@ -3,8 +3,8 @@ import '../entities/train_session.dart';
 
 class SessionLifecycleService {
   const SessionLifecycleService({
-    this.preDepartureMinutes = 15,
-    this.postDepartureMinutes = 90,
+    this.preDepartureMinutes = 5,
+    this.postDepartureMinutes = 60,
   });
 
   final int preDepartureMinutes;

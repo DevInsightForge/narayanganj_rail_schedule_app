@@ -60,9 +60,9 @@ void main() {
         template: overnightTemplate,
         serviceDate: DateTime(2026, 3, 28),
       );
-      final beforeWindow = DateTime(2026, 3, 28, 23, 34);
-      final inWindow = DateTime(2026, 3, 28, 23, 45);
-      final afterWindow = DateTime(2026, 3, 29, 1, 21);
+      final beforeWindow = DateTime(2026, 3, 28, 23, 44);
+      final inWindow = DateTime(2026, 3, 28, 23, 46);
+      final afterWindow = DateTime(2026, 3, 29, 0, 51);
 
       expect(
         lifecycle.getState(session: session, now: beforeWindow),
