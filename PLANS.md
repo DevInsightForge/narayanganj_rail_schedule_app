@@ -159,7 +159,7 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - [x] Milestone 3 initial implementation complete.
 - [x] Milestone 4 initial implementation complete.
 - [x] Milestone 5 initial implementation complete.
-- [ ] Milestone 6 in progress.
+- [x] Milestone 6 complete.
 
 ## Decision Log
 - 2026-03-28: Kept schedule-first baseline as non-negotiable.
@@ -178,4 +178,5 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - 2026-03-28: Removed anonymous profile/display name abstraction from active community reporting flow, repositories, DTOs, and Firestore report rules to keep participation fully anonymous and low-friction.
 - 2026-03-28: Tightened `user_profiles` rules to owner-write metadata only with client reads disabled.
 - 2026-03-28: Hardened Firebase env parsing so blank values are treated as missing to reduce release-time misconfiguration risk.
+- 2026-03-28: Closed Milestone 6 after release hardening, security-rule tightening, anonymous-flow cleanup, and regression test verification.
 
