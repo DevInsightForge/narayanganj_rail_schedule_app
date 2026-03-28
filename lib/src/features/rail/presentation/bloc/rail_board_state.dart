@@ -11,6 +11,8 @@ enum RailReportSubmissionStatus {
   offlineQueue,
 }
 
+enum RailCommunityInsightStatus { idle, loading, ready, stale, empty, error }
+
 class RailBoardState extends Equatable {
   const RailBoardState({
     this.status = RailBoardStatus.loading,
@@ -37,6 +39,10 @@ class RailBoardState extends Equatable {
     this.reportSubmissionStatus = RailReportSubmissionStatus.idle,
     this.reportFeedbackMessage,
     this.reportRetryAfterSeconds,
+    this.communityInsightStatus = RailCommunityInsightStatus.idle,
+    this.sessionStatusSnapshot,
+    this.predictedStopTimes = const [],
+    this.communityMessage,
   });
 
   final RailBoardStatus status;
@@ -49,6 +55,10 @@ class RailBoardState extends Equatable {
   final RailReportSubmissionStatus reportSubmissionStatus;
   final String? reportFeedbackMessage;
   final int? reportRetryAfterSeconds;
+  final RailCommunityInsightStatus communityInsightStatus;
+  final SessionStatusSnapshot? sessionStatusSnapshot;
+  final List<PredictedStopTime> predictedStopTimes;
+  final String? communityMessage;
 
   bool get isLoading => status == RailBoardStatus.loading;
   bool get hasFailed => status == RailBoardStatus.failure;
@@ -67,6 +77,12 @@ class RailBoardState extends Equatable {
     int? reportRetryAfterSeconds,
     bool clearReportFeedback = false,
     bool clearReportRetryAfter = false,
+    RailCommunityInsightStatus? communityInsightStatus,
+    SessionStatusSnapshot? sessionStatusSnapshot,
+    bool clearSessionStatus = false,
+    List<PredictedStopTime>? predictedStopTimes,
+    String? communityMessage,
+    bool clearCommunityMessage = false,
   }) {
     return RailBoardState(
       status: status ?? this.status,
@@ -84,6 +100,15 @@ class RailBoardState extends Equatable {
       reportRetryAfterSeconds: clearReportRetryAfter
           ? null
           : reportRetryAfterSeconds ?? this.reportRetryAfterSeconds,
+      communityInsightStatus:
+          communityInsightStatus ?? this.communityInsightStatus,
+      sessionStatusSnapshot: clearSessionStatus
+          ? null
+          : sessionStatusSnapshot ?? this.sessionStatusSnapshot,
+      predictedStopTimes: predictedStopTimes ?? this.predictedStopTimes,
+      communityMessage: clearCommunityMessage
+          ? null
+          : communityMessage ?? this.communityMessage,
     );
   }
 
@@ -99,5 +124,9 @@ class RailBoardState extends Equatable {
     reportSubmissionStatus,
     reportFeedbackMessage,
     reportRetryAfterSeconds,
+    communityInsightStatus,
+    sessionStatusSnapshot,
+    predictedStopTimes,
+    communityMessage,
   ];
 }

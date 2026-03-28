@@ -31,6 +31,7 @@ class RailBoardPage extends StatelessWidget {
       systemStatusBarContrastEnforced: false,
       systemNavigationBarContrastEnforced: false,
     );
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: overlayStyle,
       child: Scaffold(
@@ -45,7 +46,7 @@ class RailBoardPage extends StatelessWidget {
               BoxShadow(
                 color: colorScheme.shadow.withValues(alpha: 0.08),
                 blurRadius: 120,
-                offset: Offset(0, 40),
+                offset: const Offset(0, 40),
               ),
             ],
           ),
@@ -112,7 +113,7 @@ class RailBoardPage extends StatelessWidget {
                                       alpha: 0.08,
                                     ),
                                     blurRadius: 64,
-                                    offset: Offset(0, 20),
+                                    offset: const Offset(0, 20),
                                   ),
                                 ],
                               ),
@@ -136,6 +137,12 @@ class RailBoardPage extends StatelessWidget {
                                                 snapshot: state.snapshot,
                                                 reportSubmissionStatus: state
                                                     .reportSubmissionStatus,
+                                                communityInsightStatus: state
+                                                    .communityInsightStatus,
+                                                sessionStatusSnapshot:
+                                                    state.sessionStatusSnapshot,
+                                                communityMessage:
+                                                    state.communityMessage,
                                               ),
                                               const SizedBox(height: 14),
                                               UpcomingPanel(
@@ -151,6 +158,8 @@ class RailBoardPage extends StatelessWidget {
                                             children: [
                                               TimelinePanel(
                                                 snapshot: state.snapshot,
+                                                predictedStopTimes:
+                                                    state.predictedStopTimes,
                                               ),
                                               const SizedBox(height: 14),
                                               const NoticePanel(),
@@ -166,9 +175,19 @@ class RailBoardPage extends StatelessWidget {
                                           snapshot: state.snapshot,
                                           reportSubmissionStatus:
                                               state.reportSubmissionStatus,
+                                          communityInsightStatus:
+                                              state.communityInsightStatus,
+                                          sessionStatusSnapshot:
+                                              state.sessionStatusSnapshot,
+                                          communityMessage:
+                                              state.communityMessage,
                                         ),
                                         const SizedBox(height: 14),
-                                        TimelinePanel(snapshot: state.snapshot),
+                                        TimelinePanel(
+                                          snapshot: state.snapshot,
+                                          predictedStopTimes:
+                                              state.predictedStopTimes,
+                                        ),
                                         const SizedBox(height: 14),
                                         UpcomingPanel(snapshot: state.snapshot),
                                         const SizedBox(height: 14),

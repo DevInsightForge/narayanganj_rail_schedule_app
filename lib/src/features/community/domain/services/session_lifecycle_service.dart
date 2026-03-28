@@ -37,9 +37,4 @@ class SessionLifecycleService {
     final state = getState(session: session, now: now);
     return state == SessionLifecycleState.active;
   }
-
-  bool isChatEligible({required TrainSession session, required DateTime now}) {
-    final state = getState(session: session, now: now);
-    return state == SessionLifecycleState.active;
-  }
 }

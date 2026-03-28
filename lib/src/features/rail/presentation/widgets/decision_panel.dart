@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../community/domain/entities/delay_status.dart';
+import '../../../community/domain/entities/session_status_snapshot.dart';
 import '../../domain/entities/rail_snapshot.dart';
 import '../../domain/services/rail_board_service.dart';
 import '../bloc/rail_board_bloc.dart';
@@ -12,10 +14,16 @@ class DecisionPanel extends StatelessWidget {
     super.key,
     required this.snapshot,
     required this.reportSubmissionStatus,
+    required this.communityInsightStatus,
+    required this.sessionStatusSnapshot,
+    required this.communityMessage,
   });
 
   final RailBoardSnapshot snapshot;
   final RailReportSubmissionStatus reportSubmissionStatus;
+  final RailCommunityInsightStatus communityInsightStatus;
+  final SessionStatusSnapshot? sessionStatusSnapshot;
+  final String? communityMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +117,12 @@ class DecisionPanel extends StatelessWidget {
             },
           ),
           const SizedBox(height: 12),
+          _CommunityEstimateBlock(
+            communityInsightStatus: communityInsightStatus,
+            sessionStatusSnapshot: sessionStatusSnapshot,
+            communityMessage: communityMessage,
+          ),
+          const SizedBox(height: 12),
           FilledButton.icon(
             onPressed:
                 reportSubmissionStatus == RailReportSubmissionStatus.submitting
@@ -143,6 +157,99 @@ class DecisionPanel extends StatelessWidget {
       case RailReportSubmissionStatus.idle:
         return 'Report arrival at this station';
     }
+  }
+}
+
+class _CommunityEstimateBlock extends StatelessWidget {
+  const _CommunityEstimateBlock({
+    required this.communityInsightStatus,
+    required this.sessionStatusSnapshot,
+    required this.communityMessage,
+  });
+
+  final RailCommunityInsightStatus communityInsightStatus;
+  final SessionStatusSnapshot? sessionStatusSnapshot;
+  final String? communityMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
+    final status = sessionStatusSnapshot;
+    final title = switch (communityInsightStatus) {
+      RailCommunityInsightStatus.loading => 'Community estimate updating',
+      RailCommunityInsightStatus.ready => 'Community estimate',
+      RailCommunityInsightStatus.stale => 'Community estimate (stale)',
+      RailCommunityInsightStatus.empty => 'Community estimate unavailable',
+      RailCommunityInsightStatus.error => 'Community estimate error',
+      RailCommunityInsightStatus.idle => 'Community estimate',
+    };
+    final detail = status == null
+        ? (communityMessage ?? 'No community signal yet.')
+        : '${_delayLabel(status)} | Confidence ${_confidencePercent(status)} | Freshness ${_freshnessLabel(status.freshnessSeconds)}';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: palette.panelSurface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: palette.panelBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontSize: 14),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            detail,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: palette.panelMutedText,
+              fontSize: 12,
+            ),
+          ),
+          if (communityMessage != null && communityMessage!.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              communityMessage!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: palette.panelMutedText,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _delayLabel(SessionStatusSnapshot snapshot) {
+    final minutes = snapshot.delayMinutes;
+    switch (snapshot.delayStatus) {
+      case DelayStatus.early:
+        return '${minutes.abs()} min early';
+      case DelayStatus.onTime:
+        return 'On time';
+      case DelayStatus.late:
+        return '$minutes min late';
+    }
+  }
+
+  String _confidencePercent(SessionStatusSnapshot snapshot) {
+    final percent = (snapshot.confidence.score * 100).round();
+    return '$percent%';
+  }
+
+  String _freshnessLabel(int freshnessSeconds) {
+    if (freshnessSeconds < 60) {
+      return '${freshnessSeconds}s';
+    }
+    final minutes = freshnessSeconds ~/ 60;
+    return '${minutes}m';
   }
 }
 

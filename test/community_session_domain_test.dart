@@ -76,7 +76,6 @@ void main() {
         lifecycle.getState(session: session, now: afterWindow),
         SessionLifecycleState.expired,
       );
-      expect(lifecycle.isChatEligible(session: session, now: inWindow), isTrue);
       expect(
         lifecycle.isReportEligible(session: session, now: afterWindow),
         isFalse,

@@ -4,12 +4,10 @@ import 'package:narayanganj_rail_schedule/src/features/community/data/mappers/ra
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_device_identity_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_rate_limit_policy_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_session_chat_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_session_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/rate_limit_policy.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/session_chat_thread.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/datasources/static_schedule_data_source.dart';
 
@@ -128,23 +126,6 @@ void main() {
       expect(first.allowed, isTrue);
       expect(blocked.allowed, isFalse);
       expect(blocked.retryAfterSeconds, greaterThan(0));
-    });
-
-    test('session chat repository appends posted messages', () async {
-      final repository = FakeSessionChatRepository();
-      await repository.postMessage(
-        sessionId: 'session-1',
-        message: SessionChatMessage(
-          messageId: 'm-1',
-          sessionId: 'session-1',
-          deviceId: 'dev-1',
-          body: 'Arrived',
-          createdAt: DateTime(2026, 3, 28, 10, 1),
-        ),
-      );
-      final thread = await repository.fetchSessionChat(sessionId: 'session-1');
-      expect(thread.messages.length, equals(1));
-      expect(thread.messages.first.body, equals('Arrived'));
     });
 
     test('community dto mapper round-trips arrival report values', () {

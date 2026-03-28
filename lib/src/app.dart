@@ -1,23 +1,32 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 
+import 'core/firebase/firebase_runtime.dart';
 import 'core/theme/app_theme.dart';
+import 'features/community/data/mappers/rail_schedule_template_mapper.dart';
 import 'features/community/data/repositories/fake/fake_arrival_report_repository.dart';
 import 'features/community/data/repositories/fake/fake_device_identity_repository.dart';
 import 'features/community/data/repositories/fake/fake_prediction_repository.dart';
 import 'features/community/data/repositories/fake/fake_rate_limit_policy_repository.dart';
-import 'features/community/data/repositories/fake/fake_session_chat_repository.dart';
 import 'features/community/data/repositories/fake/fake_session_repository.dart';
+import 'features/community/data/repositories/firebase/firebase_arrival_report_repository.dart';
+import 'features/community/data/repositories/firebase/firebase_device_identity_repository.dart';
+import 'features/community/data/repositories/firebase/firebase_prediction_repository.dart';
+import 'features/community/data/repositories/firebase/firebase_session_repository.dart';
+import 'features/community/data/repositories/resilient/resilient_arrival_report_repository.dart';
+import 'features/community/data/repositories/resilient/resilient_device_identity_repository.dart';
+import 'features/community/data/repositories/resilient/resilient_prediction_repository.dart';
+import 'features/community/data/repositories/resilient/resilient_session_repository.dart';
 import 'features/community/domain/entities/rate_limit_policy.dart';
 import 'features/community/domain/repositories/arrival_report_repository.dart';
 import 'features/community/domain/repositories/device_identity_repository.dart';
 import 'features/community/domain/repositories/prediction_repository.dart';
 import 'features/community/domain/repositories/rate_limit_policy_repository.dart';
-import 'features/community/domain/repositories/session_chat_repository.dart';
 import 'features/community/domain/repositories/session_repository.dart';
 import 'features/community/domain/services/train_session_factory.dart';
-import 'features/community/data/mappers/rail_schedule_template_mapper.dart';
 import 'features/rail/data/datasources/static_schedule_data_source.dart';
 import 'features/rail/data/models/rail_schedule_document_parser.dart';
 import 'features/rail/data/repositories/schedule_data_repository.dart';
@@ -27,7 +36,9 @@ import 'features/rail/presentation/bloc/rail_board_bloc.dart';
 import 'features/rail/presentation/pages/rail_board_page.dart';
 
 class NarayanganjRailScheduleApp extends StatelessWidget {
-  const NarayanganjRailScheduleApp({super.key});
+  const NarayanganjRailScheduleApp({super.key, required this.firebaseRuntime});
+
+  final FirebaseRuntime firebaseRuntime;
 
   @override
   Widget build(BuildContext context) {
@@ -50,11 +61,49 @@ class NarayanganjRailScheduleApp extends StatelessWidget {
         sessionFactory.create(template: template, serviceDate: tomorrow),
       ],
     ];
-    final sessionRepository = FakeSessionRepository(seed: seededSessions);
-    final arrivalReportRepository = FakeArrivalReportRepository();
-    final predictionRepository = FakePredictionRepository();
-    final sessionChatRepository = FakeSessionChatRepository();
-    final deviceIdentityRepository = FakeDeviceIdentityRepository();
+
+    final fallbackSessionRepository = FakeSessionRepository(
+      seed: seededSessions,
+    );
+    final fallbackArrivalReportRepository = FakeArrivalReportRepository();
+    final fallbackPredictionRepository = FakePredictionRepository();
+    final fallbackDeviceIdentityRepository = FakeDeviceIdentityRepository();
+
+    final sessionRepository = firebaseRuntime.initialized
+        ? ResilientSessionRepository(
+            primary: FirebaseSessionRepository(
+              firestore: FirebaseFirestore.instance,
+            ),
+            fallback: fallbackSessionRepository,
+          )
+        : fallbackSessionRepository;
+    final arrivalReportRepository = firebaseRuntime.initialized
+        ? ResilientArrivalReportRepository(
+            primary: FirebaseArrivalReportRepository(
+              firestore: FirebaseFirestore.instance,
+              routeId: 'narayanganj_line',
+            ),
+            fallback: fallbackArrivalReportRepository,
+          )
+        : fallbackArrivalReportRepository;
+    final predictionRepository = firebaseRuntime.initialized
+        ? ResilientPredictionRepository(
+            primary: FirebasePredictionRepository(
+              firestore: FirebaseFirestore.instance,
+            ),
+            fallback: fallbackPredictionRepository,
+          )
+        : fallbackPredictionRepository;
+    final deviceIdentityRepository = firebaseRuntime.initialized
+        ? ResilientDeviceIdentityRepository(
+            primary: FirebaseDeviceIdentityRepository(
+              auth: FirebaseAuth.instance,
+              firestore: FirebaseFirestore.instance,
+            ),
+            fallback: fallbackDeviceIdentityRepository,
+          )
+        : fallbackDeviceIdentityRepository;
+
     final rateLimitPolicyRepository = FakeRateLimitPolicyRepository(
       seed: const {
         'arrival_report': RateLimitPolicy(
@@ -75,9 +124,6 @@ class NarayanganjRailScheduleApp extends StatelessWidget {
         RepositoryProvider<PredictionRepository>.value(
           value: predictionRepository,
         ),
-        RepositoryProvider<SessionChatRepository>.value(
-          value: sessionChatRepository,
-        ),
         RepositoryProvider<DeviceIdentityRepository>.value(
           value: deviceIdentityRepository,
         ),
@@ -92,6 +138,7 @@ class NarayanganjRailScheduleApp extends StatelessWidget {
           selectionRepository: SharedPreferencesSelectionRepository(),
           sessionRepository: context.read<SessionRepository>(),
           arrivalReportRepository: context.read<ArrivalReportRepository>(),
+          predictionRepository: context.read<PredictionRepository>(),
           deviceIdentityRepository: context.read<DeviceIdentityRepository>(),
           rateLimitPolicyRepository: context.read<RateLimitPolicyRepository>(),
         ),
