@@ -30,18 +30,18 @@ class FirebaseOptionsFactory {
 
   FirebaseOptions? _createEnvOptions() {
     final apiKey =
-        _envReader('FIREBASE_API_KEY') ??
+        _readString('FIREBASE_API_KEY') ??
         (kIsWeb
-            ? _envReader('FIREBASE_WEB_API_KEY')
+            ? _readString('FIREBASE_WEB_API_KEY')
             : switch (defaultTargetPlatform) {
-                TargetPlatform.android => _envReader(
+                TargetPlatform.android => _readString(
                   'FIREBASE_ANDROID_API_KEY',
                 ),
-                TargetPlatform.iOS => _envReader('FIREBASE_IOS_API_KEY'),
+                TargetPlatform.iOS => _readString('FIREBASE_IOS_API_KEY'),
                 _ => null,
               });
-    final projectId = _envReader('FIREBASE_PROJECT_ID');
-    final measurementId = _envReader('FIREBASE_MEASUREMENT_ID');
+    final projectId = _readString('FIREBASE_PROJECT_ID');
+    final measurementId = _readString('FIREBASE_MEASUREMENT_ID');
 
     if (apiKey == null || projectId == null) {
       return null;
@@ -80,6 +80,14 @@ class FirebaseOptionsFactory {
       ),
       _ => null,
     };
+  }
+
+  String? _readString(String key) {
+    final raw = _envReader(key)?.trim();
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+    return raw;
   }
 
   bool _readBool(String key, {required bool defaultValue}) {

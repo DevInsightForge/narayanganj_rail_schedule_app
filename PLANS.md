@@ -177,4 +177,5 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - 2026-03-28: Standardized Firebase initialization on env-driven options with minimal required keys (`FIREBASE_PROJECT_ID`, `FIREBASE_API_KEY`) and derived domains (`authDomain`, `storageBucket`) while keeping platform app IDs hardcoded.
 - 2026-03-28: Removed anonymous profile/display name abstraction from active community reporting flow, repositories, DTOs, and Firestore report rules to keep participation fully anonymous and low-friction.
 - 2026-03-28: Tightened `user_profiles` rules to owner-write metadata only with client reads disabled.
+- 2026-03-28: Hardened Firebase env parsing so blank values are treated as missing to reduce release-time misconfiguration risk.
 

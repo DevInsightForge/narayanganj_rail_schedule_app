@@ -35,6 +35,17 @@ void main() {
     expect(factory.isEnabled, isTrue);
     expect(options, isNull);
   });
+
+  test('treats blank env values as missing', () {
+    final env = <String, String>{
+      'FIREBASE_ENABLED': 'true',
+      'FIREBASE_API_KEY': '   ',
+      'FIREBASE_PROJECT_ID': 'project',
+    };
+    final factory = FirebaseOptionsFactory(envReader: (key) => env[key]);
+
+    expect(factory.create(), isNull);
+  });
 }
 
 String? _emptyEnv(String key) => null;
