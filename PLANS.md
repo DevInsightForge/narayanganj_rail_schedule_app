@@ -22,7 +22,7 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - Keep reporting low-friction.
 - Aggregate reports before presenting status.
 - Distinguish official, community, and inferred values clearly.
-- Use anonymous identity with optional display name.
+- Use anonymous identity without mandatory profile setup.
 - Keep predictions modest and labeled with freshness/confidence.
 - Preserve graceful degraded/offline behavior.
 
@@ -51,7 +51,7 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - `train_sessions/{sessionId}`
   - `sessionId`, `templateId`, `routeId`, `directionId`, `trainNo`, `serviceDate`, `stops[]`
 - `station_reports/{reportId}`
-  - `reportId`, `sessionId`, `routeId`, `stationId`, `reporterUid`, `observedArrivalAt`, `submittedAt`, `displayName`
+  - `reportId`, `sessionId`, `routeId`, `stationId`, `reporterUid`, `observedArrivalAt`, `submittedAt`
 - `session_status_snapshots/{sessionId}/predicted_stops/{stationId}`
   - `sessionId`, `stationId`, `predictedAt`, `referenceStationId`, `confidence`, `freshnessSeconds`
 - `user_profiles/{uid}`
@@ -72,7 +72,7 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - One-tap arrival reporting.
 - Delay classification and downstream prediction.
 - Confidence/freshness presentation and stale handling.
-- Anonymous identity bootstrap and optional profile.
+- Anonymous identity bootstrap.
 - Rate-limit/cooldown and dedupe safeguards.
 - Firebase-backed sync with resilient local fallback.
 

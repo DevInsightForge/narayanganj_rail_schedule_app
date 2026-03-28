@@ -23,6 +23,7 @@ import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/ra
 void main() {
   group('RailBoardBloc arrival reporting', () {
     test('submits one-tap arrival report when session is eligible', () async {
+      final reports = FakeArrivalReportRepository();
       final bloc = RailBoardBloc(
         boardService: RailBoardService(
           schedule: StaticScheduleDataSource.schedule,
@@ -36,7 +37,7 @@ void main() {
           ),
         ),
         sessionRepository: FakeSessionRepository(seed: _seedSessions()),
-        arrivalReportRepository: FakeArrivalReportRepository(),
+        arrivalReportRepository: reports,
         predictionRepository: FakePredictionRepository(),
         deviceIdentityRepository: FakeDeviceIdentityRepository(),
         rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
@@ -53,6 +54,11 @@ void main() {
             state.reportSubmissionStatus == RailReportSubmissionStatus.success,
       );
       expect(reportState.reportFeedbackMessage, contains('Arrival reported'));
+      final stored = await reports.fetchStopReports(
+        sessionId: _seedSessions().first.sessionId,
+        stationId: 'dhaka',
+      );
+      expect(stored, isNotEmpty);
       await bloc.close();
     });
 

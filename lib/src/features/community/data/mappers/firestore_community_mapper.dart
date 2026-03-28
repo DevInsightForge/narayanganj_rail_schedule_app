@@ -44,7 +44,6 @@ class FirestoreCommunityMapper {
       reporterUid: report.deviceId,
       observedArrivalAt: _toTimestamp(report.observedArrivalAt),
       submittedAt: _toTimestamp(report.submittedAt),
-      displayName: report.displayName,
     );
   }
 
@@ -56,7 +55,6 @@ class FirestoreCommunityMapper {
       deviceId: model.reporterUid,
       observedArrivalAt: model.observedArrivalAt.toDate(),
       submittedAt: model.submittedAt.toDate(),
-      displayName: model.displayName,
     );
   }
 

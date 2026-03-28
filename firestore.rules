@@ -24,8 +24,7 @@ service cloud.firestore {
           'stationId',
           'reporterUid',
           'observedArrivalAt',
-          'submittedAt',
-          'displayName'
+          'submittedAt'
         ])
         && request.resource.data.reportId is string
         && request.resource.data.sessionId is string
@@ -35,8 +34,7 @@ service cloud.firestore {
         && request.resource.data.observedArrivalAt is timestamp
         && request.resource.data.submittedAt is timestamp
         && request.resource.data.submittedAt <= request.time
-        && request.resource.data.submittedAt >= request.time - duration.value(10, 'm')
-        && (!('displayName' in request.resource.data) || request.resource.data.displayName is string);
+        && request.resource.data.submittedAt >= request.time - duration.value(10, 'm');
       allow update, delete: if false;
     }
 

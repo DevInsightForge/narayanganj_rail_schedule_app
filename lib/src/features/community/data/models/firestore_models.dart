@@ -67,7 +67,6 @@ class FirestoreArrivalReportModel {
     required this.reporterUid,
     required this.observedArrivalAt,
     required this.submittedAt,
-    this.displayName,
   });
 
   final String reportId;
@@ -77,7 +76,6 @@ class FirestoreArrivalReportModel {
   final String reporterUid;
   final Timestamp observedArrivalAt;
   final Timestamp submittedAt;
-  final String? displayName;
 
   Map<String, dynamic> toMap() {
     return {
@@ -88,7 +86,6 @@ class FirestoreArrivalReportModel {
       'reporterUid': reporterUid,
       'observedArrivalAt': observedArrivalAt,
       'submittedAt': submittedAt,
-      'displayName': displayName,
     };
   }
 
@@ -102,7 +99,6 @@ class FirestoreArrivalReportModel {
       observedArrivalAt:
           map['observedArrivalAt'] as Timestamp? ?? Timestamp.now(),
       submittedAt: map['submittedAt'] as Timestamp? ?? Timestamp.now(),
-      displayName: map['displayName'] as String?,
     );
   }
 }
