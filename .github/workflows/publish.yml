@@ -4,12 +4,6 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
-    inputs:
-      release_tag:
-        description: Release tag to build and publish
-        required: true
-        type: string
 
 permissions:
   contents: write
@@ -65,24 +59,20 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Configure Android signing
+      - name: Restore Android signing files
         env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_SIGNING_KEY: ${{ secrets.ANDROID_SIGNING_KEY }}
         run: |
-          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ] || [ -z "$ANDROID_STORE_PASSWORD" ]; then
-            echo "Android signing secrets are not configured."
+          set -euo pipefail
+          if [ -z "$ANDROID_SIGNING_KEY" ]; then
+            echo "ANDROID_SIGNING_KEY is not configured."
             exit 1
           fi
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
-          cat <<EOF > android/key.properties
-          storePassword=$ANDROID_STORE_PASSWORD
-          keyPassword=$ANDROID_KEY_PASSWORD
-          keyAlias=$ANDROID_KEY_ALIAS
-          storeFile=upload-keystore.jks
-          EOF
+
+          echo "$ANDROID_SIGNING_KEY" | base64 --decode > /tmp/android-signing.tar.gz
+          tar -xzf /tmp/android-signing.tar.gz -C android
+          test -f android/key.properties
+          test -f android/app/upload-keystore.jks
 
       - name: Build Android app bundle
         run: flutter build appbundle --release
@@ -96,6 +86,7 @@ jobs:
       - name: Collect release assets
         run: |
           mkdir -p release-assets
+          cp build/app/outputs/bundle/release/app-release.aab release-assets/narayanganj-rail-schedule-${RELEASE_TAG}.aab
           cp build/app/outputs/flutter-apk/app-release.apk release-assets/narayanganj-rail-schedule-${RELEASE_TAG}-universal.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release-assets/narayanganj-rail-schedule-${RELEASE_TAG}-armeabi-v7a.apk
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release-assets/narayanganj-rail-schedule-${RELEASE_TAG}-arm64-v8a.apk
