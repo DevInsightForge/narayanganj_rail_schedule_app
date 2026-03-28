@@ -52,9 +52,8 @@ service cloud.firestore {
       allow read: if isSignedIn() && request.auth.uid == uid;
       allow create, update: if isSignedIn()
         && request.auth.uid == uid
-        && hasAllowedKeys(['uid', 'displayName', 'lastSeenAt', 'updatedAt'])
+        && hasAllowedKeys(['uid', 'lastSeenAt', 'updatedAt'])
         && request.resource.data.uid == uid
-        && (!('displayName' in request.resource.data) || request.resource.data.displayName is string)
         && (!('lastSeenAt' in request.resource.data) || request.resource.data.lastSeenAt is timestamp)
         && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
       allow delete: if false;

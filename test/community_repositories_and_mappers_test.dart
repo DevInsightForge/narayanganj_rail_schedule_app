@@ -84,16 +84,13 @@ void main() {
       expect(reports.first.reportId, equals('r-1'));
     });
 
-    test('device identity repository persists identity and profile', () async {
+    test('device identity repository persists identity', () async {
       final repository = FakeDeviceIdentityRepository();
       final identity = await repository.readOrCreateIdentity();
       final sameIdentity = await repository.readOrCreateIdentity();
 
       expect(identity.deviceId, equals(sameIdentity.deviceId));
       expect(identity.createdAt, equals(sameIdentity.createdAt));
-
-      final profile = await repository.readProfile(identity.deviceId);
-      expect(profile.deviceId, equals(identity.deviceId));
     });
 
     test('rate limit repository enforces simple window policy', () async {
@@ -137,7 +134,6 @@ void main() {
         deviceId: 'dev-1',
         observedArrivalAt: DateTime.utc(2026, 3, 28, 8, 0),
         submittedAt: DateTime.utc(2026, 3, 28, 8, 1),
-        displayName: 'Rider',
       );
 
       final dto = mapper.toArrivalReportDto(report);
@@ -147,7 +143,6 @@ void main() {
       expect(restored.sessionId, equals(report.sessionId));
       expect(restored.stationId, equals(report.stationId));
       expect(restored.deviceId, equals(report.deviceId));
-      expect(restored.displayName, equals(report.displayName));
     });
   });
 }

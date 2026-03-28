@@ -6,7 +6,6 @@ class ArrivalReportDto {
     required this.deviceId,
     required this.observedArrivalAtIso,
     required this.submittedAtIso,
-    this.displayName,
   });
 
   final String reportId;
@@ -15,5 +14,4 @@ class ArrivalReportDto {
   final String deviceId;
   final String observedArrivalAtIso;
   final String submittedAtIso;
-  final String? displayName;
 }

@@ -12,7 +12,6 @@ class CommunityDtoMapper {
       deviceId: dto.deviceId,
       observedArrivalAt: DateTime.parse(dto.observedArrivalAtIso),
       submittedAt: DateTime.parse(dto.submittedAtIso),
-      displayName: dto.displayName,
     );
   }
 
@@ -24,7 +23,6 @@ class CommunityDtoMapper {
       deviceId: report.deviceId,
       observedArrivalAtIso: report.observedArrivalAt.toUtc().toIso8601String(),
       submittedAtIso: report.submittedAt.toUtc().toIso8601String(),
-      displayName: report.displayName,
     );
   }
 }

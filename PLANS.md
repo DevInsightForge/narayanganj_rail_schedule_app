@@ -22,7 +22,7 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - Keep reporting low-friction.
 - Aggregate reports before presenting status.
 - Distinguish official, community, and inferred values clearly.
-- Use anonymous identity without mandatory profile setup.
+- Use anonymous identity without profile setup.
 - Keep predictions modest and labeled with freshness/confidence.
 - Preserve graceful degraded/offline behavior.
 
@@ -42,7 +42,6 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - `SessionStatusSnapshot`
 - `PredictedStopTime`
 - `DeviceIdentity`
-- `AnonymousProfile`
 - `ReportConfidence`
 - `ModerationFlag`
 - `RateLimitPolicy`
@@ -55,7 +54,7 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - `session_status_snapshots/{sessionId}/predicted_stops/{stationId}`
   - `sessionId`, `stationId`, `predictedAt`, `referenceStationId`, `confidence`, `freshnessSeconds`
 - `user_profiles/{uid}`
-  - `uid`, `displayName`, `lastSeenAt`, `updatedAt`
+  - `uid`, `lastSeenAt`, `updatedAt`
 
 ## Security Rules Considerations
 - Require authenticated user for writes using Firebase Anonymous Auth.
@@ -176,4 +175,5 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - 2026-03-28: Added explicit community insight error state fallback when repository calls fail.
 - 2026-03-28: Added Firebase Firestore rules/indexes config files to lock a client-only MVP security baseline.
 - 2026-03-28: Standardized Firebase initialization on env-driven options with minimal required keys (`FIREBASE_PROJECT_ID`, `FIREBASE_API_KEY`) and derived domains (`authDomain`, `storageBucket`) while keeping platform app IDs hardcoded.
+- 2026-03-28: Removed anonymous profile/display name abstraction from active community reporting flow, repositories, DTOs, and Firestore report rules to keep participation fully anonymous and low-friction.
 

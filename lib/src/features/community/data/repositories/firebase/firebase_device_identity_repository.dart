@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../../../domain/entities/anonymous_profile.dart';
 import '../../../domain/entities/device_identity.dart';
 import '../../../domain/repositories/device_identity_repository.dart';
 
@@ -14,19 +13,6 @@ class FirebaseDeviceIdentityRepository implements DeviceIdentityRepository {
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
-
-  @override
-  Future<AnonymousProfile> readProfile(String deviceId) async {
-    final doc = await _firestore
-        .collection('user_profiles')
-        .doc(deviceId)
-        .get();
-    final data = doc.data();
-    return AnonymousProfile(
-      deviceId: deviceId,
-      displayName: data == null ? null : data['displayName'] as String?,
-    );
-  }
 
   @override
   Future<DeviceIdentity> readOrCreateIdentity() async {
@@ -46,15 +32,6 @@ class FirebaseDeviceIdentityRepository implements DeviceIdentityRepository {
       createdAt: createdAt,
       lastSeenAt: lastSeenAt,
     );
-  }
-
-  @override
-  Future<void> saveProfile(AnonymousProfile profile) async {
-    await _firestore.collection('user_profiles').doc(profile.deviceId).set({
-      'uid': profile.deviceId,
-      'displayName': profile.displayName,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
   }
 
   @override

@@ -1,23 +1,10 @@
 import 'dart:math';
 
-import '../../../domain/entities/anonymous_profile.dart';
 import '../../../domain/entities/device_identity.dart';
 import '../../../domain/repositories/device_identity_repository.dart';
 
 class FakeDeviceIdentityRepository implements DeviceIdentityRepository {
   DeviceIdentity? _identity;
-  AnonymousProfile? _profile;
-
-  @override
-  Future<AnonymousProfile> readProfile(String deviceId) async {
-    final existing = _profile;
-    if (existing != null && existing.deviceId == deviceId) {
-      return existing;
-    }
-    final profile = AnonymousProfile(deviceId: deviceId);
-    _profile = profile;
-    return profile;
-  }
 
   @override
   Future<DeviceIdentity> readOrCreateIdentity() async {
@@ -33,11 +20,6 @@ class FakeDeviceIdentityRepository implements DeviceIdentityRepository {
     );
     _identity = created;
     return created;
-  }
-
-  @override
-  Future<void> saveProfile(AnonymousProfile profile) async {
-    _profile = profile;
   }
 
   @override

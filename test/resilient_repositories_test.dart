@@ -3,7 +3,6 @@ import 'package:narayanganj_rail_schedule/src/features/community/data/repositori
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/resilient/resilient_device_identity_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/resilient/resilient_prediction_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/resilient/resilient_session_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/anonymous_profile.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/data_origin.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/device_identity.dart';
@@ -215,17 +214,7 @@ class _InMemoryPredictionRepository implements PredictionRepository {
 
 class _ThrowingIdentityRepository implements DeviceIdentityRepository {
   @override
-  Future<AnonymousProfile> readProfile(String deviceId) async {
-    throw StateError('fail');
-  }
-
-  @override
   Future<DeviceIdentity> readOrCreateIdentity() async {
-    throw StateError('fail');
-  }
-
-  @override
-  Future<void> saveProfile(AnonymousProfile profile) async {
     throw StateError('fail');
   }
 
@@ -237,11 +226,6 @@ class _ThrowingIdentityRepository implements DeviceIdentityRepository {
 
 class _InMemoryIdentityRepository implements DeviceIdentityRepository {
   @override
-  Future<AnonymousProfile> readProfile(String deviceId) async {
-    return AnonymousProfile(deviceId: deviceId);
-  }
-
-  @override
   Future<DeviceIdentity> readOrCreateIdentity() async {
     final now = DateTime(2026, 3, 28, 4);
     return DeviceIdentity(
@@ -250,9 +234,6 @@ class _InMemoryIdentityRepository implements DeviceIdentityRepository {
       lastSeenAt: now,
     );
   }
-
-  @override
-  Future<void> saveProfile(AnonymousProfile profile) async {}
 
   @override
   Future<void> touchIdentity(DateTime now) async {}
