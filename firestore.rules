@@ -49,7 +49,7 @@ service cloud.firestore {
     }
 
     match /user_profiles/{uid} {
-      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow read: if false;
       allow create, update: if isSignedIn()
         && request.auth.uid == uid
         && hasAllowedKeys(['uid', 'lastSeenAt', 'updatedAt'])

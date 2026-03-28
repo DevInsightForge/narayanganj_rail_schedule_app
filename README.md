@@ -60,7 +60,7 @@ FIREBASE_APPCHECK_WEB_KEY=
 - Firestore config is versioned in [firebase.json](firebase.json), [firestore.rules](firestore.rules), and [firestore.indexes.json](firestore.indexes.json).
 - `station_reports` writes require Firebase Anonymous Auth and enforce `reporterUid == request.auth.uid`.
 - `train_sessions` and `session_status_snapshots` are read-only to clients.
-- `user_profiles` is restricted to owner read/write.
+- `user_profiles` is owner-write metadata only (no client reads).
 
 ## Showcase
 
