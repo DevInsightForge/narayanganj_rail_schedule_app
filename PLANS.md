@@ -157,7 +157,7 @@ Build a community-driven rail companion for the Narayanganj line where published
 - [x] Milestone 0 started and documented.
 - [x] Milestone 1 domain foundation implemented with tests.
 - [x] Milestone 2 repository contracts, fake adapters, mapper scaffolding, and DI wiring implemented with tests.
-- [ ] Milestone 3 implementation pending.
+- [x] Milestone 3 initial implementation delivered (arrival report action, eligibility, rate-limit precheck, dedupe, offline queue state).
 - [ ] Milestone 4-7 pending.
 
 ## Decision Log
@@ -168,3 +168,7 @@ Build a community-driven rail companion for the Narayanganj line where published
 - 2026-03-28: Added community domain model, session lifecycle service, delay classifier, confidence scoring, consensus aggregation, and downstream prediction scaffolding.
 - 2026-03-28: Added backend-facing repository interfaces and in-memory fake implementations for sessions, reports, predictions, chat, identity, and rate-limit policies.
 - 2026-03-28: Added `RailSchedule` to `ScheduleTemplate` mapper to bridge existing static schedule into date-scoped TrainSession creation flow.
+- 2026-03-28: Implemented one-tap arrival reporting through `RailBoardBloc` using repository seams with active-window eligibility checks.
+- 2026-03-28: Added submission result state model (`idle`, `submitting`, `success`, `rate_limited`, `error`, `offline_queue`) and snackbar feedback in board page.
+- 2026-03-28: Added client-side dedupe keying and local rate-limit precheck before report submission.
+- 2026-03-28: Added offline-queue fallback state when report submission throws.

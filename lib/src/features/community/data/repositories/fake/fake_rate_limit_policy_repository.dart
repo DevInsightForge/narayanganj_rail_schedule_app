@@ -21,6 +21,12 @@ class FakeRateLimitPolicyRepository implements RateLimitPolicyRepository {
     if (recent.length < policy.maxEvents) {
       return const RateLimitDecision(allowed: true, retryAfterSeconds: 0);
     }
+    if (recent.isEmpty) {
+      return RateLimitDecision(
+        allowed: false,
+        retryAfterSeconds: policy.coolDownSeconds,
+      );
+    }
     final oldest = recent.first;
     final retryAfter = oldest
         .add(Duration(seconds: policy.windowSeconds))

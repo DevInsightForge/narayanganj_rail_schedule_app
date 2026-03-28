@@ -39,10 +39,7 @@ class RailBoardPage extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                colorScheme.surface,
-                colorScheme.surfaceContainerLow,
-              ],
+              colors: [colorScheme.surface, colorScheme.surfaceContainerLow],
             ),
             boxShadow: [
               BoxShadow(
@@ -53,128 +50,149 @@ class RailBoardPage extends StatelessWidget {
             ],
           ),
           child: SafeArea(
-            child: BlocBuilder<RailBoardBloc, RailBoardState>(
-            builder: (context, state) {
-              if (state.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
+            child: BlocConsumer<RailBoardBloc, RailBoardState>(
+              listenWhen: (previous, current) =>
+                  previous.reportSubmissionStatus !=
+                      current.reportSubmissionStatus ||
+                  previous.reportFeedbackMessage !=
+                      current.reportFeedbackMessage,
+              listener: (context, state) {
+                final message = state.reportFeedbackMessage;
+                if (message == null || message.isEmpty) {
+                  return;
+                }
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(SnackBar(content: Text(message)));
+              },
+              builder: (context, state) {
+                if (state.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              if (state.hasFailed) {
-                return _FailureView(
-                  message: state.errorMessage,
-                  onRetry: () => context.read<RailBoardBloc>().add(
-                    const RailBoardRetryRequested(),
-                  ),
-                );
-              }
+                if (state.hasFailed) {
+                  return _FailureView(
+                    message: state.errorMessage,
+                    onRetry: () => context.read<RailBoardBloc>().add(
+                      const RailBoardRetryRequested(),
+                    ),
+                  );
+                }
 
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  final isTablet = constraints.maxWidth >= _tabletBreakpoint;
-                  final shellPadding = isTablet ? 18.0 : 8.0;
-                  final boardService = context
-                      .read<RailBoardBloc>()
-                      .boardService;
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isTablet = constraints.maxWidth >= _tabletBreakpoint;
+                    final shellPadding = isTablet ? 18.0 : 8.0;
+                    final boardService = context
+                        .read<RailBoardBloc>()
+                        .boardService;
 
-                  return RepositoryProvider.value(
-                    value: boardService,
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: SingleChildScrollView(
-                        physics: const ClampingScrollPhysics(),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: isTablet ? 920 : 560,
-                          ),
-                          child: Container(
-                            padding: EdgeInsets.all(shellPadding),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surface.withValues(
-                                alpha: colorScheme.brightness == Brightness.dark
-                                    ? 0.9
-                                    : 0.86,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colorScheme.shadow.withValues(
-                                    alpha: 0.08,
-                                  ),
-                                  blurRadius: 64,
-                                  offset: Offset(0, 20),
-                                ),
-                              ],
+                    return RepositoryProvider.value(
+                      value: boardService,
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: SingleChildScrollView(
+                          physics: const ClampingScrollPhysics(),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: isTablet ? 920 : 560,
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                HeaderPanel(state: state),
-                                SizedBox(height: isTablet ? 16 : 14),
-                                if (state.snapshot.nextService == null)
-                                  const NoticePanel()
-                                else if (isTablet)
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        flex: 6,
-                                        child: Column(
-                                          children: [
-                                            DecisionPanel(
-                                              snapshot: state.snapshot,
-                                            ),
-                                            const SizedBox(height: 14),
-                                            UpcomingPanel(
-                                              snapshot: state.snapshot,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        flex: 4,
-                                        child: Column(
-                                          children: [
-                                            TimelinePanel(
-                                              snapshot: state.snapshot,
-                                            ),
-                                            const SizedBox(height: 14),
-                                            const NoticePanel(),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                else
-                                  Column(
-                                    children: [
-                                      DecisionPanel(snapshot: state.snapshot),
-                                      const SizedBox(height: 14),
-                                      TimelinePanel(snapshot: state.snapshot),
-                                      const SizedBox(height: 14),
-                                      UpcomingPanel(snapshot: state.snapshot),
-                                      const SizedBox(height: 14),
-                                      const NoticePanel(),
-                                    ],
-                                  ),
-                                const SizedBox(height: 14),
-                                FooterPanel(
-                                  dataSourceLabel:
-                                      state.snapshot.dataSourceLabel,
-                                  lastUpdatedAt: state.snapshot.lastUpdatedAt,
-                                  scheduleVersion:
-                                      state.snapshot.scheduleVersion,
+                            child: Container(
+                              padding: EdgeInsets.all(shellPadding),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surface.withValues(
+                                  alpha:
+                                      colorScheme.brightness == Brightness.dark
+                                      ? 0.9
+                                      : 0.86,
                                 ),
-                              ],
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: colorScheme.shadow.withValues(
+                                      alpha: 0.08,
+                                    ),
+                                    blurRadius: 64,
+                                    offset: Offset(0, 20),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  HeaderPanel(state: state),
+                                  SizedBox(height: isTablet ? 16 : 14),
+                                  if (state.snapshot.nextService == null)
+                                    const NoticePanel()
+                                  else if (isTablet)
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          flex: 6,
+                                          child: Column(
+                                            children: [
+                                              DecisionPanel(
+                                                snapshot: state.snapshot,
+                                                reportSubmissionStatus: state
+                                                    .reportSubmissionStatus,
+                                              ),
+                                              const SizedBox(height: 14),
+                                              UpcomingPanel(
+                                                snapshot: state.snapshot,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          flex: 4,
+                                          child: Column(
+                                            children: [
+                                              TimelinePanel(
+                                                snapshot: state.snapshot,
+                                              ),
+                                              const SizedBox(height: 14),
+                                              const NoticePanel(),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  else
+                                    Column(
+                                      children: [
+                                        DecisionPanel(
+                                          snapshot: state.snapshot,
+                                          reportSubmissionStatus:
+                                              state.reportSubmissionStatus,
+                                        ),
+                                        const SizedBox(height: 14),
+                                        TimelinePanel(snapshot: state.snapshot),
+                                        const SizedBox(height: 14),
+                                        UpcomingPanel(snapshot: state.snapshot),
+                                        const SizedBox(height: 14),
+                                        const NoticePanel(),
+                                      ],
+                                    ),
+                                  const SizedBox(height: 14),
+                                  FooterPanel(
+                                    dataSourceLabel:
+                                        state.snapshot.dataSourceLabel,
+                                    lastUpdatedAt: state.snapshot.lastUpdatedAt,
+                                    scheduleVersion:
+                                        state.snapshot.scheduleVersion,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              );
-            },
+                    );
+                  },
+                );
+              },
             ),
           ),
         ),

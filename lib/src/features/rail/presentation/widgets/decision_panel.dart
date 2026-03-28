@@ -3,13 +3,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/rail_snapshot.dart';
 import '../../domain/services/rail_board_service.dart';
+import '../bloc/rail_board_bloc.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
 
 class DecisionPanel extends StatelessWidget {
-  const DecisionPanel({super.key, required this.snapshot});
+  const DecisionPanel({
+    super.key,
+    required this.snapshot,
+    required this.reportSubmissionStatus,
+  });
 
   final RailBoardSnapshot snapshot;
+  final RailReportSubmissionStatus reportSubmissionStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -102,9 +108,41 @@ class DecisionPanel extends StatelessWidget {
               );
             },
           ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed:
+                reportSubmissionStatus == RailReportSubmissionStatus.submitting
+                ? null
+                : () => context.read<RailBoardBloc>().add(
+                    const RailBoardArrivalReportRequested(),
+                  ),
+            icon: Icon(
+              reportSubmissionStatus == RailReportSubmissionStatus.submitting
+                  ? Icons.sync
+                  : Icons.flag_rounded,
+            ),
+            label: Text(_reportButtonLabel(reportSubmissionStatus)),
+          ),
         ],
       ),
     );
+  }
+
+  String _reportButtonLabel(RailReportSubmissionStatus status) {
+    switch (status) {
+      case RailReportSubmissionStatus.submitting:
+        return 'Sending report...';
+      case RailReportSubmissionStatus.success:
+        return 'Report sent';
+      case RailReportSubmissionStatus.rateLimited:
+        return 'Rate limited';
+      case RailReportSubmissionStatus.offlineQueue:
+        return 'Queued offline';
+      case RailReportSubmissionStatus.error:
+        return 'Try reporting again';
+      case RailReportSubmissionStatus.idle:
+        return 'Report arrival at this station';
+    }
   }
 }
 

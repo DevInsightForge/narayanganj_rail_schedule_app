@@ -45,3 +45,7 @@ final class RailBoardDestinationChanged extends RailBoardEvent {
 final class RailBoardTicked extends RailBoardEvent {
   const RailBoardTicked();
 }
+
+final class RailBoardArrivalReportRequested extends RailBoardEvent {
+  const RailBoardArrivalReportRequested();
+}

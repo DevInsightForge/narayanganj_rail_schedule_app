@@ -1,4 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_device_identity_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_rate_limit_policy_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_session_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/train_session.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/datasources/static_schedule_data_source.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/models/rail_schedule_document_parser.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/schedule_data_repository.dart';
@@ -17,6 +24,10 @@ void main() {
         ),
         scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(),
+        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        deviceIdentityRepository: FakeDeviceIdentityRepository(),
+        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
       );
 
       final state = await bloc.stream.firstWhere(
@@ -53,6 +64,10 @@ void main() {
           ),
         ),
         selectionRepository: _InMemorySelectionRepository(),
+        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        deviceIdentityRepository: FakeDeviceIdentityRepository(),
+        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
       );
 
       final firstReady = await bloc.stream.firstWhere(
@@ -69,6 +84,37 @@ void main() {
       await bloc.close();
     });
   });
+}
+
+List<TrainSession> _seedSessions() {
+  const sessionFactory = TrainSessionFactory();
+  final template = ScheduleTemplate(
+    templateId: 'route:1',
+    routeId: 'narayanganj_line',
+    directionId: 'dhaka_to_narayanganj',
+    trainNo: 1,
+    servicePeriod: 'morning',
+    stops: const [
+      StationStop(
+        stationId: 'dhaka',
+        stationName: 'Dhaka',
+        sequence: 0,
+        scheduledTime: '08:00',
+      ),
+      StationStop(
+        stationId: 'narayanganj',
+        stationName: 'Narayanganj',
+        sequence: 1,
+        scheduledTime: '08:45',
+      ),
+    ],
+  );
+  return [
+    sessionFactory.create(
+      template: template,
+      serviceDate: DateTime(2026, 3, 28),
+    ),
+  ];
 }
 
 class _FakeScheduleDataRepository extends ScheduleDataRepository {

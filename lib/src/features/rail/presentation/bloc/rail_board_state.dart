@@ -2,6 +2,15 @@ part of 'rail_board_bloc.dart';
 
 enum RailBoardStatus { loading, ready, failure }
 
+enum RailReportSubmissionStatus {
+  idle,
+  submitting,
+  success,
+  rateLimited,
+  error,
+  offlineQueue,
+}
+
 class RailBoardState extends Equatable {
   const RailBoardState({
     this.status = RailBoardStatus.loading,
@@ -25,6 +34,9 @@ class RailBoardState extends Equatable {
       scheduleVersion: '',
     ),
     this.errorMessage,
+    this.reportSubmissionStatus = RailReportSubmissionStatus.idle,
+    this.reportFeedbackMessage,
+    this.reportRetryAfterSeconds,
   });
 
   final RailBoardStatus status;
@@ -34,6 +46,9 @@ class RailBoardState extends Equatable {
   final List<RailSelectableOption> destinationStations;
   final RailBoardSnapshot snapshot;
   final String? errorMessage;
+  final RailReportSubmissionStatus reportSubmissionStatus;
+  final String? reportFeedbackMessage;
+  final int? reportRetryAfterSeconds;
 
   bool get isLoading => status == RailBoardStatus.loading;
   bool get hasFailed => status == RailBoardStatus.failure;
@@ -47,6 +62,11 @@ class RailBoardState extends Equatable {
     RailBoardSnapshot? snapshot,
     String? errorMessage,
     bool clearError = false,
+    RailReportSubmissionStatus? reportSubmissionStatus,
+    String? reportFeedbackMessage,
+    int? reportRetryAfterSeconds,
+    bool clearReportFeedback = false,
+    bool clearReportRetryAfter = false,
   }) {
     return RailBoardState(
       status: status ?? this.status,
@@ -56,6 +76,14 @@ class RailBoardState extends Equatable {
       destinationStations: destinationStations ?? this.destinationStations,
       snapshot: snapshot ?? this.snapshot,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+      reportSubmissionStatus:
+          reportSubmissionStatus ?? this.reportSubmissionStatus,
+      reportFeedbackMessage: clearReportFeedback
+          ? null
+          : reportFeedbackMessage ?? this.reportFeedbackMessage,
+      reportRetryAfterSeconds: clearReportRetryAfter
+          ? null
+          : reportRetryAfterSeconds ?? this.reportRetryAfterSeconds,
     );
   }
 
@@ -68,5 +96,8 @@ class RailBoardState extends Equatable {
     destinationStations,
     snapshot,
     errorMessage,
+    reportSubmissionStatus,
+    reportFeedbackMessage,
+    reportRetryAfterSeconds,
   ];
 }

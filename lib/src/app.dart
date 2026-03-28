@@ -9,12 +9,15 @@ import 'features/community/data/repositories/fake/fake_prediction_repository.dar
 import 'features/community/data/repositories/fake/fake_rate_limit_policy_repository.dart';
 import 'features/community/data/repositories/fake/fake_session_chat_repository.dart';
 import 'features/community/data/repositories/fake/fake_session_repository.dart';
+import 'features/community/domain/entities/rate_limit_policy.dart';
 import 'features/community/domain/repositories/arrival_report_repository.dart';
 import 'features/community/domain/repositories/device_identity_repository.dart';
 import 'features/community/domain/repositories/prediction_repository.dart';
 import 'features/community/domain/repositories/rate_limit_policy_repository.dart';
 import 'features/community/domain/repositories/session_chat_repository.dart';
 import 'features/community/domain/repositories/session_repository.dart';
+import 'features/community/domain/services/train_session_factory.dart';
+import 'features/community/data/mappers/rail_schedule_template_mapper.dart';
 import 'features/rail/data/datasources/static_schedule_data_source.dart';
 import 'features/rail/data/models/rail_schedule_document_parser.dart';
 import 'features/rail/data/repositories/schedule_data_repository.dart';
@@ -33,12 +36,35 @@ class NarayanganjRailScheduleApp extends StatelessWidget {
       schedule: StaticScheduleDataSource.schedule,
     );
     final scheduleDataRepository = ScheduleDataRepository(parser: parser);
-    final sessionRepository = FakeSessionRepository();
+    final templates = const RailScheduleTemplateMapper().map(
+      routeId: 'narayanganj_line',
+      schedule: StaticScheduleDataSource.schedule,
+    );
+    final sessionFactory = const TrainSessionFactory();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final seededSessions = [
+      for (final template in templates) ...[
+        sessionFactory.create(template: template, serviceDate: today),
+        sessionFactory.create(template: template, serviceDate: tomorrow),
+      ],
+    ];
+    final sessionRepository = FakeSessionRepository(seed: seededSessions);
     final arrivalReportRepository = FakeArrivalReportRepository();
     final predictionRepository = FakePredictionRepository();
     final sessionChatRepository = FakeSessionChatRepository();
     final deviceIdentityRepository = FakeDeviceIdentityRepository();
-    final rateLimitPolicyRepository = FakeRateLimitPolicyRepository();
+    final rateLimitPolicyRepository = FakeRateLimitPolicyRepository(
+      seed: const {
+        'arrival_report': RateLimitPolicy(
+          key: 'arrival_report',
+          maxEvents: 3,
+          windowSeconds: 120,
+          coolDownSeconds: 30,
+        ),
+      },
+    );
 
     return MultiRepositoryProvider(
       providers: [
@@ -60,10 +86,14 @@ class NarayanganjRailScheduleApp extends StatelessWidget {
         ),
       ],
       child: BlocProvider(
-        create: (_) => RailBoardBloc(
+        create: (context) => RailBoardBloc(
           boardService: boardService,
           scheduleDataRepository: scheduleDataRepository,
           selectionRepository: SharedPreferencesSelectionRepository(),
+          sessionRepository: context.read<SessionRepository>(),
+          arrivalReportRepository: context.read<ArrivalReportRepository>(),
+          deviceIdentityRepository: context.read<DeviceIdentityRepository>(),
+          rateLimitPolicyRepository: context.read<RateLimitPolicyRepository>(),
         ),
         child: MaterialApp(
           debugShowCheckedModeBanner: false,

@@ -1,0 +1,184 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_device_identity_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_rate_limit_policy_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_session_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/rate_limit_policy.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/train_session.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/data/datasources/static_schedule_data_source.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/data/models/rail_schedule_document_parser.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/schedule_data_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/selection_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_bloc.dart';
+
+void main() {
+  group('RailBoardBloc arrival reporting', () {
+    test('submits one-tap arrival report when session is eligible', () async {
+      final bloc = RailBoardBloc(
+        boardService: RailBoardService(
+          schedule: StaticScheduleDataSource.schedule,
+        ),
+        scheduleDataRepository: _FakeScheduleDataRepository(),
+        selectionRepository: _InMemorySelectionRepository(
+          const RailSelection(
+            direction: 'dhaka_to_narayanganj',
+            boardingStationId: 'dhaka',
+            destinationStationId: 'narayanganj',
+          ),
+        ),
+        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        deviceIdentityRepository: FakeDeviceIdentityRepository(),
+        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+      );
+
+      await bloc.stream.firstWhere(
+        (state) => state.status == RailBoardStatus.ready,
+      );
+      bloc.add(const RailBoardArrivalReportRequested());
+
+      final reportState = await bloc.stream.firstWhere(
+        (state) =>
+            state.reportSubmissionStatus == RailReportSubmissionStatus.success,
+      );
+      expect(reportState.reportFeedbackMessage, contains('Arrival reported'));
+      await bloc.close();
+    });
+
+    test('reports rate-limited when local policy blocks submission', () async {
+      final bloc = RailBoardBloc(
+        boardService: RailBoardService(
+          schedule: StaticScheduleDataSource.schedule,
+        ),
+        scheduleDataRepository: _FakeScheduleDataRepository(),
+        selectionRepository: _InMemorySelectionRepository(
+          const RailSelection(
+            direction: 'dhaka_to_narayanganj',
+            boardingStationId: 'dhaka',
+            destinationStationId: 'narayanganj',
+          ),
+        ),
+        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        deviceIdentityRepository: FakeDeviceIdentityRepository(),
+        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(
+          seed: const {
+            'arrival_report': RateLimitPolicy(
+              key: 'arrival_report',
+              maxEvents: 0,
+              windowSeconds: 60,
+              coolDownSeconds: 30,
+            ),
+          },
+        ),
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+      );
+
+      await bloc.stream.firstWhere(
+        (state) => state.status == RailBoardStatus.ready,
+      );
+      bloc.add(const RailBoardArrivalReportRequested());
+
+      final reportState = await bloc.stream.firstWhere(
+        (state) =>
+            state.reportSubmissionStatus ==
+            RailReportSubmissionStatus.rateLimited,
+      );
+      expect(reportState.reportRetryAfterSeconds, greaterThanOrEqualTo(0));
+      await bloc.close();
+    });
+
+    test('fails gracefully when no active report window exists', () async {
+      final bloc = RailBoardBloc(
+        boardService: RailBoardService(
+          schedule: StaticScheduleDataSource.schedule,
+        ),
+        scheduleDataRepository: _FakeScheduleDataRepository(),
+        selectionRepository: _InMemorySelectionRepository(
+          const RailSelection(
+            direction: 'dhaka_to_narayanganj',
+            boardingStationId: 'dhaka',
+            destinationStationId: 'narayanganj',
+          ),
+        ),
+        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        deviceIdentityRepository: FakeDeviceIdentityRepository(),
+        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+        nowProvider: () => DateTime(2026, 3, 28, 2, 0),
+      );
+
+      await bloc.stream.firstWhere(
+        (state) => state.status == RailBoardStatus.ready,
+      );
+      bloc.add(const RailBoardArrivalReportRequested());
+
+      final reportState = await bloc.stream.firstWhere(
+        (state) =>
+            state.reportSubmissionStatus == RailReportSubmissionStatus.error,
+      );
+      expect(
+        reportState.reportFeedbackMessage,
+        contains('No active report window'),
+      );
+      await bloc.close();
+    });
+  });
+}
+
+class _FakeScheduleDataRepository extends ScheduleDataRepository {
+  _FakeScheduleDataRepository() : super(parser: RailScheduleDocumentParser());
+
+  @override
+  Future<ScheduleLoadResult?> readStoredSchedule() async => null;
+
+  @override
+  Future<ScheduleLoadResult?> fetchRemoteSchedule() async => null;
+}
+
+class _InMemorySelectionRepository implements SelectionRepository {
+  _InMemorySelectionRepository(this._selection);
+
+  RailSelection? _selection;
+
+  @override
+  Future<RailSelection?> read() async => _selection;
+
+  @override
+  Future<void> write(RailSelection selection) async {
+    _selection = selection;
+  }
+}
+
+List<TrainSession> _seedSessions() {
+  const factory = TrainSessionFactory();
+  final template = ScheduleTemplate(
+    templateId: 'route:02',
+    routeId: 'narayanganj_line',
+    directionId: 'dhaka_to_narayanganj',
+    trainNo: 2,
+    servicePeriod: 'early_morning',
+    stops: const [
+      StationStop(
+        stationId: 'dhaka',
+        stationName: 'Dhaka',
+        sequence: 0,
+        scheduledTime: '04:30',
+      ),
+      StationStop(
+        stationId: 'narayanganj',
+        stationName: 'Narayanganj',
+        sequence: 1,
+        scheduledTime: '05:15',
+      ),
+    ],
+  );
+  return [
+    factory.create(template: template, serviceDate: DateTime(2026, 3, 28)),
+  ];
+}
