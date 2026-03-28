@@ -1,6 +1,7 @@
 import '../../../community/domain/entities/arrival_report.dart';
 import '../../../community/domain/entities/predicted_stop_time.dart';
 import '../../../community/domain/repositories/arrival_report_repository.dart';
+import '../../../community/domain/repositories/device_identity_repository.dart';
 import '../../../community/domain/repositories/prediction_repository.dart';
 import '../../../community/domain/services/delay_classifier_service.dart';
 import '../../../community/domain/services/downstream_prediction_service.dart';
@@ -16,6 +17,7 @@ class RailCommunityInsightCoordinator {
     required RailSessionResolver sessionResolver,
     required ArrivalReportRepository arrivalReportRepository,
     required PredictionRepository predictionRepository,
+    required DeviceIdentityRepository deviceIdentityRepository,
     SessionLifecycleService? sessionLifecycleService,
     ReportConfidenceService? reportConfidenceService,
     DownstreamPredictionService? downstreamPredictionService,
@@ -24,6 +26,7 @@ class RailCommunityInsightCoordinator {
   }) : _sessionResolver = sessionResolver,
        _arrivalReportRepository = arrivalReportRepository,
        _predictionRepository = predictionRepository,
+       _deviceIdentityRepository = deviceIdentityRepository,
        _sessionLifecycleService =
            sessionLifecycleService ?? const SessionLifecycleService(),
        _reportConfidenceService =
@@ -40,6 +43,7 @@ class RailCommunityInsightCoordinator {
   final RailSessionResolver _sessionResolver;
   final ArrivalReportRepository _arrivalReportRepository;
   final PredictionRepository _predictionRepository;
+  final DeviceIdentityRepository _deviceIdentityRepository;
   final SessionLifecycleService _sessionLifecycleService;
   final ReportConfidenceService _reportConfidenceService;
   final DownstreamPredictionService _downstreamPredictionService;
@@ -52,6 +56,7 @@ class RailCommunityInsightCoordinator {
     required DateTime now,
   }) async {
     try {
+      await _deviceIdentityRepository.readOrCreateIdentity();
       final session = await _sessionResolver.findSessionForTrain(
         direction: direction,
         trainNo: nextService?.trainNo,

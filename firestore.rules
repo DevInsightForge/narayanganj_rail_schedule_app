@@ -1,6 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function reportKeys() {
+      return [
+        'reportId',
+        'sessionId',
+        'routeId',
+        'stationId',
+        'reporterUid',
+        'observedArrivalAt',
+        'submittedAt'
+      ];
+    }
+
+    function profileKeys() {
+      return ['uid', 'lastSeenAt', 'updatedAt'];
+    }
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -9,18 +25,13 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly(keys);
     }
 
-    match /station_reports/{reportId} {
-      allow read: if true;
-      allow create: if isSignedIn()
-        && hasAllowedKeys([
-          'reportId',
-          'sessionId',
-          'routeId',
-          'stationId',
-          'reporterUid',
-          'observedArrivalAt',
-          'submittedAt'
-        ])
+    function isRecentSubmittedAt(value) {
+      return value <= request.time
+        && value >= request.time - duration.value(7, 'd');
+    }
+
+    function isValidStationReport() {
+      return hasAllowedKeys(reportKeys())
         && request.resource.data.reportId is string
         && request.resource.data.sessionId is string
         && request.resource.data.routeId is string
@@ -28,8 +39,20 @@ service cloud.firestore {
         && request.resource.data.reporterUid == request.auth.uid
         && request.resource.data.observedArrivalAt is timestamp
         && request.resource.data.submittedAt is timestamp
-        && request.resource.data.submittedAt <= request.time
-        && request.resource.data.submittedAt >= request.time - duration.value(7, 'd');
+        && isRecentSubmittedAt(request.resource.data.submittedAt);
+    }
+
+    function isValidUserProfile(uid) {
+      return request.auth.uid == uid
+        && hasAllowedKeys(profileKeys())
+        && request.resource.data.uid == uid
+        && (!('lastSeenAt' in request.resource.data) || request.resource.data.lastSeenAt is timestamp)
+        && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+    }
+
+    match /station_reports/{reportId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidStationReport();
       allow update, delete: if false;
     }
 
@@ -45,12 +68,7 @@ service cloud.firestore {
 
     match /user_profiles/{uid} {
       allow read: if false;
-      allow create, update: if isSignedIn()
-        && request.auth.uid == uid
-        && hasAllowedKeys(['uid', 'lastSeenAt', 'updatedAt'])
-        && request.resource.data.uid == uid
-        && (!('lastSeenAt' in request.resource.data) || request.resource.data.lastSeenAt is timestamp)
-        && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+      allow create, update: if isSignedIn() && isValidUserProfile(uid);
       allow delete: if false;
     }
   }

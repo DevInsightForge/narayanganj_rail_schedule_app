@@ -1,20 +1,6 @@
 {
   "indexes": [
     {
-      "collectionGroup": "train_sessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "routeId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "serviceDate",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "station_reports",
       "queryScope": "COLLECTION",
       "fields": [

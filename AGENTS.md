@@ -54,14 +54,13 @@
 - If old chat assumptions are found, remove or mark explicitly postponed in planning docs.
 
 ## Workflow Rules
-- Before major implementation, update PLANS.md.
-- After each milestone or major refactor, update PLANS.md with progress and decisions.
+- Keep README.md and AGENTS.md aligned with the current shipped architecture and product scope.
 - Document removals and migration tradeoffs in the Decision Log.
 - Prefer incremental, reviewable changes.
 
 ## Definition of Done
-- Code, tests, docs, and PLANS updates are complete.
-- AGENTS.md and PLANS.md stay current.
+- Code, tests, and docs are complete.
+- AGENTS.md and README.md stay current.
 - No feature is done without critical state handling and tests.
 - Schedule baseline remains useful offline when Firebase is unavailable.
 

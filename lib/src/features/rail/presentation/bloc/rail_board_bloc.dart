@@ -60,6 +60,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
          ),
          arrivalReportRepository: arrivalReportRepository,
          predictionRepository: predictionRepository,
+         deviceIdentityRepository: deviceIdentityRepository,
        ),
        _initialScheduleVersion = boardService.schedule.version,
        _activeSource = ScheduleDataSource.bundled,

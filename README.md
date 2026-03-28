@@ -6,27 +6,33 @@
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. It turns dense timetable data into a fast decision board for everyday trips.
+Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app is centered on a compact rail board that keeps the official timetable as baseline truth and layers optional anonymous community delay signals on top.
 
-## Features
+## Current Status
 
-- Next-train decision view with ETA, wait time, and route context
-- Direction, boarding, and destination switching with deterministic state reconciliation
-- Remote schedule loading from fixed website API endpoint with strict validation
-- Safe fallback chain: `remote API -> cached valid payload -> bundled static data`
-- Community arrival reporting with anonymous Firebase identity
-- Community delay and downstream prediction insights with confidence and freshness labels
-- Resilient Firebase sync with local fallback and offline queue behavior
-- Structured logging for remote loading branches and validation failures
-- Android system bars styled to match app surface (no default gray status bar)
+- Startup is split into bootstrap, composition, and app-shell layers.
+- Schedule loading is offline-first with bundled JSON as baseline, cached restoration, and Firebase Remote Config as a silent post-render update path.
+- Rail UI is compact, monochrome, and optimized for phone-first usage.
+- Anonymous Firebase-backed arrival reporting remains optional and secondary to the published schedule.
+- Community delay insight, freshness, and downstream prediction remain isolated from the official schedule baseline.
+- Footer metadata, privacy policy, and terms now live in an in-app drawer with static app-owned content.
 
-## Remote Data Configuration
+## Core Features
 
-The app derives schedule API URL from `WEBSITE_BASE_URL`.
+- Next-train decision board with wait time, ETA, and route context
+- Direction, boarding, and destination selection with deterministic state updates
+- Journey trace with scheduled stops and optional predicted downstream timing
+- Backup departure list for the active route selection
+- Anonymous arrival reporting and community delay aggregation
+- Graceful fallback when Firebase is disabled, unavailable, or partially degraded
 
-- Base URL env key: `WEBSITE_BASE_URL`
-- Derived schedule URL: `<WEBSITE_BASE_URL>/api/schedule/data.json`
-- Default base URL: `https://narayanganj-rail-schedule.pages.dev/`
+## Schedule and Firebase Behavior
+
+- Bundled schedule JSON is the non-negotiable baseline.
+- Cached schedule data restores quickly when available.
+- Firebase Remote Config can deliver versioned schedule updates after initial render.
+- Firebase Anonymous Auth, Firestore, and App Check are optional at runtime and can be disabled through env configuration.
+- Community features are hidden or degraded safely when Firebase is unavailable.
 
 ## Local Setup
 
@@ -39,21 +45,30 @@ flutter run
 Optional root `.env`:
 
 ```env
-WEBSITE_BASE_URL=https://narayanganj-rail-schedule.pages.dev/
-# Optional override: set false to force-disable Firebase
-# FIREBASE_ENABLED=false
+# Optional override: set to false to disable Firebase.
+FIREBASE_ENABLED=true
 FIREBASE_APPCHECK_ENABLED=false
-# Minimal required Firebase values
+
+# Minimal required Firebase env values.
 FIREBASE_PROJECT_ID=
 FIREBASE_API_KEY=
-# Optional platform API key overrides
+
+# Optional platform-specific API key overrides.
 FIREBASE_WEB_API_KEY=
 FIREBASE_ANDROID_API_KEY=
 FIREBASE_IOS_API_KEY=
-# Optional web analytics
+
+# Optional web analytics / App Check web config.
 FIREBASE_MEASUREMENT_ID=
 FIREBASE_APPCHECK_WEB_KEY=
 ```
+
+## Release Notes
+
+- Android release requires a configured Android SDK on the build machine.
+- Android release signing requires `android/key.properties`.
+- Android Firebase-backed release behavior may require `android/app/google-services.json` depending on your release setup.
+- If `FIREBASE_APPCHECK_ENABLED=true`, Firebase App Check must already be configured in Firebase Console for the target platform.
 
 ## Firebase Security Baseline
 
@@ -61,7 +76,7 @@ FIREBASE_APPCHECK_WEB_KEY=
 - Train sessions are generated dynamically from bundled schedule templates using deterministic session IDs.
 - `station_reports` writes require Firebase Anonymous Auth and enforce `reporterUid == request.auth.uid`.
 - `session_status_snapshots` is read-only to clients.
-- `user_profiles` is owner-write metadata only (no client reads).
+- `user_profiles` is owner-write metadata only with no client reads.
 
 ## Firestore Retention
 
