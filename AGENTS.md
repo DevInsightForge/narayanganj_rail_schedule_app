@@ -55,6 +55,7 @@
 
 ## Workflow Rules
 - Keep README.md and AGENTS.md aligned with the current shipped architecture and product scope.
+- Keep `.github/workflows/publish.yml` and `.env.example` synchronized with all environment variables consumed by the app.
 - Document removals and migration tradeoffs in the Decision Log.
 - Prefer incremental, reviewable changes.
 
