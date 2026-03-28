@@ -306,6 +306,53 @@ void main() {
       expect(insightState.sessionStatusSnapshot, isNotNull);
       await bloc.close();
     });
+
+    test(
+      'skips community reporting and insights when community features are disabled',
+      () async {
+        final reports = FakeArrivalReportRepository();
+        final bloc = RailBoardBloc(
+          boardService: RailBoardService(
+            schedule: StaticScheduleDataSource.schedule,
+          ),
+          scheduleDataRepository: _FakeScheduleDataRepository(),
+          selectionRepository: _InMemorySelectionRepository(
+            const RailSelection(
+              direction: 'dhaka_to_narayanganj',
+              boardingStationId: 'dhaka',
+              destinationStationId: 'narayanganj',
+            ),
+          ),
+          sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+          arrivalReportRepository: reports,
+          predictionRepository: FakePredictionRepository(),
+          deviceIdentityRepository: FakeDeviceIdentityRepository(),
+          rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+          communityFeaturesEnabled: false,
+          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+        );
+
+        final ready = await bloc.stream.firstWhere(
+          (state) => state.status == RailBoardStatus.ready,
+        );
+        expect(ready.communityFeaturesEnabled, isFalse);
+        expect(ready.communityInsightStatus, RailCommunityInsightStatus.idle);
+
+        bloc.add(const RailBoardArrivalReportRequested());
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        expect(
+          bloc.state.reportSubmissionStatus,
+          RailReportSubmissionStatus.idle,
+        );
+        final stored = await reports.fetchStopReports(
+          sessionId: _seedSessions().first.sessionId,
+          stationId: 'dhaka',
+        );
+        expect(stored, isEmpty);
+        await bloc.close();
+      },
+    );
   });
 }
 

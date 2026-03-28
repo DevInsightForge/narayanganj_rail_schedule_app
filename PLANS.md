@@ -197,4 +197,5 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - 2026-03-28: Replaced persisted `train_sessions` dependency with deterministic dynamic session generation from local templates and removed seed-export tooling.
 - 2026-03-28: Enforced 7-day report timestamp window in Firestore rules to align with automatic cleanup policy.
 - 2026-03-28: Added explicit operational requirement to enable Firestore TTL on `station_reports.submittedAt` for automatic 7-day cleanup.
+- 2026-03-28: Added runtime community feature gating so Firebase-disabled mode hides community estimate/report UI and bypasses report submission and insight refresh logic.
 

@@ -117,6 +117,7 @@ class NarayanganjRailScheduleApp extends StatelessWidget {
           predictionRepository: context.read<PredictionRepository>(),
           deviceIdentityRepository: context.read<DeviceIdentityRepository>(),
           rateLimitPolicyRepository: context.read<RateLimitPolicyRepository>(),
+          communityFeaturesEnabled: firebaseRuntime.enabled,
         ),
         child: MaterialApp(
           debugShowCheckedModeBanner: false,

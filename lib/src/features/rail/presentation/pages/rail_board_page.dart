@@ -143,6 +143,8 @@ class RailBoardPage extends StatelessWidget {
                                                     state.sessionStatusSnapshot,
                                                 communityMessage:
                                                     state.communityMessage,
+                                                communityFeaturesEnabled: state
+                                                    .communityFeaturesEnabled,
                                               ),
                                               const SizedBox(height: 14),
                                               UpcomingPanel(
@@ -181,6 +183,8 @@ class RailBoardPage extends StatelessWidget {
                                               state.sessionStatusSnapshot,
                                           communityMessage:
                                               state.communityMessage,
+                                          communityFeaturesEnabled:
+                                              state.communityFeaturesEnabled,
                                         ),
                                         const SizedBox(height: 14),
                                         TimelinePanel(

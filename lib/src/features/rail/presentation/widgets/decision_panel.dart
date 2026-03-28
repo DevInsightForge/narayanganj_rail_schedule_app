@@ -17,6 +17,7 @@ class DecisionPanel extends StatelessWidget {
     required this.communityInsightStatus,
     required this.sessionStatusSnapshot,
     required this.communityMessage,
+    required this.communityFeaturesEnabled,
   });
 
   final RailBoardSnapshot snapshot;
@@ -24,6 +25,7 @@ class DecisionPanel extends StatelessWidget {
   final RailCommunityInsightStatus communityInsightStatus;
   final SessionStatusSnapshot? sessionStatusSnapshot;
   final String? communityMessage;
+  final bool communityFeaturesEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -116,27 +118,30 @@ class DecisionPanel extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 12),
-          _CommunityEstimateBlock(
-            communityInsightStatus: communityInsightStatus,
-            sessionStatusSnapshot: sessionStatusSnapshot,
-            communityMessage: communityMessage,
-          ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed:
-                reportSubmissionStatus == RailReportSubmissionStatus.submitting
-                ? null
-                : () => context.read<RailBoardBloc>().add(
-                    const RailBoardArrivalReportRequested(),
-                  ),
-            icon: Icon(
-              reportSubmissionStatus == RailReportSubmissionStatus.submitting
-                  ? Icons.sync
-                  : Icons.flag_rounded,
+          if (communityFeaturesEnabled) ...[
+            const SizedBox(height: 12),
+            _CommunityEstimateBlock(
+              communityInsightStatus: communityInsightStatus,
+              sessionStatusSnapshot: sessionStatusSnapshot,
+              communityMessage: communityMessage,
             ),
-            label: Text(_reportButtonLabel(reportSubmissionStatus)),
-          ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed:
+                  reportSubmissionStatus ==
+                      RailReportSubmissionStatus.submitting
+                  ? null
+                  : () => context.read<RailBoardBloc>().add(
+                      const RailBoardArrivalReportRequested(),
+                    ),
+              icon: Icon(
+                reportSubmissionStatus == RailReportSubmissionStatus.submitting
+                    ? Icons.sync
+                    : Icons.flag_rounded,
+              ),
+              label: Text(_reportButtonLabel(reportSubmissionStatus)),
+            ),
+          ],
         ],
       ),
     );

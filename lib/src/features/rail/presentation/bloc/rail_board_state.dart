@@ -43,6 +43,7 @@ class RailBoardState extends Equatable {
     this.sessionStatusSnapshot,
     this.predictedStopTimes = const [],
     this.communityMessage,
+    this.communityFeaturesEnabled = true,
   });
 
   final RailBoardStatus status;
@@ -59,6 +60,7 @@ class RailBoardState extends Equatable {
   final SessionStatusSnapshot? sessionStatusSnapshot;
   final List<PredictedStopTime> predictedStopTimes;
   final String? communityMessage;
+  final bool communityFeaturesEnabled;
 
   bool get isLoading => status == RailBoardStatus.loading;
   bool get hasFailed => status == RailBoardStatus.failure;
@@ -83,6 +85,7 @@ class RailBoardState extends Equatable {
     List<PredictedStopTime>? predictedStopTimes,
     String? communityMessage,
     bool clearCommunityMessage = false,
+    bool? communityFeaturesEnabled,
   }) {
     return RailBoardState(
       status: status ?? this.status,
@@ -109,6 +112,8 @@ class RailBoardState extends Equatable {
       communityMessage: clearCommunityMessage
           ? null
           : communityMessage ?? this.communityMessage,
+      communityFeaturesEnabled:
+          communityFeaturesEnabled ?? this.communityFeaturesEnabled,
     );
   }
 
@@ -128,5 +133,6 @@ class RailBoardState extends Equatable {
     sessionStatusSnapshot,
     predictedStopTimes,
     communityMessage,
+    communityFeaturesEnabled,
   ];
 }

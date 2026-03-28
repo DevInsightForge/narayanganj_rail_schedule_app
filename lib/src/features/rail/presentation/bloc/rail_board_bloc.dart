@@ -37,6 +37,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     required PredictionRepository predictionRepository,
     required DeviceIdentityRepository deviceIdentityRepository,
     required RateLimitPolicyRepository rateLimitPolicyRepository,
+    this.communityFeaturesEnabled = true,
     DateTime Function()? nowProvider,
   }) : _boardService = boardService,
        _scheduleDataRepository = scheduleDataRepository,
@@ -89,6 +90,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
   final DeviceIdentityRepository _deviceIdentityRepository;
   final RateLimitPolicyRepository _rateLimitPolicyRepository;
   final DateTime Function() _nowProvider;
+  final bool communityFeaturesEnabled;
   final SessionLifecycleService _sessionLifecycleService;
   final ReportConfidenceService _reportConfidenceService;
   final DownstreamPredictionService _downstreamPredictionService;
@@ -177,6 +179,9 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
   }) async {
     await _selectionRepository.write(selection);
     emit(_buildState(selection));
+    if (!communityFeaturesEnabled) {
+      return;
+    }
     await _refreshCommunityInsights(selection: selection, emit: emit);
   }
 
@@ -215,6 +220,10 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     Emitter<RailBoardState> emit,
   ) async {
     if (state.status == RailBoardStatus.ready) {
+      if (!communityFeaturesEnabled) {
+        emit(_buildState(state.selection));
+        return;
+      }
       final now = _nowProvider();
       await _drainPendingReports(now: now);
       emit(_buildState(state.selection));
@@ -226,6 +235,9 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     RailBoardArrivalReportRequested event,
     Emitter<RailBoardState> emit,
   ) async {
+    if (!communityFeaturesEnabled) {
+      return;
+    }
     if (state.status != RailBoardStatus.ready ||
         state.snapshot.nextService == null) {
       return;
@@ -634,6 +646,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       sessionStatusSnapshot: state.sessionStatusSnapshot,
       predictedStopTimes: state.predictedStopTimes,
       communityMessage: state.communityMessage,
+      communityFeaturesEnabled: communityFeaturesEnabled,
     );
   }
 
