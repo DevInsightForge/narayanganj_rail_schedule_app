@@ -62,17 +62,17 @@ class FirebaseBootstrap {
         return;
       }
       await FirebaseAppCheck.instance.activate(
-        webProvider: ReCaptchaV3Provider(webRecaptchaKey),
+        providerWeb: ReCaptchaV3Provider(webRecaptchaKey),
       );
       return;
     }
     await FirebaseAppCheck.instance.activate(
-      androidProvider: kDebugMode
-          ? AndroidProvider.debug
-          : AndroidProvider.playIntegrity,
-      appleProvider: kDebugMode
-          ? AppleProvider.debug
-          : AppleProvider.appAttestWithDeviceCheckFallback,
+      providerAndroid: kDebugMode
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+      providerApple: kDebugMode
+          ? const AppleDebugProvider()
+          : const AppleAppAttestWithDeviceCheckFallbackProvider(),
     );
   }
 }
