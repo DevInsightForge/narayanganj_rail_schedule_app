@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../community/domain/entities/delay_status.dart';
 import '../../../community/domain/entities/session_status_snapshot.dart';
-import '../../domain/entities/rail_snapshot.dart';
 import '../../domain/services/rail_board_service.dart';
 import '../bloc/rail_board_bloc.dart';
 import 'panel_palette.dart';
@@ -12,26 +11,20 @@ import 'panel_shell.dart';
 class DecisionPanel extends StatelessWidget {
   const DecisionPanel({
     super.key,
-    required this.snapshot,
-    required this.reportSubmissionStatus,
-    required this.communityInsightStatus,
-    required this.sessionStatusSnapshot,
-    required this.communityMessage,
-    required this.communityFeaturesEnabled,
+    required this.view,
+    required this.report,
+    required this.community,
   });
 
-  final RailBoardSnapshot snapshot;
-  final RailReportSubmissionStatus reportSubmissionStatus;
-  final RailCommunityInsightStatus communityInsightStatus;
-  final SessionStatusSnapshot? sessionStatusSnapshot;
-  final String? communityMessage;
-  final bool communityFeaturesEnabled;
+  final RailBoardViewState view;
+  final RailBoardReportState report;
+  final RailBoardCommunityState community;
 
   @override
   Widget build(BuildContext context) {
     final boardService = context.read<RailBoardService>();
     final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
-    final nextService = snapshot.nextService!;
+    final nextService = view.snapshot.nextService!;
     final travelMinutes = nextService.etaMinutes - nextService.waitMinutes;
 
     return PanelShell(
@@ -56,7 +49,7 @@ class DecisionPanel extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Board at ${snapshot.selectedStationName} and arrive at ${snapshot.destinationStationName} in ${boardService.getEtaLabel(nextService.etaMinutes)}.',
+            'Board at ${view.snapshot.selectedStationName} and arrive at ${view.snapshot.destinationStationName} in ${boardService.getEtaLabel(nextService.etaMinutes)}.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: palette.panelMutedText,
               fontSize: 14,
@@ -69,7 +62,7 @@ class DecisionPanel extends StatelessWidget {
             children: [
               _RouteChip(
                 label:
-                    '${snapshot.selectedStationName} to ${snapshot.destinationStationName}',
+                    '${view.snapshot.selectedStationName} to ${view.snapshot.destinationStationName}',
               ),
               _RouteChip(label: 'Train ${nextService.trainNo}'),
             ],
@@ -118,28 +111,26 @@ class DecisionPanel extends StatelessWidget {
               );
             },
           ),
-          if (communityFeaturesEnabled) ...[
+          if (community.featuresEnabled) ...[
             const SizedBox(height: 12),
             _CommunityEstimateBlock(
-              communityInsightStatus: communityInsightStatus,
-              sessionStatusSnapshot: sessionStatusSnapshot,
-              communityMessage: communityMessage,
+              communityInsightStatus: community.insightStatus,
+              sessionStatusSnapshot: community.sessionStatusSnapshot,
+              communityMessage: community.message,
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
-              onPressed:
-                  reportSubmissionStatus ==
-                      RailReportSubmissionStatus.submitting
+              onPressed: report.status == RailReportSubmissionStatus.submitting
                   ? null
                   : () => context.read<RailBoardBloc>().add(
                       const RailBoardArrivalReportRequested(),
                     ),
               icon: Icon(
-                reportSubmissionStatus == RailReportSubmissionStatus.submitting
+                report.status == RailReportSubmissionStatus.submitting
                     ? Icons.sync
                     : Icons.flag_rounded,
               ),
-              label: Text(_reportButtonLabel(reportSubmissionStatus)),
+              label: Text(_reportButtonLabel(report.status)),
             ),
           ],
         ],

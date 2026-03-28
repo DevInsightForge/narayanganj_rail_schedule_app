@@ -13,9 +13,8 @@ enum RailReportSubmissionStatus {
 
 enum RailCommunityInsightStatus { idle, loading, ready, stale, empty, error }
 
-class RailBoardState extends Equatable {
-  const RailBoardState({
-    this.status = RailBoardStatus.loading,
+class RailBoardViewState extends Equatable {
+  const RailBoardViewState({
     this.selection = const RailSelection(
       direction: '',
       boardingStationId: '',
@@ -35,104 +34,170 @@ class RailBoardState extends Equatable {
       lastUpdatedAt: null,
       scheduleVersion: '',
     ),
-    this.errorMessage,
-    this.reportSubmissionStatus = RailReportSubmissionStatus.idle,
-    this.reportFeedbackMessage,
-    this.reportRetryAfterSeconds,
-    this.communityInsightStatus = RailCommunityInsightStatus.idle,
-    this.sessionStatusSnapshot,
-    this.predictedStopTimes = const [],
-    this.communityMessage,
-    this.communityFeaturesEnabled = true,
   });
 
-  final RailBoardStatus status;
   final RailSelection selection;
   final List<RailSelectableOption> directionOptions;
   final List<RailSelectableOption> boardingStations;
   final List<RailSelectableOption> destinationStations;
   final RailBoardSnapshot snapshot;
-  final String? errorMessage;
-  final RailReportSubmissionStatus reportSubmissionStatus;
-  final String? reportFeedbackMessage;
-  final int? reportRetryAfterSeconds;
-  final RailCommunityInsightStatus communityInsightStatus;
-  final SessionStatusSnapshot? sessionStatusSnapshot;
-  final List<PredictedStopTime> predictedStopTimes;
-  final String? communityMessage;
-  final bool communityFeaturesEnabled;
 
-  bool get isLoading => status == RailBoardStatus.loading;
-  bool get hasFailed => status == RailBoardStatus.failure;
-
-  RailBoardState copyWith({
-    RailBoardStatus? status,
+  RailBoardViewState copyWith({
     RailSelection? selection,
     List<RailSelectableOption>? directionOptions,
     List<RailSelectableOption>? boardingStations,
     List<RailSelectableOption>? destinationStations,
     RailBoardSnapshot? snapshot,
-    String? errorMessage,
-    bool clearError = false,
-    RailReportSubmissionStatus? reportSubmissionStatus,
-    String? reportFeedbackMessage,
-    int? reportRetryAfterSeconds,
-    bool clearReportFeedback = false,
-    bool clearReportRetryAfter = false,
-    RailCommunityInsightStatus? communityInsightStatus,
-    SessionStatusSnapshot? sessionStatusSnapshot,
-    bool clearSessionStatus = false,
-    List<PredictedStopTime>? predictedStopTimes,
-    String? communityMessage,
-    bool clearCommunityMessage = false,
-    bool? communityFeaturesEnabled,
   }) {
-    return RailBoardState(
-      status: status ?? this.status,
+    return RailBoardViewState(
       selection: selection ?? this.selection,
       directionOptions: directionOptions ?? this.directionOptions,
       boardingStations: boardingStations ?? this.boardingStations,
       destinationStations: destinationStations ?? this.destinationStations,
       snapshot: snapshot ?? this.snapshot,
-      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
-      reportSubmissionStatus:
-          reportSubmissionStatus ?? this.reportSubmissionStatus,
-      reportFeedbackMessage: clearReportFeedback
-          ? null
-          : reportFeedbackMessage ?? this.reportFeedbackMessage,
-      reportRetryAfterSeconds: clearReportRetryAfter
-          ? null
-          : reportRetryAfterSeconds ?? this.reportRetryAfterSeconds,
-      communityInsightStatus:
-          communityInsightStatus ?? this.communityInsightStatus,
-      sessionStatusSnapshot: clearSessionStatus
-          ? null
-          : sessionStatusSnapshot ?? this.sessionStatusSnapshot,
-      predictedStopTimes: predictedStopTimes ?? this.predictedStopTimes,
-      communityMessage: clearCommunityMessage
-          ? null
-          : communityMessage ?? this.communityMessage,
-      communityFeaturesEnabled:
-          communityFeaturesEnabled ?? this.communityFeaturesEnabled,
     );
   }
 
   @override
   List<Object?> get props => [
-    status,
     selection,
     directionOptions,
     boardingStations,
     destinationStations,
     snapshot,
-    errorMessage,
-    reportSubmissionStatus,
-    reportFeedbackMessage,
-    reportRetryAfterSeconds,
-    communityInsightStatus,
+  ];
+}
+
+class RailBoardReportState extends Equatable {
+  const RailBoardReportState({
+    this.status = RailReportSubmissionStatus.idle,
+    this.feedbackMessage,
+    this.retryAfterSeconds,
+  });
+
+  final RailReportSubmissionStatus status;
+  final String? feedbackMessage;
+  final int? retryAfterSeconds;
+
+  RailBoardReportState copyWith({
+    RailReportSubmissionStatus? status,
+    String? feedbackMessage,
+    int? retryAfterSeconds,
+    bool clearFeedback = false,
+    bool clearRetryAfter = false,
+  }) {
+    return RailBoardReportState(
+      status: status ?? this.status,
+      feedbackMessage: clearFeedback
+          ? null
+          : feedbackMessage ?? this.feedbackMessage,
+      retryAfterSeconds: clearRetryAfter
+          ? null
+          : retryAfterSeconds ?? this.retryAfterSeconds,
+    );
+  }
+
+  @override
+  List<Object?> get props => [status, feedbackMessage, retryAfterSeconds];
+}
+
+class RailBoardCommunityState extends Equatable {
+  const RailBoardCommunityState({
+    this.featuresEnabled = true,
+    this.insightStatus = RailCommunityInsightStatus.idle,
+    this.sessionStatusSnapshot,
+    this.predictedStopTimes = const [],
+    this.message,
+  });
+
+  final bool featuresEnabled;
+  final RailCommunityInsightStatus insightStatus;
+  final SessionStatusSnapshot? sessionStatusSnapshot;
+  final List<PredictedStopTime> predictedStopTimes;
+  final String? message;
+
+  RailBoardCommunityState copyWith({
+    bool? featuresEnabled,
+    RailCommunityInsightStatus? insightStatus,
+    SessionStatusSnapshot? sessionStatusSnapshot,
+    List<PredictedStopTime>? predictedStopTimes,
+    String? message,
+    bool clearSessionStatus = false,
+    bool clearMessage = false,
+  }) {
+    return RailBoardCommunityState(
+      featuresEnabled: featuresEnabled ?? this.featuresEnabled,
+      insightStatus: insightStatus ?? this.insightStatus,
+      sessionStatusSnapshot: clearSessionStatus
+          ? null
+          : sessionStatusSnapshot ?? this.sessionStatusSnapshot,
+      predictedStopTimes: predictedStopTimes ?? this.predictedStopTimes,
+      message: clearMessage ? null : message ?? this.message,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    featuresEnabled,
+    insightStatus,
     sessionStatusSnapshot,
     predictedStopTimes,
-    communityMessage,
-    communityFeaturesEnabled,
+    message,
   ];
+}
+
+class RailBoardState extends Equatable {
+  const RailBoardState({
+    this.status = RailBoardStatus.loading,
+    this.errorMessage,
+    this.view = const RailBoardViewState(),
+    this.report = const RailBoardReportState(),
+    this.community = const RailBoardCommunityState(),
+  });
+
+  final RailBoardStatus status;
+  final String? errorMessage;
+  final RailBoardViewState view;
+  final RailBoardReportState report;
+  final RailBoardCommunityState community;
+
+  bool get isLoading => status == RailBoardStatus.loading;
+  bool get hasFailed => status == RailBoardStatus.failure;
+  RailSelection get selection => view.selection;
+  List<RailSelectableOption> get directionOptions => view.directionOptions;
+  List<RailSelectableOption> get boardingStations => view.boardingStations;
+  List<RailSelectableOption> get destinationStations =>
+      view.destinationStations;
+  RailBoardSnapshot get snapshot => view.snapshot;
+  RailReportSubmissionStatus get reportSubmissionStatus => report.status;
+  String? get reportFeedbackMessage => report.feedbackMessage;
+  int? get reportRetryAfterSeconds => report.retryAfterSeconds;
+  RailCommunityInsightStatus get communityInsightStatus =>
+      community.insightStatus;
+  SessionStatusSnapshot? get sessionStatusSnapshot =>
+      community.sessionStatusSnapshot;
+  List<PredictedStopTime> get predictedStopTimes =>
+      community.predictedStopTimes;
+  String? get communityMessage => community.message;
+  bool get communityFeaturesEnabled => community.featuresEnabled;
+
+  RailBoardState copyWith({
+    RailBoardStatus? status,
+    String? errorMessage,
+    bool clearError = false,
+    RailBoardViewState? view,
+    RailBoardReportState? report,
+    RailBoardCommunityState? community,
+  }) {
+    return RailBoardState(
+      status: status ?? this.status,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+      view: view ?? this.view,
+      report: report ?? this.report,
+      community: community ?? this.community,
+    );
+  }
+
+  @override
+  List<Object?> get props => [status, errorMessage, view, report, community];
 }

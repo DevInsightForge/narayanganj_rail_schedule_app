@@ -198,4 +198,5 @@ Provide a clear, trustworthy commuter companion where users always see official 
 - 2026-03-28: Enforced 7-day report timestamp window in Firestore rules to align with automatic cleanup policy.
 - 2026-03-28: Added explicit operational requirement to enable Firestore TTL on `station_reports.submittedAt` for automatic 7-day cleanup.
 - 2026-03-28: Added runtime community feature gating so Firebase-disabled mode hides community estimate/report UI and bypasses report submission and insight refresh logic.
+- 2026-03-28: Refactored `RailBoardState` into `view`, `report`, and `community` slices and moved board page rendering to selector-based composition to reduce unnecessary rebuilds and improve component-level state access.
 

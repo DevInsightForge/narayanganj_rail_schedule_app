@@ -7,15 +7,15 @@ import 'panel_palette.dart';
 import 'panel_shell.dart';
 
 class HeaderPanel extends StatelessWidget {
-  const HeaderPanel({super.key, required this.state});
+  const HeaderPanel({super.key, required this.view});
 
-  final RailBoardState state;
+  final RailBoardViewState view;
 
   @override
   Widget build(BuildContext context) {
     const formatter = _HeaderFormatter();
     final palette = RailPanelPalette.of(Theme.of(context).colorScheme);
-    final nextService = state.snapshot.nextService;
+    final nextService = view.snapshot.nextService;
     final isTablet = MediaQuery.of(context).size.width >= 720;
 
     return PanelShell(
@@ -36,7 +36,7 @@ class HeaderPanel extends StatelessWidget {
               children: [
                 Expanded(
                   child: _HeroCopy(
-                    currentTime: state.snapshot.currentTime,
+                    currentTime: view.snapshot.currentTime,
                     nextServiceLabel: nextService == null
                         ? 'No train right now'
                         : formatter.formatTimeAmPm(nextService.departureTime),
@@ -58,7 +58,7 @@ class HeaderPanel extends StatelessWidget {
             )
           else
             _CompactHeader(
-              currentTime: state.snapshot.currentTime,
+              currentTime: view.snapshot.currentTime,
               departureLabel: nextService == null
                   ? 'No train'
                   : formatter.formatTimeAmPm(nextService.departureTime),
@@ -69,8 +69,8 @@ class HeaderPanel extends StatelessWidget {
           SizedBox(height: isTablet ? 14 : 10),
           _SelectionStrip(
             label: 'Direction',
-            options: state.directionOptions,
-            value: state.selection.direction,
+            options: view.directionOptions,
+            value: view.selection.direction,
             onPressed: (value) => context.read<RailBoardBloc>().add(
               RailBoardDirectionChanged(value),
             ),
@@ -78,8 +78,8 @@ class HeaderPanel extends StatelessWidget {
           SizedBox(height: isTablet ? 10 : 8),
           _SelectionStrip(
             label: 'Boarding',
-            options: state.boardingStations,
-            value: state.selection.boardingStationId,
+            options: view.boardingStations,
+            value: view.selection.boardingStationId,
             onPressed: (value) => context.read<RailBoardBloc>().add(
               RailBoardBoardingChanged(value),
             ),
@@ -87,8 +87,8 @@ class HeaderPanel extends StatelessWidget {
           SizedBox(height: isTablet ? 10 : 8),
           _SelectionStrip(
             label: 'Destination',
-            options: state.destinationStations,
-            value: state.selection.destinationStationId,
+            options: view.destinationStations,
+            value: view.selection.destinationStationId,
             onPressed: (value) => context.read<RailBoardBloc>().add(
               RailBoardDestinationChanged(value),
             ),

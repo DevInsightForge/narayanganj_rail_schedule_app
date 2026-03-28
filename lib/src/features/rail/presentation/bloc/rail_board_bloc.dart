@@ -245,9 +245,11 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
 
     emit(
       state.copyWith(
-        reportSubmissionStatus: RailReportSubmissionStatus.submitting,
-        clearReportFeedback: true,
-        clearReportRetryAfter: true,
+        report: state.report.copyWith(
+          status: RailReportSubmissionStatus.submitting,
+          clearFeedback: true,
+          clearRetryAfter: true,
+        ),
       ),
     );
 
@@ -262,10 +264,11 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
         )) {
       emit(
         state.copyWith(
-          reportSubmissionStatus: RailReportSubmissionStatus.error,
-          reportFeedbackMessage:
-              'No active report window for this trip right now.',
-          clearReportRetryAfter: true,
+          report: state.report.copyWith(
+            status: RailReportSubmissionStatus.error,
+            feedbackMessage: 'No active report window for this trip right now.',
+            clearRetryAfter: true,
+          ),
         ),
       );
       return;
@@ -280,10 +283,12 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     if (!rateLimitDecision.allowed) {
       emit(
         state.copyWith(
-          reportSubmissionStatus: RailReportSubmissionStatus.rateLimited,
-          reportRetryAfterSeconds: rateLimitDecision.retryAfterSeconds,
-          reportFeedbackMessage:
-              'Please wait ${rateLimitDecision.retryAfterSeconds}s before reporting again.',
+          report: state.report.copyWith(
+            status: RailReportSubmissionStatus.rateLimited,
+            retryAfterSeconds: rateLimitDecision.retryAfterSeconds,
+            feedbackMessage:
+                'Please wait ${rateLimitDecision.retryAfterSeconds}s before reporting again.',
+          ),
         ),
       );
       return;
@@ -298,9 +303,11 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     if (_isDuplicateReport(dedupeKey: dedupeKey, now: now)) {
       emit(
         state.copyWith(
-          reportSubmissionStatus: RailReportSubmissionStatus.success,
-          reportFeedbackMessage: 'Arrival already reported recently.',
-          clearReportRetryAfter: true,
+          report: state.report.copyWith(
+            status: RailReportSubmissionStatus.success,
+            feedbackMessage: 'Arrival already reported recently.',
+            clearRetryAfter: true,
+          ),
         ),
       );
       return;
@@ -324,10 +331,12 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       _pendingReports.removeWhere((pending) => pending.dedupeKey == dedupeKey);
       emit(
         state.copyWith(
-          reportSubmissionStatus: RailReportSubmissionStatus.success,
-          reportFeedbackMessage:
-              'Arrival reported for ${state.snapshot.selectedStationName}.',
-          clearReportRetryAfter: true,
+          report: state.report.copyWith(
+            status: RailReportSubmissionStatus.success,
+            feedbackMessage:
+                'Arrival reported for ${state.snapshot.selectedStationName}.',
+            clearRetryAfter: true,
+          ),
         ),
       );
       await _refreshCommunityInsights(selection: state.selection, emit: emit);
@@ -339,10 +348,12 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       }
       emit(
         state.copyWith(
-          reportSubmissionStatus: RailReportSubmissionStatus.offlineQueue,
-          reportFeedbackMessage:
-              'Report queued locally and will sync when services recover.',
-          clearReportRetryAfter: true,
+          report: state.report.copyWith(
+            status: RailReportSubmissionStatus.offlineQueue,
+            feedbackMessage:
+                'Report queued locally and will sync when services recover.',
+            clearRetryAfter: true,
+          ),
         ),
       );
     }
@@ -354,8 +365,10 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
   }) async {
     emit(
       state.copyWith(
-        communityInsightStatus: RailCommunityInsightStatus.loading,
-        clearCommunityMessage: true,
+        community: state.community.copyWith(
+          insightStatus: RailCommunityInsightStatus.loading,
+          clearMessage: true,
+        ),
       ),
     );
 
@@ -369,11 +382,12 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       if (session == null) {
         emit(
           state.copyWith(
-            communityInsightStatus: RailCommunityInsightStatus.empty,
-            sessionStatusSnapshot: null,
-            predictedStopTimes: const [],
-            communityMessage:
-                'No active or upcoming session insights right now.',
+            community: state.community.copyWith(
+              insightStatus: RailCommunityInsightStatus.empty,
+              clearSessionStatus: true,
+              predictedStopTimes: const [],
+              message: 'No active or upcoming session insights right now.',
+            ),
           ),
         );
         return;
@@ -400,11 +414,12 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       if (observedStops.isEmpty) {
         emit(
           state.copyWith(
-            communityInsightStatus: RailCommunityInsightStatus.empty,
-            sessionStatusSnapshot: null,
-            predictedStopTimes: const [],
-            communityMessage:
-                'No community reports yet for this train session.',
+            community: state.community.copyWith(
+              insightStatus: RailCommunityInsightStatus.empty,
+              clearSessionStatus: true,
+              predictedStopTimes: const [],
+              message: 'No community reports yet for this train session.',
+            ),
           ),
         );
         return;
@@ -453,24 +468,28 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       final isStale = status.freshnessSeconds > _staleInsightThresholdSeconds;
       emit(
         state.copyWith(
-          communityInsightStatus: isStale
-              ? RailCommunityInsightStatus.stale
-              : RailCommunityInsightStatus.ready,
-          sessionStatusSnapshot: status,
-          predictedStopTimes: predictions,
-          communityMessage: remotePredictions.isNotEmpty
-              ? 'Estimate synchronized from Firebase session snapshot.'
-              : 'Estimate based on ${referenceReports.length} report(s) at ${referenceStop.stationName}.',
+          community: state.community.copyWith(
+            insightStatus: isStale
+                ? RailCommunityInsightStatus.stale
+                : RailCommunityInsightStatus.ready,
+            sessionStatusSnapshot: status,
+            predictedStopTimes: predictions,
+            message: remotePredictions.isNotEmpty
+                ? 'Estimate synchronized from Firebase session snapshot.'
+                : 'Estimate based on ${referenceReports.length} report(s) at ${referenceStop.stationName}.',
+          ),
         ),
       );
     } catch (_) {
       emit(
         state.copyWith(
-          communityInsightStatus: RailCommunityInsightStatus.error,
-          clearSessionStatus: true,
-          predictedStopTimes: const [],
-          communityMessage:
-              'Community data is temporarily unavailable. Schedule baseline remains available.',
+          community: state.community.copyWith(
+            insightStatus: RailCommunityInsightStatus.error,
+            clearSessionStatus: true,
+            predictedStopTimes: const [],
+            message:
+                'Community data is temporarily unavailable. Schedule baseline remains available.',
+          ),
         ),
       );
     }
@@ -622,31 +641,29 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
 
     return RailBoardState(
       status: RailBoardStatus.ready,
-      selection: selection,
-      directionOptions: _boardService.getDirectionOptions(),
-      boardingStations: _boardService.getBoardingOptions(selection.direction),
-      destinationStations: _boardService.getDestinationOptions(
-        selection.direction,
-        selection.boardingStationId,
-      ),
-      snapshot: _boardService
-          .getSnapshot(selection: selection, now: _nowProvider())
-          .copyWith(
-            dataSourceLabel: sourceLabel,
-            lastUpdatedAt: _lastUpdatedAt,
-            scheduleVersion: _boardService.schedule.version.isEmpty
-                ? _bundledVersion
-                : _boardService.schedule.version,
-          ),
       errorMessage: null,
-      reportSubmissionStatus: state.reportSubmissionStatus,
-      reportFeedbackMessage: state.reportFeedbackMessage,
-      reportRetryAfterSeconds: state.reportRetryAfterSeconds,
-      communityInsightStatus: state.communityInsightStatus,
-      sessionStatusSnapshot: state.sessionStatusSnapshot,
-      predictedStopTimes: state.predictedStopTimes,
-      communityMessage: state.communityMessage,
-      communityFeaturesEnabled: communityFeaturesEnabled,
+      view: RailBoardViewState(
+        selection: selection,
+        directionOptions: _boardService.getDirectionOptions(),
+        boardingStations: _boardService.getBoardingOptions(selection.direction),
+        destinationStations: _boardService.getDestinationOptions(
+          selection.direction,
+          selection.boardingStationId,
+        ),
+        snapshot: _boardService
+            .getSnapshot(selection: selection, now: _nowProvider())
+            .copyWith(
+              dataSourceLabel: sourceLabel,
+              lastUpdatedAt: _lastUpdatedAt,
+              scheduleVersion: _boardService.schedule.version.isEmpty
+                  ? _bundledVersion
+                  : _boardService.schedule.version,
+            ),
+      ),
+      report: state.report,
+      community: state.community.copyWith(
+        featuresEnabled: communityFeaturesEnabled,
+      ),
     );
   }
 
