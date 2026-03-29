@@ -83,7 +83,7 @@ class FooterPanel extends StatelessWidget {
         return SafeArea(
           top: false,
           child: FractionallySizedBox(
-            heightFactor: 0.84,
+            heightFactor: 0.65,
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 tokens.panelPadding.left,
@@ -99,6 +99,10 @@ class FooterPanel extends StatelessWidget {
                     title: railFooterContent.appName,
                     subtitle: railFooterContent.tagline,
                   ),
+                  SizedBox(height: tokens.sectionGap),
+                  _FooterSection(section: railFooterContent.sections.first),
+                  SizedBox(height: tokens.sectionGap),
+                  Divider(color: tokens.border, height: 1),
                   SizedBox(height: tokens.sectionGap),
                   _FooterMetaRow(label: 'Version', value: scheduleVersion),
                   SizedBox(height: tokens.compactGap),
@@ -122,19 +126,20 @@ class FooterPanel extends StatelessWidget {
                     linkLabel: 'View details',
                     onTap: () => _openUri(railFooterContent.publisherUrl),
                   ),
-                  SizedBox(height: tokens.sectionGap),
-                  for (
-                    var i = 0;
-                    i < railFooterContent.sections.length;
-                    i++
-                  ) ...[
-                    _FooterSection(section: railFooterContent.sections[i]),
-                    if (i < railFooterContent.sections.length - 1) ...[
-                      SizedBox(height: tokens.sectionGap),
-                      Divider(color: tokens.border, height: 1),
-                      SizedBox(height: tokens.sectionGap),
-                    ],
-                  ],
+                  SizedBox(height: tokens.compactGap),
+                  _FooterMetaRow(
+                    label: 'Privacy',
+                    value: 'Privacy policy',
+                    linkLabel: 'Open link',
+                    onTap: () => _openUri(railFooterContent.privacyUrl),
+                  ),
+                  SizedBox(height: tokens.compactGap),
+                  _FooterMetaRow(
+                    label: 'Terms',
+                    value: 'Terms of service',
+                    linkLabel: 'Open link',
+                    onTap: () => _openUri(railFooterContent.termsUrl),
+                  ),
                   SizedBox(height: tokens.sectionGap),
                   Text(
                     'Always verify final travel decisions against official Bangladesh Railway notices.',

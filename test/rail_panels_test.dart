@@ -123,7 +123,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('footer panel opens drawer with static policy content', (
+  testWidgets('footer panel opens drawer with about content first and policy hyperlinks', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -150,8 +150,17 @@ void main() {
 
     expect(find.text('App details'), findsOneWidget);
     expect(find.text('About'), findsOneWidget);
-    expect(find.text('Privacy Policy'), findsOneWidget);
-    expect(find.text('Terms of Service'), findsOneWidget);
+    expect(
+      find.text(
+        'Narayanganj Commuter helps riders check the Dhaka-Narayanganj commuter schedule quickly, with official timetable data kept as the baseline view.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Privacy: '), findsOneWidget);
+    expect(find.text('Terms: '), findsOneWidget);
+    expect(find.text('Privacy policy'), findsOneWidget);
+    expect(find.text('Terms of service'), findsOneWidget);
+    expect(find.text('Open link'), findsNWidgets(2));
     expect(tester.takeException(), isNull);
   });
 }
