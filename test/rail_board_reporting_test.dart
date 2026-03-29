@@ -1,20 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_ledger_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_device_identity_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_prediction_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_community_overlay_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_rate_limit_policy_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_session_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_overlay_result.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/data_origin.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/delay_status.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/device_identity.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/predicted_stop_time.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/rate_limit_policy.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/report_confidence.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/session_status_snapshot.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/train_session.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/arrival_report_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/prediction_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/device_identity_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/application/models/rail_reporting.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/models/rail_schedule_document_parser.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/schedule_data_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/application/models/rail_reporting.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/selection_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
@@ -24,31 +30,22 @@ import 'support/bundled_schedule_fixture.dart';
 
 void main() {
   final bundledSchedule = loadBundledScheduleFixture();
+
   group('RailBoardBloc arrival reporting', () {
     test('submits one-tap arrival report when session is eligible', () async {
       final reports = FakeArrivalReportRepository();
-      final bloc = RailBoardBloc(
-        boardService: RailBoardService(schedule: bundledSchedule),
-        scheduleDataRepository: _FakeScheduleDataRepository(),
-        selectionRepository: _InMemorySelectionRepository(
-          const RailSelection(
-            direction: 'dhaka_to_narayanganj',
-            boardingStationId: 'dhaka',
-            destinationStationId: 'narayanganj',
-          ),
-        ),
-        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+      final ledger = FakeArrivalReportLedgerRepository();
+      final deviceIdentityRepository = _FixedDeviceIdentityRepository();
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
         arrivalReportRepository: reports,
-        predictionRepository: FakePredictionRepository(),
-        deviceIdentityRepository: FakeDeviceIdentityRepository(),
-        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+        arrivalReportLedgerRepository: ledger,
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: deviceIdentityRepository,
         nowProvider: () => DateTime(2026, 3, 28, 4, 25),
       );
 
-      await _waitForState(
-        bloc,
-        (state) => state.status == RailBoardStatus.ready,
-      );
+      await _waitForState(bloc, (state) => state.status == RailBoardStatus.ready);
       bloc.add(const RailBoardArrivalReportRequested());
 
       final reportState = await _waitForState(
@@ -62,18 +59,27 @@ void main() {
         stationId: 'dhaka',
       );
       expect(stored, isNotEmpty);
-      expect(
-        reportState.reportSubmissionStatus,
-        RailReportSubmissionStatus.success,
-      );
       expect(reportState.report.hasReportedCurrentSession, isTrue);
       expect(reportState.report.isActionEnabled, isFalse);
+      expect(
+        await ledger.hasSubmitted(
+          sessionId: _seedSessions().first.sessionId,
+          stationId: 'dhaka',
+          deviceId: deviceIdentityRepository.identity.deviceId,
+        ),
+        isTrue,
+      );
 
       bloc.add(const RailBoardArrivalReportRequested());
-      await _waitForState(
+      final duplicateState = await _waitForState(
         bloc,
         (state) =>
             state.reportSubmissionStatus == RailReportSubmissionStatus.error,
+      );
+      expect(duplicateState.report.hasReportedCurrentSession, isTrue);
+      expect(
+        duplicateState.reportFeedbackMessage,
+        contains('already reported arrival'),
       );
       final storedAfterRetry = await reports.fetchStopReports(
         sessionId: _seedSessions().first.sessionId,
@@ -84,20 +90,12 @@ void main() {
     });
 
     test('reports rate-limited when local policy blocks submission', () async {
-      final bloc = RailBoardBloc(
-        boardService: RailBoardService(schedule: bundledSchedule),
-        scheduleDataRepository: _FakeScheduleDataRepository(),
-        selectionRepository: _InMemorySelectionRepository(
-          const RailSelection(
-            direction: 'dhaka_to_narayanganj',
-            boardingStationId: 'dhaka',
-            destinationStationId: 'narayanganj',
-          ),
-        ),
-        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
-        predictionRepository: FakePredictionRepository(),
-        deviceIdentityRepository: FakeDeviceIdentityRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
         rateLimitPolicyRepository: FakeRateLimitPolicyRepository(
           seed: const {
             'arrival_report': RateLimitPolicy(
@@ -111,10 +109,7 @@ void main() {
         nowProvider: () => DateTime(2026, 3, 28, 4, 25),
       );
 
-      await _waitForState(
-        bloc,
-        (state) => state.status == RailBoardStatus.ready,
-      );
+      await _waitForState(bloc, (state) => state.status == RailBoardStatus.ready);
       bloc.add(const RailBoardArrivalReportRequested());
 
       final reportState = await _waitForState(
@@ -128,28 +123,16 @@ void main() {
     });
 
     test('fails gracefully when no active report window exists', () async {
-      final bloc = RailBoardBloc(
-        boardService: RailBoardService(schedule: bundledSchedule),
-        scheduleDataRepository: _FakeScheduleDataRepository(),
-        selectionRepository: _InMemorySelectionRepository(
-          const RailSelection(
-            direction: 'dhaka_to_narayanganj',
-            boardingStationId: 'dhaka',
-            destinationStationId: 'narayanganj',
-          ),
-        ),
-        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
-        predictionRepository: FakePredictionRepository(),
-        deviceIdentityRepository: FakeDeviceIdentityRepository(),
-        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
         nowProvider: () => DateTime(2026, 3, 28, 2, 0),
       );
 
-      await _waitForState(
-        bloc,
-        (state) => state.status == RailBoardStatus.ready,
-      );
+      await _waitForState(bloc, (state) => state.status == RailBoardStatus.ready);
       bloc.add(const RailBoardArrivalReportRequested());
 
       final reportState = await _waitForState(
@@ -161,34 +144,22 @@ void main() {
       await bloc.close();
     });
 
-    test('builds ready community insights from fresh reports', () async {
+    test('builds ready community insights from aggregate overlay', () async {
       final session = _seedSessions().first;
-      final bloc = RailBoardBloc(
-        boardService: RailBoardService(schedule: bundledSchedule),
-        scheduleDataRepository: _FakeScheduleDataRepository(),
-        selectionRepository: _InMemorySelectionRepository(
-          const RailSelection(
-            direction: 'dhaka_to_narayanganj',
-            boardingStationId: 'dhaka',
-            destinationStationId: 'narayanganj',
-          ),
-        ),
-        sessionRepository: FakeSessionRepository(seed: [session]),
-        arrivalReportRepository: FakeArrivalReportRepository(
-          seed: [
-            ArrivalReport(
-              reportId: 'r1',
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(
+          seed: {
+            session.sessionId: _overlayResult(
               sessionId: session.sessionId,
-              stationId: 'dhaka',
-              deviceId: 'dev-1',
-              observedArrivalAt: DateTime(2026, 3, 28, 4, 24),
-              submittedAt: DateTime(2026, 3, 28, 4, 24),
+              fetchedAt: DateTime(2026, 3, 28, 4, 25),
+              freshnessSeconds: 30,
             ),
-          ],
+          },
         ),
-        predictionRepository: FakePredictionRepository(),
-        deviceIdentityRepository: FakeDeviceIdentityRepository(),
-        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
         nowProvider: () => DateTime(2026, 3, 28, 4, 25),
       );
 
@@ -202,73 +173,58 @@ void main() {
       await bloc.close();
     });
 
-    test(
-      'does not queue failed reports and retries only on explicit submit',
-      () async {
-        final session = _seedSessions().first;
-        final reports = _FlakyArrivalReportRepository();
-        final bloc = RailBoardBloc(
-          boardService: RailBoardService(schedule: bundledSchedule),
-          scheduleDataRepository: _FakeScheduleDataRepository(),
-          selectionRepository: _InMemorySelectionRepository(
-            const RailSelection(
-              direction: 'dhaka_to_narayanganj',
-              boardingStationId: 'dhaka',
-              destinationStationId: 'narayanganj',
-            ),
-          ),
-          sessionRepository: FakeSessionRepository(seed: [session]),
-          arrivalReportRepository: reports,
-          predictionRepository: FakePredictionRepository(),
-          deviceIdentityRepository: FakeDeviceIdentityRepository(),
-          rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
-          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
-        );
-
-        await _waitForState(
-          bloc,
-          (state) => state.status == RailBoardStatus.ready,
-        );
-        bloc.add(const RailBoardArrivalReportRequested());
-
-        await _waitForState(
-          bloc,
-          (state) =>
-              state.reportSubmissionStatus == RailReportSubmissionStatus.error,
-        );
-        expect(reports.submitted.length, equals(0));
-
-        reports.failSubmission = false;
-        bloc.add(const RailBoardArrivalReportRequested());
-        await _waitForState(
-          bloc,
-          (state) =>
-              state.reportSubmissionStatus ==
-              RailReportSubmissionStatus.success,
-        );
-        expect(reports.submitted.length, equals(1));
-
-        await bloc.close();
-      },
-    );
-
-    test('marks community insights error when repositories fail', () async {
+    test('does not queue failed reports and retries only on explicit submit', () async {
       final session = _seedSessions().first;
-      final bloc = RailBoardBloc(
-        boardService: RailBoardService(schedule: bundledSchedule),
-        scheduleDataRepository: _FakeScheduleDataRepository(),
-        selectionRepository: _InMemorySelectionRepository(
-          const RailSelection(
-            direction: 'dhaka_to_narayanganj',
-            boardingStationId: 'dhaka',
-            destinationStationId: 'narayanganj',
-          ),
+      final reports = _FlakyArrivalReportRepository();
+      final ledger = FakeArrivalReportLedgerRepository();
+      final deviceIdentityRepository = _FixedDeviceIdentityRepository();
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: reports,
+        arrivalReportLedgerRepository: ledger,
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: deviceIdentityRepository,
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+      );
+
+      await _waitForState(bloc, (state) => state.status == RailBoardStatus.ready);
+      bloc.add(const RailBoardArrivalReportRequested());
+
+      await _waitForState(
+        bloc,
+        (state) =>
+            state.reportSubmissionStatus == RailReportSubmissionStatus.error,
+      );
+      expect(reports.submitted.length, equals(0));
+      expect(
+        await ledger.hasSubmitted(
+          sessionId: session.sessionId,
+          stationId: 'dhaka',
+          deviceId: deviceIdentityRepository.identity.deviceId,
         ),
-        sessionRepository: FakeSessionRepository(seed: [session]),
-        arrivalReportRepository: _ThrowingArrivalReportRepository(),
-        predictionRepository: _ThrowingPredictionRepository(),
-        deviceIdentityRepository: FakeDeviceIdentityRepository(),
-        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+        isFalse,
+      );
+
+      reports.failSubmission = false;
+      bloc.add(const RailBoardArrivalReportRequested());
+      await _waitForState(
+        bloc,
+        (state) =>
+            state.reportSubmissionStatus == RailReportSubmissionStatus.success,
+      );
+      expect(reports.submitted.length, equals(1));
+
+      await bloc.close();
+    });
+
+    test('marks community insights error when overlay repository fails', () async {
+      final overlayRepository = FakeCommunityOverlayRepository()..failFetch = true;
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: overlayRepository,
+        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
         nowProvider: () => DateTime(2026, 3, 28, 4, 25),
       );
 
@@ -287,34 +243,22 @@ void main() {
       await bloc.close();
     });
 
-    test('marks community insights as stale when reports are old', () async {
+    test('marks community insights as stale when overlay freshness is old', () async {
       final session = _seedSessions().first;
-      final bloc = RailBoardBloc(
-        boardService: RailBoardService(schedule: bundledSchedule),
-        scheduleDataRepository: _FakeScheduleDataRepository(),
-        selectionRepository: _InMemorySelectionRepository(
-          const RailSelection(
-            direction: 'dhaka_to_narayanganj',
-            boardingStationId: 'dhaka',
-            destinationStationId: 'narayanganj',
-          ),
-        ),
-        sessionRepository: FakeSessionRepository(seed: [session]),
-        arrivalReportRepository: FakeArrivalReportRepository(
-          seed: [
-            ArrivalReport(
-              reportId: 'r2',
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(
+          seed: {
+            session.sessionId: _overlayResult(
               sessionId: session.sessionId,
-              stationId: 'dhaka',
-              deviceId: 'dev-2',
-              observedArrivalAt: DateTime(2026, 3, 28, 4, 0),
-              submittedAt: DateTime(2026, 3, 28, 4, 1),
+              fetchedAt: DateTime(2026, 3, 28, 4, 25),
+              freshnessSeconds: 1200,
             ),
-          ],
+          },
         ),
-        predictionRepository: FakePredictionRepository(),
-        deviceIdentityRepository: FakeDeviceIdentityRepository(),
-        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
         nowProvider: () => DateTime(2026, 3, 28, 4, 25),
       );
 
@@ -327,22 +271,103 @@ void main() {
       await bloc.close();
     });
 
-    test('disables reporting before eligibility window opens', () async {
-      final bloc = RailBoardBloc(
-        boardService: RailBoardService(schedule: bundledSchedule),
-        scheduleDataRepository: _FakeScheduleDataRepository(),
-        selectionRepository: _InMemorySelectionRepository(
-          const RailSelection(
-            direction: 'dhaka_to_narayanganj',
-            boardingStationId: 'dhaka',
-            destinationStationId: 'narayanganj',
+    test('does not refetch community overlay on ticker updates', () async {
+      DateTime now = DateTime(2026, 3, 28, 4, 25);
+      final session = _seedSessions().first;
+      final overlayRepository = FakeCommunityOverlayRepository(
+        seed: {
+          session.sessionId: _overlayResult(
+            sessionId: session.sessionId,
+            fetchedAt: now,
+            freshnessSeconds: 30,
           ),
-        ),
-        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+        },
+      );
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
-        predictionRepository: FakePredictionRepository(),
-        deviceIdentityRepository: FakeDeviceIdentityRepository(),
-        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: overlayRepository,
+        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
+        nowProvider: () => now,
+      );
+
+      await _waitForState(
+        bloc,
+        (state) =>
+            state.communityInsightStatus == RailCommunityInsightStatus.ready,
+      );
+      expect(overlayRepository.fetchCounts[session.sessionId], equals(1));
+
+      now = DateTime(2026, 3, 28, 4, 26);
+      bloc.add(const RailBoardTicked());
+      await _waitForState(
+        bloc,
+        (state) =>
+            state.status == RailBoardStatus.ready &&
+            state.report.actionReason == RailReportActionReason.eligible,
+      );
+      expect(overlayRepository.fetchCounts[session.sessionId], equals(1));
+      await bloc.close();
+    });
+
+    test('persists successful submission ledger across bloc restarts', () async {
+      final session = _seedSessions().first;
+      final ledger = FakeArrivalReportLedgerRepository();
+      final reports = FakeArrivalReportRepository();
+      final deviceIdentityRepository = _FixedDeviceIdentityRepository();
+      final firstBloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: reports,
+        arrivalReportLedgerRepository: ledger,
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: deviceIdentityRepository,
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+      );
+
+      await _waitForState(firstBloc, (state) => state.status == RailBoardStatus.ready);
+      firstBloc.add(const RailBoardArrivalReportRequested());
+      await _waitForState(
+        firstBloc,
+        (state) =>
+            state.reportSubmissionStatus == RailReportSubmissionStatus.success,
+      );
+      await firstBloc.close();
+
+      final secondBloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: reports,
+        arrivalReportLedgerRepository: ledger,
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: deviceIdentityRepository,
+        nowProvider: () => DateTime(2026, 3, 28, 4, 26),
+      );
+
+      final readyState = await _waitForState(
+        secondBloc,
+        (state) =>
+            state.status == RailBoardStatus.ready &&
+            state.report.actionReason == RailReportActionReason.alreadySubmitted,
+      );
+      expect(readyState.report.hasReportedCurrentSession, isTrue);
+      expect(
+        await ledger.hasSubmitted(
+          sessionId: session.sessionId,
+          stationId: 'dhaka',
+          deviceId: deviceIdentityRepository.identity.deviceId,
+        ),
+        isTrue,
+      );
+      await secondBloc.close();
+    });
+
+    test('disables reporting before eligibility window opens', () async {
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
         nowProvider: () => DateTime(2026, 3, 28, 4, 24),
       );
 
@@ -358,21 +383,12 @@ void main() {
     });
 
     test('enables reporting at eligibility window start boundary', () async {
-      final bloc = RailBoardBloc(
-        boardService: RailBoardService(schedule: bundledSchedule),
-        scheduleDataRepository: _FakeScheduleDataRepository(),
-        selectionRepository: _InMemorySelectionRepository(
-          const RailSelection(
-            direction: 'dhaka_to_narayanganj',
-            boardingStationId: 'dhaka',
-            destinationStationId: 'narayanganj',
-          ),
-        ),
-        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
-        predictionRepository: FakePredictionRepository(),
-        deviceIdentityRepository: FakeDeviceIdentityRepository(),
-        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
         nowProvider: () => DateTime(2026, 3, 28, 4, 25),
       );
 
@@ -386,99 +402,34 @@ void main() {
       await bloc.close();
     });
 
-    test(
-      'marks reporting unavailable when matching train session is no longer next',
-      () async {
-        final bloc = RailBoardBloc(
-          boardService: RailBoardService(schedule: bundledSchedule),
-          scheduleDataRepository: _FakeScheduleDataRepository(),
-          selectionRepository: _InMemorySelectionRepository(
-            const RailSelection(
-              direction: 'dhaka_to_narayanganj',
-              boardingStationId: 'dhaka',
-              destinationStationId: 'narayanganj',
-            ),
-          ),
-          sessionRepository: FakeSessionRepository(seed: _seedSessions()),
-          arrivalReportRepository: FakeArrivalReportRepository(),
-          predictionRepository: FakePredictionRepository(),
-          deviceIdentityRepository: FakeDeviceIdentityRepository(),
-          rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
-          nowProvider: () => DateTime(2026, 3, 28, 5, 31),
-        );
+    test('marks reporting unavailable when matching train session is no longer next', () async {
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
+        nowProvider: () => DateTime(2026, 3, 28, 5, 31),
+      );
 
-        final state = await _waitForState(
-          bloc,
-          (state) =>
-              state.status == RailBoardStatus.ready &&
-              state.report.actionReason == RailReportActionReason.noSession,
-        );
-        expect(state.report.isActionEnabled, isFalse);
-        await bloc.close();
-      },
-    );
-
-    test(
-      'allows reporting when remote verification fails but window is eligible',
-      () async {
-        final reports = _FetchFailingArrivalReportRepository();
-        final bloc = RailBoardBloc(
-          boardService: RailBoardService(schedule: bundledSchedule),
-          scheduleDataRepository: _FakeScheduleDataRepository(),
-          selectionRepository: _InMemorySelectionRepository(
-            const RailSelection(
-              direction: 'dhaka_to_narayanganj',
-              boardingStationId: 'dhaka',
-              destinationStationId: 'narayanganj',
-            ),
-          ),
-          sessionRepository: FakeSessionRepository(seed: _seedSessions()),
-          arrivalReportRepository: reports,
-          predictionRepository: FakePredictionRepository(),
-          deviceIdentityRepository: FakeDeviceIdentityRepository(),
-          rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
-          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
-        );
-
-        final eligibleState = await _waitForState(
-          bloc,
-          (state) =>
-              state.status == RailBoardStatus.ready &&
-              state.report.actionReason ==
-                  RailReportActionReason.verificationLimitedEligible,
-        );
-        expect(eligibleState.report.isActionEnabled, isTrue);
-
-        reports.failFetch = false;
-        bloc.add(const RailBoardArrivalReportRequested());
-        final submittedState = await _waitForState(
-          bloc,
-          (state) =>
-              state.reportSubmissionStatus ==
-              RailReportSubmissionStatus.success,
-        );
-        expect(submittedState.report.hasReportedCurrentSession, isTrue);
-        await bloc.close();
-      },
-    );
+      final state = await _waitForState(
+        bloc,
+        (state) =>
+            state.status == RailBoardStatus.ready &&
+            state.report.actionReason == RailReportActionReason.noSession,
+      );
+      expect(state.report.isActionEnabled, isFalse);
+      await bloc.close();
+    });
 
     test('recomputes reporting eligibility on tick transition', () async {
       DateTime now = DateTime(2026, 3, 28, 4, 24);
-      final bloc = RailBoardBloc(
-        boardService: RailBoardService(schedule: bundledSchedule),
-        scheduleDataRepository: _FakeScheduleDataRepository(),
-        selectionRepository: _InMemorySelectionRepository(
-          const RailSelection(
-            direction: 'dhaka_to_narayanganj',
-            boardingStationId: 'dhaka',
-            destinationStationId: 'narayanganj',
-          ),
-        ),
-        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
-        predictionRepository: FakePredictionRepository(),
-        deviceIdentityRepository: FakeDeviceIdentityRepository(),
-        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
         nowProvider: () => now,
       );
 
@@ -500,51 +451,111 @@ void main() {
       await bloc.close();
     });
 
-    test(
-      'skips community reporting and insights when community features are disabled',
-      () async {
-        final reports = FakeArrivalReportRepository();
-        final bloc = RailBoardBloc(
-          boardService: RailBoardService(schedule: bundledSchedule),
-          scheduleDataRepository: _FakeScheduleDataRepository(),
-          selectionRepository: _InMemorySelectionRepository(
-            const RailSelection(
-              direction: 'dhaka_to_narayanganj',
-              boardingStationId: 'dhaka',
-              destinationStationId: 'narayanganj',
-            ),
-          ),
-          sessionRepository: FakeSessionRepository(seed: _seedSessions()),
-          arrivalReportRepository: reports,
-          predictionRepository: FakePredictionRepository(),
-          deviceIdentityRepository: FakeDeviceIdentityRepository(),
-          rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
-          communityFeaturesEnabled: false,
-          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
-        );
+    test('skips community reporting and insights when community features are disabled', () async {
+      final reports = FakeArrivalReportRepository();
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: reports,
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
+        communityFeaturesEnabled: false,
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+      );
 
-        final ready = await _waitForState(
-          bloc,
-          (state) => state.status == RailBoardStatus.ready,
-        );
-        expect(ready.communityFeaturesEnabled, isFalse);
-        expect(ready.communityInsightStatus, RailCommunityInsightStatus.idle);
+      final ready = await _waitForState(
+        bloc,
+        (state) => state.status == RailBoardStatus.ready,
+      );
+      expect(ready.communityFeaturesEnabled, isFalse);
+      expect(ready.communityInsightStatus, RailCommunityInsightStatus.idle);
 
-        bloc.add(const RailBoardArrivalReportRequested());
+      bloc.add(const RailBoardArrivalReportRequested());
 
-        expect(
-          bloc.state.reportSubmissionStatus,
-          RailReportSubmissionStatus.idle,
-        );
-        final stored = await reports.fetchStopReports(
-          sessionId: _seedSessions().first.sessionId,
-          stationId: 'dhaka',
-        );
-        expect(stored, isEmpty);
-        await bloc.close();
-      },
-    );
+      expect(
+        bloc.state.reportSubmissionStatus,
+        RailReportSubmissionStatus.idle,
+      );
+      final stored = await reports.fetchStopReports(
+        sessionId: _seedSessions().first.sessionId,
+        stationId: 'dhaka',
+      );
+      expect(stored, isEmpty);
+      await bloc.close();
+    });
   });
+}
+
+RailBoardBloc _buildBloc({
+  required dynamic bundledSchedule,
+  required ArrivalReportRepository arrivalReportRepository,
+  required FakeArrivalReportLedgerRepository arrivalReportLedgerRepository,
+  required FakeCommunityOverlayRepository communityOverlayRepository,
+  required DeviceIdentityRepository deviceIdentityRepository,
+  FakeRateLimitPolicyRepository? rateLimitPolicyRepository,
+  bool communityFeaturesEnabled = true,
+  required DateTime Function() nowProvider,
+}) {
+  return RailBoardBloc(
+    boardService: RailBoardService(schedule: bundledSchedule),
+    scheduleDataRepository: _FakeScheduleDataRepository(),
+    selectionRepository: _InMemorySelectionRepository(
+      const RailSelection(
+        direction: 'dhaka_to_narayanganj',
+        boardingStationId: 'dhaka',
+        destinationStationId: 'narayanganj',
+      ),
+    ),
+    sessionRepository: FakeSessionRepository(seed: _seedSessions()),
+    arrivalReportRepository: arrivalReportRepository,
+    arrivalReportLedgerRepository: arrivalReportLedgerRepository,
+    communityOverlayRepository: communityOverlayRepository,
+    deviceIdentityRepository: deviceIdentityRepository,
+    rateLimitPolicyRepository:
+        rateLimitPolicyRepository ?? FakeRateLimitPolicyRepository(),
+    communityFeaturesEnabled: communityFeaturesEnabled,
+    nowProvider: nowProvider,
+  );
+}
+
+CommunityOverlayResult _overlayResult({
+  required String sessionId,
+  required DateTime fetchedAt,
+  required int freshnessSeconds,
+}) {
+  return CommunityOverlayResult(
+    sessionStatusSnapshot: SessionStatusSnapshot(
+      sessionId: sessionId,
+      state: SessionLifecycleState.active,
+      delayMinutes: 4,
+      delayStatus: DelayStatus.late,
+      confidence: const ReportConfidence(
+        score: 0.85,
+        sampleSize: 3,
+        freshnessSeconds: 30,
+        agreementScore: 0.8,
+      ),
+      freshnessSeconds: freshnessSeconds,
+      lastObservedAt: fetchedAt.subtract(const Duration(minutes: 1)),
+    ),
+    predictedStopTimes: [
+      PredictedStopTime(
+        sessionId: sessionId,
+        stationId: 'narayanganj',
+        predictedAt: fetchedAt.add(const Duration(minutes: 40)),
+        referenceStationId: 'dhaka',
+        origin: DataOrigin.community,
+        confidence: const ReportConfidence(
+          score: 0.8,
+          sampleSize: 3,
+          freshnessSeconds: 30,
+          agreementScore: 0.75,
+        ),
+      ),
+    ],
+    fetchedAt: fetchedAt,
+    fromCache: false,
+  );
 }
 
 Future<RailBoardState> _waitForState(
@@ -636,50 +647,19 @@ class _FlakyArrivalReportRepository implements ArrivalReportRepository {
   }
 }
 
-class _ThrowingArrivalReportRepository implements ArrivalReportRepository {
-  @override
-  Future<List<ArrivalReport>> fetchStopReports({
-    required String sessionId,
-    required String stationId,
-  }) {
-    throw StateError('failed');
-  }
+class _FixedDeviceIdentityRepository implements DeviceIdentityRepository {
+  _FixedDeviceIdentityRepository()
+    : identity = DeviceIdentity(
+        deviceId: 'device-1',
+        createdAt: DateTime(2026, 3, 28, 4),
+        lastSeenAt: DateTime(2026, 3, 28, 4),
+      );
+
+  final DeviceIdentity identity;
 
   @override
-  Future<void> submitArrivalReport(ArrivalReport report) async {}
-}
-
-class _ThrowingPredictionRepository implements PredictionRepository {
-  @override
-  Future<List<PredictedStopTime>> fetchPredictions({
-    required String sessionId,
-  }) {
-    throw StateError('failed');
-  }
-}
-
-class _FetchFailingArrivalReportRepository implements ArrivalReportRepository {
-  bool failFetch = true;
-  final List<ArrivalReport> _submitted = [];
+  Future<DeviceIdentity> readOrCreateIdentity() async => identity;
 
   @override
-  Future<List<ArrivalReport>> fetchStopReports({
-    required String sessionId,
-    required String stationId,
-  }) async {
-    if (failFetch) {
-      throw StateError('remote_fetch_failed');
-    }
-    return _submitted
-        .where(
-          (report) =>
-              report.sessionId == sessionId && report.stationId == stationId,
-        )
-        .toList(growable: false);
-  }
-
-  @override
-  Future<void> submitArrivalReport(ArrivalReport report) async {
-    _submitted.add(report);
-  }
+  Future<void> touchIdentity(DateTime now) async {}
 }

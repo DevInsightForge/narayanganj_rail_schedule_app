@@ -1,0 +1,14 @@
+abstract class ArrivalReportLedgerRepository {
+  Future<bool> hasSubmitted({
+    required String sessionId,
+    required String stationId,
+    required String deviceId,
+  });
+
+  Future<void> markSubmitted({
+    required String sessionId,
+    required String stationId,
+    required String deviceId,
+    required DateTime submittedAt,
+  });
+}

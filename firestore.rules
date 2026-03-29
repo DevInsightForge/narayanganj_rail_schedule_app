@@ -27,7 +27,7 @@ service cloud.firestore {
 
     function isRecentSubmittedAt(value) {
       return value <= request.time
-        && value >= request.time - duration.value(7, 'd');
+        && value >= request.time - duration.value(2, 'h');
     }
 
     function isValidStationReport() {

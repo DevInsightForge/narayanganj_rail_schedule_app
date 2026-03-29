@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_ledger_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_community_overlay_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_device_identity_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_prediction_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_rate_limit_policy_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_session_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
@@ -27,7 +28,8 @@ void main() {
         selectionRepository: _InMemorySelectionRepository(),
         sessionRepository: FakeSessionRepository(seed: _seedSessions()),
         arrivalReportRepository: FakeArrivalReportRepository(),
-        predictionRepository: FakePredictionRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
         deviceIdentityRepository: FakeDeviceIdentityRepository(),
         rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
       );
@@ -66,7 +68,8 @@ void main() {
         selectionRepository: _InMemorySelectionRepository(),
         sessionRepository: FakeSessionRepository(seed: _seedSessions()),
         arrivalReportRepository: FakeArrivalReportRepository(),
-        predictionRepository: FakePredictionRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
         deviceIdentityRepository: FakeDeviceIdentityRepository(),
         rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
       );

@@ -9,6 +9,7 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
   FirebaseArrivalReportRepository({
     required FirebaseFirestore firestore,
     required String routeId,
+    this.fetchLimit = 10,
     FirestoreCommunityMapper mapper = const FirestoreCommunityMapper(),
   }) : _firestore = firestore,
        _routeId = routeId,
@@ -16,6 +17,7 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
 
   final FirebaseFirestore _firestore;
   final String _routeId;
+  final int fetchLimit;
   final FirestoreCommunityMapper _mapper;
 
   @override
@@ -28,7 +30,7 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
         .where('sessionId', isEqualTo: sessionId)
         .where('stationId', isEqualTo: stationId)
         .orderBy('submittedAt', descending: true)
-        .limit(50)
+        .limit(fetchLimit)
         .get();
 
     return query.docs

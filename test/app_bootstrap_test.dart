@@ -33,7 +33,7 @@ void main() {
 
       final bloc = composition.createRailBoardBloc();
 
-      expect(bloc.communityFeaturesEnabled, isTrue);
+      expect(bloc.communityFeaturesEnabled, isFalse);
       await bloc.close();
     },
   );

@@ -1,6 +1,7 @@
 import '../../../community/domain/entities/arrival_report.dart';
 import '../../../community/domain/entities/device_identity.dart';
 import '../../../community/domain/entities/session_status_snapshot.dart';
+import '../../../community/domain/repositories/arrival_report_ledger_repository.dart';
 import '../../../community/domain/repositories/arrival_report_repository.dart';
 import '../../../community/domain/repositories/device_identity_repository.dart';
 import '../../../community/domain/repositories/rate_limit_policy_repository.dart';
@@ -13,6 +14,7 @@ class RailReportCoordinator {
   RailReportCoordinator({
     required RailSessionResolver sessionResolver,
     required ArrivalReportRepository arrivalReportRepository,
+    required ArrivalReportLedgerRepository arrivalReportLedgerRepository,
     required DeviceIdentityRepository deviceIdentityRepository,
     required RateLimitPolicyRepository rateLimitPolicyRepository,
     this.rateLimitKey = 'arrival_report',
@@ -20,17 +22,20 @@ class RailReportCoordinator {
     this.reportDedupeRetentionMinutes = 10,
   }) : _sessionResolver = sessionResolver,
        _arrivalReportRepository = arrivalReportRepository,
+       _arrivalReportLedgerRepository = arrivalReportLedgerRepository,
        _deviceIdentityRepository = deviceIdentityRepository,
        _rateLimitPolicyRepository = rateLimitPolicyRepository;
 
   final RailSessionResolver _sessionResolver;
   final ArrivalReportRepository _arrivalReportRepository;
+  final ArrivalReportLedgerRepository _arrivalReportLedgerRepository;
   final DeviceIdentityRepository _deviceIdentityRepository;
   final RateLimitPolicyRepository _rateLimitPolicyRepository;
   final String rateLimitKey;
   final int reportDedupeBucketMinutes;
   final int reportDedupeRetentionMinutes;
   final Map<String, DateTime> _recentReportKeys = {};
+  final Set<String> _inFlightSubmissionKeys = <String>{};
 
   Future<RailReportAvailabilityResult> resolveAvailability({
     required RailSelection selection,
@@ -175,7 +180,19 @@ class RailReportCoordinator {
       deviceId: identity.deviceId,
       now: now,
     );
-    if (_isDuplicateReport(dedupeKey: dedupeKey, now: now)) {
+    final submissionKey = _buildSubmissionKey(
+      sessionId: session.sessionId,
+      stationId: selection.boardingStationId,
+      deviceId: identity.deviceId,
+    );
+    final alreadySubmitted = await _arrivalReportLedgerRepository.hasSubmitted(
+      sessionId: session.sessionId,
+      stationId: selection.boardingStationId,
+      deviceId: identity.deviceId,
+    );
+    if (_inFlightSubmissionKeys.contains(submissionKey) ||
+        _isDuplicateReport(dedupeKey: dedupeKey, now: now) ||
+        alreadySubmitted) {
       return const RailReportSubmissionResult(
         outcome: RailReportSubmissionOutcome.success,
         reason: RailReportActionReason.alreadySubmitted,
@@ -191,8 +208,15 @@ class RailReportCoordinator {
       observedArrivalAt: now,
       submittedAt: now,
     );
+    _inFlightSubmissionKeys.add(submissionKey);
     try {
       await _arrivalReportRepository.submitArrivalReport(report);
+      await _arrivalReportLedgerRepository.markSubmitted(
+        sessionId: session.sessionId,
+        stationId: selection.boardingStationId,
+        deviceId: identity.deviceId,
+        submittedAt: now,
+      );
       await _rateLimitPolicyRepository.recordEvent(key: rateLimitKey, now: now);
       _recentReportKeys[dedupeKey] = now;
       return RailReportSubmissionResult(
@@ -208,6 +232,8 @@ class RailReportCoordinator {
         feedbackMessage:
             'Arrival report could not be submitted. Please try again.',
       );
+    } finally {
+      _inFlightSubmissionKeys.remove(submissionKey);
     }
   }
 
@@ -225,11 +251,11 @@ class RailReportCoordinator {
     if (hasRecent) {
       return true;
     }
-    final reports = await _arrivalReportRepository.fetchStopReports(
+    return _arrivalReportLedgerRepository.hasSubmitted(
       sessionId: sessionId,
       stationId: stationId,
+      deviceId: deviceId,
     );
-    return reports.any((report) => report.deviceId == deviceId);
   }
 
   String _buildReportDedupeKey({
@@ -242,6 +268,14 @@ class RailReportCoordinator {
         now.millisecondsSinceEpoch ~/
         Duration(minutes: reportDedupeBucketMinutes).inMilliseconds;
     return '$sessionId:$stationId:$deviceId:$bucket';
+  }
+
+  String _buildSubmissionKey({
+    required String sessionId,
+    required String stationId,
+    required String deviceId,
+  }) {
+    return '$sessionId:$stationId:$deviceId';
   }
 
   bool _isDuplicateReport({required String dedupeKey, required DateTime now}) {

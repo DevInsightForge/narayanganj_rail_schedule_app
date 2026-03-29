@@ -4,8 +4,9 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
 import '../../../community/domain/repositories/arrival_report_repository.dart';
+import '../../../community/domain/repositories/arrival_report_ledger_repository.dart';
+import '../../../community/domain/repositories/community_overlay_repository.dart';
 import '../../../community/domain/repositories/device_identity_repository.dart';
-import '../../../community/domain/repositories/prediction_repository.dart';
 import '../../../community/domain/repositories/rate_limit_policy_repository.dart';
 import '../../../community/domain/repositories/session_repository.dart';
 import '../../../community/domain/services/session_lifecycle_service.dart';
@@ -32,7 +33,8 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     required SelectionRepository selectionRepository,
     required SessionRepository sessionRepository,
     required ArrivalReportRepository arrivalReportRepository,
-    required PredictionRepository predictionRepository,
+    required ArrivalReportLedgerRepository arrivalReportLedgerRepository,
+    required CommunityOverlayRepository communityOverlayRepository,
     required DeviceIdentityRepository deviceIdentityRepository,
     required RateLimitPolicyRepository rateLimitPolicyRepository,
     this.communityFeaturesEnabled = true,
@@ -49,6 +51,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
            routeId: _routeId,
          ),
          arrivalReportRepository: arrivalReportRepository,
+         arrivalReportLedgerRepository: arrivalReportLedgerRepository,
          deviceIdentityRepository: deviceIdentityRepository,
          rateLimitPolicyRepository: rateLimitPolicyRepository,
        ),
@@ -58,9 +61,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
            sessionLifecycleService: const SessionLifecycleService(),
            routeId: _routeId,
          ),
-         arrivalReportRepository: arrivalReportRepository,
-         predictionRepository: predictionRepository,
-         deviceIdentityRepository: deviceIdentityRepository,
+         communityOverlayRepository: communityOverlayRepository,
        ),
        _initialScheduleVersion = boardService.schedule.version,
        _activeSource = ScheduleDataSource.bundled,
@@ -115,12 +116,13 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     RailBoardRetryRequested event,
     Emitter<RailBoardState> emit,
   ) async {
-    await _loadBoard(emit: emit, showLoading: true);
+    await _loadBoard(emit: emit, showLoading: true, forceCommunityRefresh: true);
   }
 
   Future<void> _loadBoard({
     required Emitter<RailBoardState> emit,
     required bool showLoading,
+    bool forceCommunityRefresh = false,
   }) async {
     if (showLoading) {
       emit(state.copyWith(status: RailBoardStatus.loading, clearError: true));
@@ -145,7 +147,11 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
         destinationStationId: storedSelection?.destinationStationId,
       );
 
-      await _persistAndEmit(selection: selection, emit: emit);
+      await _persistAndEmit(
+        selection: selection,
+        emit: emit,
+        forceCommunityRefresh: forceCommunityRefresh,
+      );
 
       final remoteSchedule = await _scheduleDataRepository
           .fetchRemoteSchedule();
@@ -161,7 +167,11 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
         boardingStationId: selection.boardingStationId,
         destinationStationId: selection.destinationStationId,
       );
-      await _persistAndEmit(selection: selection, emit: emit);
+      await _persistAndEmit(
+        selection: selection,
+        emit: emit,
+        forceCommunityRefresh: forceCommunityRefresh,
+      );
     } catch (_) {
       emit(
         state.copyWith(
@@ -175,6 +185,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
   Future<void> _persistAndEmit({
     required RailSelection selection,
     required Emitter<RailBoardState> emit,
+    bool forceCommunityRefresh = false,
   }) async {
     final previousDirection = state.selection.direction;
     final previousTrainNo = state.snapshot.nextService?.trainNo;
@@ -188,8 +199,12 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     final nextTrainNo = state.snapshot.nextService?.trainNo;
     final trainContextChanged =
         previousDirection != nextDirection || previousTrainNo != nextTrainNo;
-    if (trainContextChanged) {
-      await _refreshCommunityInsights(selection: selection, emit: emit);
+    if (trainContextChanged || forceCommunityRefresh) {
+      await _refreshCommunityInsights(
+        selection: selection,
+        emit: emit,
+        forceRefresh: forceCommunityRefresh,
+      );
     }
   }
 
@@ -240,7 +255,6 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     if (!communityFeaturesEnabled) {
       return;
     }
-    await _refreshCommunityInsights(selection: state.selection, emit: emit);
   }
 
   Future<void> _onArrivalReportRequested(
@@ -309,13 +323,18 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     );
 
     if (submission.outcome == RailReportSubmissionOutcome.success) {
-      await _refreshCommunityInsights(selection: state.selection, emit: emit);
+      await _refreshCommunityInsights(
+        selection: state.selection,
+        emit: emit,
+        forceRefresh: true,
+      );
     }
   }
 
   Future<void> _refreshCommunityInsights({
     required RailSelection selection,
     required Emitter<RailBoardState> emit,
+    bool forceRefresh = false,
   }) async {
     emit(
       state.copyWith(
@@ -329,6 +348,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       direction: selection.direction,
       nextService: state.snapshot.nextService,
       now: _nowProvider(),
+      forceRefresh: forceRefresh,
     );
     final mappedStatus = _mapInsightKind(result.kind);
     emit(

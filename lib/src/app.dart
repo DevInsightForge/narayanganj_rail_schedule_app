@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import 'bootstrap/app_composition.dart';
 import 'core/theme/app_theme.dart';
+import 'features/community/domain/repositories/community_overlay_repository.dart';
 import 'features/community/domain/repositories/arrival_report_repository.dart';
 import 'features/community/domain/repositories/device_identity_repository.dart';
 import 'features/community/domain/repositories/prediction_repository.dart';
@@ -26,6 +27,9 @@ class NarayanganjRailScheduleApp extends StatelessWidget {
         ),
         RepositoryProvider<ArrivalReportRepository>.value(
           value: composition.arrivalReportRepository,
+        ),
+        RepositoryProvider<CommunityOverlayRepository>.value(
+          value: composition.communityOverlayRepository,
         ),
         RepositoryProvider<PredictionRepository>.value(
           value: composition.predictionRepository,

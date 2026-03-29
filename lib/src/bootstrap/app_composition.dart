@@ -3,19 +3,25 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../core/firebase/firebase_runtime.dart';
 import '../features/community/data/mappers/rail_schedule_template_mapper.dart';
+import '../features/community/data/repositories/cached/cached_community_overlay_repository.dart';
 import '../features/community/data/repositories/fake/fake_arrival_report_repository.dart';
+import '../features/community/data/repositories/fake/fake_community_overlay_repository.dart';
 import '../features/community/data/repositories/fake/fake_device_identity_repository.dart';
 import '../features/community/data/repositories/fake/fake_prediction_repository.dart';
 import '../features/community/data/repositories/fake/fake_rate_limit_policy_repository.dart';
 import '../features/community/data/repositories/firebase/firebase_arrival_report_repository.dart';
+import '../features/community/data/repositories/firebase/firebase_community_overlay_repository.dart';
 import '../features/community/data/repositories/firebase/firebase_device_identity_repository.dart';
 import '../features/community/data/repositories/firebase/firebase_prediction_repository.dart';
 import '../features/community/data/repositories/local/generated_session_repository.dart';
-import '../features/community/data/repositories/resilient/resilient_arrival_report_repository.dart';
-import '../features/community/data/repositories/resilient/resilient_device_identity_repository.dart';
+import '../features/community/data/repositories/local/shared_preferences_arrival_report_ledger_repository.dart';
+import '../features/community/data/repositories/local/shared_preferences_community_overlay_cache_repository.dart';
+import '../features/community/data/repositories/local/shared_preferences_firebase_identity_state_repository.dart';
 import '../features/community/data/repositories/resilient/resilient_prediction_repository.dart';
 import '../features/community/domain/entities/rate_limit_policy.dart';
+import '../features/community/domain/repositories/arrival_report_ledger_repository.dart';
 import '../features/community/domain/repositories/arrival_report_repository.dart';
+import '../features/community/domain/repositories/community_overlay_repository.dart';
 import '../features/community/domain/repositories/device_identity_repository.dart';
 import '../features/community/domain/repositories/prediction_repository.dart';
 import '../features/community/domain/repositories/rate_limit_policy_repository.dart';
@@ -40,6 +46,11 @@ class AppComposition {
          ),
        ),
        arrivalReportRepository = _buildArrivalReportRepository(firebaseRuntime),
+       arrivalReportLedgerRepository =
+           SharedPreferencesArrivalReportLedgerRepository(),
+       communityOverlayRepository = _buildCommunityOverlayRepository(
+         firebaseRuntime,
+       ),
        predictionRepository = _buildPredictionRepository(firebaseRuntime),
        deviceIdentityRepository = _buildDeviceIdentityRepository(
          firebaseRuntime,
@@ -61,6 +72,8 @@ class AppComposition {
   final SelectionRepository selectionRepository;
   final SessionRepository sessionRepository;
   final ArrivalReportRepository arrivalReportRepository;
+  final ArrivalReportLedgerRepository arrivalReportLedgerRepository;
+  final CommunityOverlayRepository communityOverlayRepository;
   final PredictionRepository predictionRepository;
   final DeviceIdentityRepository deviceIdentityRepository;
   final RateLimitPolicyRepository rateLimitPolicyRepository;
@@ -72,26 +85,23 @@ class AppComposition {
       selectionRepository: selectionRepository,
       sessionRepository: sessionRepository,
       arrivalReportRepository: arrivalReportRepository,
-      predictionRepository: predictionRepository,
+      arrivalReportLedgerRepository: arrivalReportLedgerRepository,
+      communityOverlayRepository: communityOverlayRepository,
       deviceIdentityRepository: deviceIdentityRepository,
       rateLimitPolicyRepository: rateLimitPolicyRepository,
-      communityFeaturesEnabled: firebaseRuntime.enabled,
+      communityFeaturesEnabled: firebaseRuntime.initialized,
     );
   }
 
   static ArrivalReportRepository _buildArrivalReportRepository(
     FirebaseRuntime firebaseRuntime,
   ) {
-    final fallback = FakeArrivalReportRepository();
     if (!firebaseRuntime.initialized) {
-      return fallback;
+      return FakeArrivalReportRepository();
     }
-    return ResilientArrivalReportRepository(
-      primary: FirebaseArrivalReportRepository(
-        firestore: FirebaseFirestore.instance,
-        routeId: 'narayanganj_line',
-      ),
-      fallback: fallback,
+    return FirebaseArrivalReportRepository(
+      firestore: FirebaseFirestore.instance,
+      routeId: 'narayanganj_line',
     );
   }
 
@@ -110,19 +120,30 @@ class AppComposition {
     );
   }
 
+  static CommunityOverlayRepository _buildCommunityOverlayRepository(
+    FirebaseRuntime firebaseRuntime,
+  ) {
+    if (!firebaseRuntime.initialized) {
+      return FakeCommunityOverlayRepository();
+    }
+    return CachedCommunityOverlayRepository(
+      primary: FirebaseCommunityOverlayRepository(
+        firestore: FirebaseFirestore.instance,
+      ),
+      cache: SharedPreferencesCommunityOverlayCacheRepository(),
+    );
+  }
+
   static DeviceIdentityRepository _buildDeviceIdentityRepository(
     FirebaseRuntime firebaseRuntime,
   ) {
-    final fallback = FakeDeviceIdentityRepository();
     if (!firebaseRuntime.initialized) {
-      return fallback;
+      return FakeDeviceIdentityRepository();
     }
-    return ResilientDeviceIdentityRepository(
-      primary: FirebaseDeviceIdentityRepository(
-        auth: FirebaseAuth.instance,
-        firestore: FirebaseFirestore.instance,
-      ),
-      fallback: fallback,
+    return FirebaseDeviceIdentityRepository(
+      auth: FirebaseAuth.instance,
+      firestore: FirebaseFirestore.instance,
+      identityStateRepository: SharedPreferencesFirebaseIdentityStateRepository(),
     );
   }
 }
