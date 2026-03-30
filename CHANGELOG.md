@@ -2,6 +2,10 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v1.0.2
+
+- Enabled Firebase App Check flag.
+
 ## v1.0.1
 
 - Replaced hard-coded privacy and terms drawer content with external hyperlinks.
