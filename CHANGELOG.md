@@ -2,6 +2,15 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v1.1.0
+
+- Reworked community reporting around a single aggregate Firestore document per train session and service day.
+- Made the app own aggregate writes transactionally and read the same aggregate back through the cache layer.
+- Added bounded per-station submission buckets, station-level capacity handling, and local 18-hour ledger pruning.
+- Shortened station reporting windows to 5 minutes before and 15 minutes after the scheduled stop time.
+- Derived downstream predicted stop times locally from aggregate delay state instead of relying on separate prediction data.
+- Updated Firestore rules, repository contracts, tests, and project docs for the aggregate-first reporting flow.
+
 ## v1.0.2
 
 - Enabled Firebase App Check flag.
