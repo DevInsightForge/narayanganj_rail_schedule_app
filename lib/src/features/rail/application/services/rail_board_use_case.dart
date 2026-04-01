@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../community/domain/entities/arrival_report.dart';
+import '../../../community/domain/entities/arrival_report_submission.dart';
+import '../../../community/domain/entities/data_origin.dart';
 import '../../../community/domain/entities/community_overlay_result.dart';
-import '../../../community/domain/entities/firebase_auth_readiness.dart';
+import '../../../community/domain/entities/predicted_stop_time.dart';
 import '../../../community/domain/entities/session_status_snapshot.dart';
 import '../../../community/domain/entities/train_session.dart';
 import '../../../community/domain/repositories/arrival_report_ledger_repository.dart';
@@ -93,7 +95,6 @@ class RailBoardUseCase {
           reason: RailReportActionReason.afterWindow,
         );
       }
-
       final identity = await _deviceIdentityRepository.readOrCreateIdentity(
         attemptId: attemptId,
       );
@@ -122,6 +123,29 @@ class RailBoardUseCase {
         );
         return const RailReportAvailabilityResult(
           reason: RailReportActionReason.verificationLimitedEligible,
+        );
+      }
+
+      try {
+        final submissionCount = await _arrivalReportRepository
+            .fetchStationSubmissionCount(
+              sessionId: session.sessionId,
+              stationId: selection.boardingStationId,
+            );
+        if (submissionCount >= 10) {
+          return const RailReportAvailabilityResult(
+            reason: RailReportActionReason.stationCapacityReached,
+          );
+        }
+      } catch (error, stackTrace) {
+        await _reportNonFatal(
+          error,
+          stackTrace,
+          feature: 'rail_board_use_case',
+          event: 'resolve_availability_station_count',
+          attemptId: attemptId,
+          sessionId: session.sessionId,
+          stationId: selection.boardingStationId,
         );
       }
 
@@ -230,6 +254,7 @@ class RailBoardUseCase {
             sessionId: session.sessionId,
             stationId: selection.boardingStationId,
             deviceId: identity.deviceId,
+            now: now,
           );
         } catch (error, stackTrace) {
           await _reportNonFatal(
@@ -265,7 +290,13 @@ class RailBoardUseCase {
       );
       _inFlightSubmissionKeys.add(submissionKey);
       try {
-        await _arrivalReportRepository.submitArrivalReport(report);
+        await _arrivalReportRepository.submitArrivalReport(
+          ArrivalReportSubmission(
+            report: report,
+            session: session,
+            stationStop: boardingStop,
+          ),
+        );
         _submittedSessionKeys.add(submissionKey);
         _recentReportKeys[dedupeKey] = now;
         try {
@@ -313,6 +344,9 @@ class RailBoardUseCase {
         final failureReason =
             error.code == ArrivalReportRepositoryErrorCode.permissionDenied
             ? RailReportSubmissionFailureReason.permissionDenied
+            : error.code ==
+                  ArrivalReportRepositoryErrorCode.stationCapacityReached
+            ? RailReportSubmissionFailureReason.stationCapacityReached
             : RailReportSubmissionFailureReason.invalidPayload;
         await _reportNonFatal(
           error,
@@ -326,7 +360,11 @@ class RailBoardUseCase {
         );
         return _failureResult(
           failureReason: failureReason,
-          reason: RailReportActionReason.temporarilyUnavailable,
+          reason:
+              failureReason ==
+                  RailReportSubmissionFailureReason.stationCapacityReached
+              ? RailReportActionReason.stationCapacityReached
+              : RailReportActionReason.temporarilyUnavailable,
         );
       } catch (error, stackTrace) {
         final failureReason = _mapSubmissionFailureReason(error);
@@ -404,10 +442,12 @@ class RailBoardUseCase {
             ? RailCommunityInsightKind.stale
             : RailCommunityInsightKind.ready,
         sessionStatusSnapshot: snapshot,
-        predictedStopTimes: overlay.predictedStopTimes,
+        predictedStopTimes: snapshot == null
+            ? overlay.predictedStopTimes
+            : _buildPredictedStopTimes(session: session, snapshot: snapshot),
         message: overlay.fromCache
             ? 'Estimate loaded from local community cache.'
-            : 'Estimate synchronized from remote community snapshots.',
+            : 'Estimate synchronized from the latest community aggregate.',
       );
     } catch (error, stackTrace) {
       await _errorReporter.reportNonFatal(
@@ -450,6 +490,29 @@ class RailBoardUseCase {
     );
   }
 
+  List<PredictedStopTime> _buildPredictedStopTimes({
+    required TrainSession session,
+    required SessionStatusSnapshot snapshot,
+  }) {
+    if (session.stops.isEmpty) {
+      return const <PredictedStopTime>[];
+    }
+    return session.stops
+        .map(
+          (stop) => PredictedStopTime(
+            sessionId: session.sessionId,
+            stationId: stop.stationId,
+            predictedAt: stop.scheduledAt.add(
+              Duration(minutes: snapshot.delayMinutes),
+            ),
+            referenceStationId: session.stops.first.stationId,
+            origin: DataOrigin.inferred,
+            confidence: snapshot.confidence,
+          ),
+        )
+        .toList(growable: false);
+  }
+
   RailReportSubmissionResult? _validateSubmission({
     required RailSelection selection,
     required RailServiceSnapshot? nextService,
@@ -487,6 +550,8 @@ class RailBoardUseCase {
         'Arrival report could not be submitted. Please check the selected station and try again.',
       RailReportSubmissionFailureReason.permissionDenied =>
         'You do not have permission to submit this arrival report.',
+      RailReportSubmissionFailureReason.stationCapacityReached =>
+        'Arrival reporting is full for this station on this train right now.',
     };
   }
 
@@ -572,6 +637,7 @@ class RailBoardUseCase {
       sessionId: sessionId,
       stationId: stationId,
       deviceId: deviceId,
+      now: now,
     );
   }
 

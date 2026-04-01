@@ -277,7 +277,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
         state.copyWith(
           report: state.report.copyWith(
             status: RailReportSubmissionStatus.error,
-            feedbackMessage: 'Reporting is not available for this train yet.',
+            feedbackMessage: _blockedReportMessage(state.report.actionReason),
           ),
         ),
       );
@@ -481,6 +481,14 @@ class RailBoardCubit extends Cubit<RailBoardState> {
       hasReportedCurrentSession:
           reason == RailReportActionReason.alreadySubmitted,
     );
+  }
+
+  String _blockedReportMessage(RailReportActionReason reason) {
+    return switch (reason) {
+      RailReportActionReason.stationCapacityReached =>
+        'Arrival reporting is full for this station on this train right now.',
+      _ => 'Reporting is not available for this train yet.',
+    };
   }
 
   RailCommunityInsightStatus _mapInsightKind(RailCommunityInsightKind kind) {

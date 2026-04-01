@@ -1,4 +1,5 @@
 import '../../../domain/entities/arrival_report.dart';
+import '../../../domain/entities/arrival_report_submission.dart';
 import '../../../domain/repositories/arrival_report_repository.dart';
 
 class NoOpArrivalReportRepository implements ArrivalReportRepository {
@@ -13,5 +14,13 @@ class NoOpArrivalReportRepository implements ArrivalReportRepository {
   }
 
   @override
-  Future<void> submitArrivalReport(ArrivalReport report) async {}
+  Future<int> fetchStationSubmissionCount({
+    required String sessionId,
+    required String stationId,
+  }) async {
+    return 0;
+  }
+
+  @override
+  Future<void> submitArrivalReport(ArrivalReportSubmission submission) async {}
 }

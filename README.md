@@ -14,7 +14,7 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 - Schedule loading is offline-first with bundled JSON as baseline, cached restoration, and Firebase Remote Config as a silent post-render update path.
 - Rail UI is compact, monochrome, and optimized for phone-first usage.
 - Anonymous Firebase-backed arrival reporting remains optional and secondary to the published schedule.
-- Community delay insight, freshness, and downstream prediction remain isolated from the official schedule baseline.
+- Community delay insight, freshness, and downstream prediction are derived from a single session aggregate document and remain isolated from the official schedule baseline.
 - Footer metadata, privacy policy, and terms now live in an in-app drawer with static app-owned content.
 
 ## Core Features
@@ -34,7 +34,10 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 - Firebase Anonymous Auth, Firestore, and App Check are optional at runtime and can be disabled through env configuration.
 - Crashlytics error reporting is optional at runtime and can be enabled separately from the core Firebase data path.
 - Community features are enabled only after Firebase initializes successfully and degrade safely when it does not.
-- Community overlay reads are one-shot and cached locally for 5 minutes per session to keep Firestore usage predictable on Spark.
+- Community overlay reads and arrival-report writes are centered on `session_status_snapshots/{sessionId}`, which acts as the canonical aggregate document for a train session/day.
+- The client updates that document transactionally and reads it through a cache-first overlay layer to keep Firestore usage predictable on Spark.
+- The aggregate document stores bounded per-station buckets, session-level delay/confidence fields, and no separate raw Firestore report log.
+- Cached aggregate overlays are served when fresh and reused as stale fallback when Firestore is unavailable or temporarily empty.
 
 ## Local Setup
 
@@ -78,16 +81,16 @@ FIREBASE_APPCHECK_WEB_KEY=
 
 - Firestore config is versioned in [firebase.json](firebase.json), [firestore.rules](firestore.rules), and [firestore.indexes.json](firestore.indexes.json).
 - Train sessions are generated dynamically from bundled schedule templates using deterministic session IDs.
-- `station_reports` writes require Firebase Anonymous Auth and enforce `reporterUid == request.auth.uid`.
-- Arrival report submission is treated as successful only after the Firestore write completes.
-- `session_status_snapshots/{sessionId}` is the primary read path for optional community overlay data.
-- `predicted_stops` is now treated as legacy/administrative Firestore structure and is not read by the app in normal flows.
+- `session_status_snapshots/{sessionId}` is the canonical aggregate document for a train session/day.
+- Arrival report submission updates that aggregate document transactionally after Firebase Anonymous Auth is ready.
+- Repeated reports from the same device for the same session/station are bounded by a persisted local ledger and do not expand the aggregate beyond one bucket per station.
+- The client derives predicted stop times from the aggregate delay and the current session schedule.
 - Arrival reporting UI stays hidden until anonymous auth readiness resolves, while community overlay insight can still render independently.
 
 ## Firebase Spark Plan Considerations
 
 - Firestore is used only for optional community-driven signals:
-  - anonymous arrival report writes into `station_reports`
+  - transactional updates to `session_status_snapshots/{sessionId}`
   - aggregate session overlay reads from `session_status_snapshots/{sessionId}`
 - Spark free-tier limits to design around:
   - `50,000` document reads per day
@@ -98,17 +101,16 @@ FIREBASE_APPCHECK_WEB_KEY=
 - The app does not rely on Firestore TTL, PITR, backups, restore, or clone. Those are not assumed available for this app's operating model.
 - Retention strategy is Spark-safe:
   - Firestore is treated as a short-horizon community signal store, not long-term truth
-  - the client only reads narrow session overlay docs and caches them locally for 5 minutes
-  - report submission uses client-side cooldown, dedupe, and persisted submission ledger to avoid read-before-write verification
-  - old `station_reports` data should be cleaned up manually or administratively when needed
+  - the client only reads and writes one narrow session aggregate doc and caches it locally for 5 minutes
+  - report submission uses client-side cooldown, dedupe, and a persisted submission ledger to avoid read-before-write verification
 - Recommended operational guidance:
   - keep `session_status_snapshots/{sessionId}` compact and aggregate-oriented
   - avoid realtime listeners for community overlay data
-  - avoid broad `station_reports` scans and per-stop polling
+  - avoid broad historical scans and per-stop polling
   - prefer schedule-only mode if Firebase is misconfigured or degraded
 - Risky patterns to avoid:
   - querying many stops individually for the same train session
-  - reading `predicted_stops` subcollections on every refresh
+  - depending on separate predicted-stop subcollections
   - depending on Firestore cleanup features that require Blaze billing
 - The app remains fully usable with Firebase disabled or degraded because the official bundled/cached timetable stays offline-first.
 

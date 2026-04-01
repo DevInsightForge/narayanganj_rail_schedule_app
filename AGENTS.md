@@ -4,6 +4,7 @@
 - Build production-ready, maintainable Flutter code for Narayanganj Commuter.
 - Preserve the schedule-first baseline while adding Firebase-backed community status features.
 - Keep behavior deterministic, testable, and resilient under degraded connectivity.
+- Keep the community layer aggregate-first: one Firestore document per train session/day is the source of truth for community delay state.
 
 ## Architecture Rules
 - No spaghetti code.
@@ -37,7 +38,7 @@
 - Keep state transitions explicit and testable.
 - Separate domain/application state from transient widget state.
 - Model loading, success, empty, stale, error, and degraded states intentionally.
-- Submission flows must model success, failure, cooldown/rate-limit, and offline-queue outcomes.
+- Submission flows must model success, failure, cooldown/rate-limit, dedupe, and degraded Firebase outcomes.
 
 ## Firebase and Data Rules
 - Use Firebase client SDK only.
@@ -48,6 +49,11 @@
 - Keep Firestore model and writes security-rules-friendly.
 - Keep repository interfaces clean for future backend migration.
 - Keep offline/degraded operation functional with local fallback behavior.
+- Use `session_status_snapshots/{sessionId}` as the only Firestore-backed community session record in normal app flows.
+- Do not introduce `station_reports`, chat collections, prediction collections, or other parallel community truth sources.
+- Keep aggregate documents bounded with per-station buckets and session-level derived fields.
+- Derive predicted stop times locally from the aggregate delay plus the active schedule.
+- Keep overlay reads cache-first and stale-safe.
 
 ## Scope Rules
 - Chat is out of scope for active milestones.
@@ -59,12 +65,14 @@
 - Keep `.github/workflows/publish.yml` and `.env.example` synchronized with all environment variables consumed by the app.
 - Document removals and migration tradeoffs in the Decision Log.
 - Prefer incremental, reviewable changes.
+- When architecture changes, update docs for source of truth, degraded behavior, and Firestore operational assumptions in the same change.
 
 ## Definition of Done
 - Code, tests, and docs are complete.
 - AGENTS.md and README.md stay current.
 - No feature is done without critical state handling and tests.
 - Schedule baseline remains useful offline when Firebase is unavailable.
+- Community features are not done unless aggregate write/read behavior, cache fallback, and session-date scoping are covered by tests.
 
 ## Commit Guidance
 - Format commits as: `scope: what did the changed was for`.

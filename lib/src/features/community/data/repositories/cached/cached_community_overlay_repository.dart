@@ -26,8 +26,8 @@ class CachedCommunityOverlayRepository implements CommunityOverlayRepository {
     bool forceRefresh = false,
   }) async {
     final now = _nowProvider();
+    final cached = await _cache.read(sessionId: sessionId);
     if (!forceRefresh) {
-      final cached = await _cache.read(sessionId: sessionId);
       if (cached != null && now.difference(cached.fetchedAt) <= _cacheTtl) {
         return cached.copyWith(fromCache: true);
       }
@@ -38,12 +38,15 @@ class CachedCommunityOverlayRepository implements CommunityOverlayRepository {
       return existing;
     }
 
-    final future = _fetchAndCache(sessionId: sessionId, forceRefresh: true);
+    final future = _fetchAndCache(
+      sessionId: sessionId,
+      cached: cached,
+      forceRefresh: true,
+    );
     _inFlight[sessionId] = future;
     try {
       return await future;
     } catch (_) {
-      final cached = await _cache.read(sessionId: sessionId);
       if (cached != null) {
         return cached.copyWith(fromCache: true);
       }
@@ -55,14 +58,26 @@ class CachedCommunityOverlayRepository implements CommunityOverlayRepository {
 
   Future<CommunityOverlayResult> _fetchAndCache({
     required String sessionId,
+    required CommunityOverlayResult? cached,
     required bool forceRefresh,
   }) async {
     final remote = await _primary.fetchSessionOverlay(
       sessionId: sessionId,
       forceRefresh: forceRefresh,
     );
+    if (_isEmpty(remote)) {
+      if (cached != null) {
+        return cached.copyWith(fromCache: true);
+      }
+      return remote.copyWith(fromCache: false);
+    }
     final normalized = remote.copyWith(fromCache: false);
     await _cache.write(sessionId: sessionId, overlay: normalized);
     return normalized;
+  }
+
+  bool _isEmpty(CommunityOverlayResult overlay) {
+    return overlay.sessionStatusSnapshot == null &&
+        overlay.predictedStopTimes.isEmpty;
   }
 }

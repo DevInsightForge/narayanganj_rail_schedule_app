@@ -3,6 +3,7 @@ abstract class ArrivalReportLedgerRepository {
     required String sessionId,
     required String stationId,
     required String deviceId,
+    DateTime? now,
   });
 
   Future<void> markSubmitted({

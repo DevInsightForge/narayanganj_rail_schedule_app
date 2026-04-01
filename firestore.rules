@@ -1,18 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function reportKeys() {
-      return [
-        'reportId',
-        'sessionId',
-        'routeId',
-        'stationId',
-        'reporterUid',
-        'observedArrivalAt',
-        'submittedAt'
-      ];
-    }
-
     function isSignedIn() {
       return request.auth != null;
     }
@@ -21,38 +9,133 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly(keys);
     }
 
-    function isRecentSubmittedAt(value) {
-      return value <= request.time
-        && value >= request.time - duration.value(2, 'h');
+    function isValidAggregateConfidence() {
+      return request.resource.data.confidence is map
+        && request.resource.data.confidence.keys().hasOnly([
+          'score',
+          'sampleSize',
+          'freshnessSeconds',
+          'agreementScore'
+        ])
+        && request.resource.data.confidence.score is number
+        && request.resource.data.confidence.sampleSize is number
+        && request.resource.data.confidence.freshnessSeconds is number
+        && request.resource.data.confidence.agreementScore is number;
     }
 
-    function isValidStationReport() {
-      return hasAllowedKeys(reportKeys())
-        && request.resource.data.reportId is string
+    function isValidStationBucket(bucket) {
+      return bucket is map
+        && bucket.keys().hasOnly([
+          'stationId',
+          'stationName',
+          'sequence',
+          'scheduledAt',
+          'firstObservedAt',
+          'lastObservedAt',
+          'firstSubmittedAt',
+          'lastSubmittedAt',
+          'latestReportId',
+          'latestDeviceId',
+          'submissionCount',
+          'delayMinutes'
+        ])
+        && bucket.stationId is string
+        && bucket.stationName is string
+        && bucket.sequence is number
+        && bucket.scheduledAt is timestamp
+        && bucket.firstObservedAt is timestamp
+        && bucket.lastObservedAt is timestamp
+        && bucket.firstSubmittedAt is timestamp
+        && bucket.lastSubmittedAt is timestamp
+        && bucket.latestReportId is string
+        && bucket.latestDeviceId is string
+        && bucket.submissionCount is number
+        && bucket.submissionCount >= 1
+        && bucket.submissionCount <= 10
+        && bucket.delayMinutes is number;
+    }
+
+    function isValidSessionAggregate() {
+      return hasAllowedKeys([
+          'sessionId',
+          'routeId',
+          'directionId',
+          'trainNo',
+          'serviceDate',
+          'updatedAt',
+          'lastObservedAt',
+          'delayMinutes',
+          'delayStatus',
+          'confidence',
+          'freshnessSeconds',
+          'reportCount',
+          'stationCount',
+          'stationBuckets'
+        ])
         && request.resource.data.sessionId is string
         && request.resource.data.routeId is string
-        && request.resource.data.stationId is string
-        && request.resource.data.reporterUid == request.auth.uid
-        && request.resource.data.observedArrivalAt is timestamp
-        && request.resource.data.submittedAt is timestamp
-        && isRecentSubmittedAt(request.resource.data.submittedAt);
+        && request.resource.data.directionId is string
+        && request.resource.data.trainNo is number
+        && request.resource.data.serviceDate is string
+        && request.resource.data.updatedAt is timestamp
+        && (
+          request.resource.data.lastObservedAt == null ||
+          request.resource.data.lastObservedAt is timestamp
+        )
+        && request.resource.data.delayMinutes is number
+        && request.resource.data.delayStatus is string
+        && isValidAggregateConfidence()
+        && request.resource.data.freshnessSeconds is number
+        && request.resource.data.reportCount is number
+        && request.resource.data.stationCount is number
+        && request.resource.data.stationBuckets is map
+        && request.resource.data.stationBuckets.values().all(bucket, isValidStationBucket(bucket));
     }
 
-    match /station_reports/{reportId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidStationReport();
-      allow update, delete: if false;
+    function isValidSessionAggregateCreate() {
+      return isValidSessionAggregate()
+        && request.resource.data.reportCount == 1
+        && request.resource.data.stationCount == 1
+        && request.resource.data.stationBuckets.size() == 1;
+    }
+
+    function isValidSessionAggregateUpdate() {
+      let changedStations = request.resource.data.stationBuckets
+        .diff(resource.data.stationBuckets)
+        .affectedKeys();
+      let stationId = changedStations[0];
+      let previousBucket = resource.data.stationBuckets[stationId];
+      let nextBucket = request.resource.data.stationBuckets[stationId];
+
+      return isValidSessionAggregate()
+        && request.resource.data.sessionId == resource.data.sessionId
+        && request.resource.data.routeId == resource.data.routeId
+        && request.resource.data.directionId == resource.data.directionId
+        && request.resource.data.trainNo == resource.data.trainNo
+        && request.resource.data.serviceDate == resource.data.serviceDate
+        && changedStations.size() == 1
+        && request.resource.data.reportCount == resource.data.reportCount + 1
+        && (
+          previousBucket == null
+            ? request.resource.data.stationCount == resource.data.stationCount + 1
+            : request.resource.data.stationCount == resource.data.stationCount
+        )
+        && (
+          previousBucket == null
+            ? nextBucket.submissionCount == 1
+            : nextBucket.submissionCount == previousBucket.submissionCount + 1
+        );
     }
 
     match /session_status_snapshots/{sessionId} {
       allow read: if true;
-      allow write: if false;
-
-      match /predicted_stops/{stationId} {
-        allow read: if true;
-        allow write: if false;
-      }
+      allow create: if isSignedIn()
+        && request.resource.data.sessionId == sessionId
+        && isValidSessionAggregateCreate();
+      allow update: if isSignedIn()
+        && request.resource.data.sessionId == sessionId
+        && isValidSessionAggregateUpdate();
+      allow delete: if false;
     }
-
   }
 }

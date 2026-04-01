@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_ledger_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_community_overlay_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_device_identity_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_session_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report_submission.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_overlay_result.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/data_origin.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/delay_status.dart';
@@ -505,6 +505,112 @@ void main() {
       },
     );
 
+    test('disables reporting when fetched station capacity is full', () async {
+      final reports = FakeArrivalReportRepository();
+      final session = _seedSessions().first;
+      for (var i = 0; i < 10; i++) {
+        await reports.submitArrivalReport(
+          ArrivalReportSubmission(
+            report: ArrivalReport(
+              reportId: 'r-$i',
+              sessionId: session.sessionId,
+              stationId: 'dhaka',
+              deviceId: 'dev-$i',
+              observedArrivalAt: DateTime(2026, 3, 28, 4, 30),
+              submittedAt: DateTime(2026, 3, 28, 4, 30, i),
+            ),
+            session: session,
+            stationStop: session.stops.first,
+          ),
+        );
+      }
+
+      final cubit = _buildCubit(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: reports,
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+      );
+
+      final state = await _waitForState(
+        cubit,
+        (state) =>
+            state.status == RailBoardStatus.ready &&
+            state.report.actionReason ==
+                RailReportActionReason.stationCapacityReached,
+      );
+      expect(state.report.submitEnabled, isFalse);
+
+      await cubit.submitArrivalReport();
+
+      final blockedState = await _waitForState(
+        cubit,
+        (state) =>
+            state.reportSubmissionStatus == RailReportSubmissionStatus.error,
+      );
+      expect(
+        blockedState.reportFeedbackMessage,
+        contains('full for this station'),
+      );
+      await cubit.close();
+    });
+
+    test(
+      'keeps already-submitted state ahead of station-capacity state',
+      () async {
+        final reports = FakeArrivalReportRepository();
+        final ledger = FakeArrivalReportLedgerRepository();
+        final deviceIdentityRepository = _FixedDeviceIdentityRepository();
+        final session = _seedSessions().first;
+
+        await ledger.markSubmitted(
+          sessionId: session.sessionId,
+          stationId: 'dhaka',
+          deviceId: deviceIdentityRepository.identity.deviceId,
+          submittedAt: DateTime(2026, 3, 28, 4, 25),
+        );
+
+        for (var i = 0; i < 10; i++) {
+          await reports.submitArrivalReport(
+            ArrivalReportSubmission(
+              report: ArrivalReport(
+                reportId: 'r-$i',
+                sessionId: session.sessionId,
+                stationId: 'dhaka',
+                deviceId: 'dev-$i',
+                observedArrivalAt: DateTime(2026, 3, 28, 4, 30),
+                submittedAt: DateTime(2026, 3, 28, 4, 30, i),
+              ),
+              session: session,
+              stationStop: session.stops.first,
+            ),
+          );
+        }
+
+        final cubit = _buildCubit(
+          bundledSchedule: bundledSchedule,
+          arrivalReportRepository: reports,
+          arrivalReportLedgerRepository: ledger,
+          communityOverlayRepository: FakeCommunityOverlayRepository(),
+          deviceIdentityRepository: deviceIdentityRepository,
+          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+        );
+
+        final state = await _waitForState(
+          cubit,
+          (state) =>
+              state.status == RailBoardStatus.ready &&
+              state.report.actionReason ==
+                  RailReportActionReason.alreadySubmitted,
+        );
+        expect(state.report.hasReportedCurrentSession, isTrue);
+        expect(state.report.submitEnabled, isFalse);
+        await cubit.close();
+      },
+    );
+
     test('recomputes reporting eligibility on tick transition', () async {
       DateTime now = DateTime(2026, 3, 28, 4, 24);
       final cubit = _buildCubit(
@@ -724,11 +830,24 @@ class _FlakyArrivalReportRepository implements ArrivalReportRepository {
   }
 
   @override
-  Future<void> submitArrivalReport(ArrivalReport report) async {
+  Future<int> fetchStationSubmissionCount({
+    required String sessionId,
+    required String stationId,
+  }) async {
+    return submitted
+        .where(
+          (report) =>
+              report.sessionId == sessionId && report.stationId == stationId,
+        )
+        .length;
+  }
+
+  @override
+  Future<void> submitArrivalReport(ArrivalReportSubmission submission) async {
     if (failSubmission) {
       throw StateError('offline');
     }
-    submitted.add(report);
+    submitted.add(submission.report);
   }
 }
 

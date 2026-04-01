@@ -59,10 +59,79 @@ void main() {
 
     expect(remote.fetchCount, equals(2));
   });
+
+  test('falls back to the last cached overlay when refresh fails', () async {
+    final remote = _FakeOverlayRemoteRepository();
+    final cache = _InMemoryOverlayCacheRepository();
+    DateTime now = DateTime(2026, 3, 30, 9, 0);
+    final repository = CachedCommunityOverlayRepository(
+      primary: remote,
+      cache: cache,
+      nowProvider: () => now,
+    );
+
+    await repository.fetchSessionOverlay(sessionId: 's1');
+    remote.shouldThrow = true;
+    now = now.add(const Duration(minutes: 6));
+
+    final overlay = await repository.fetchSessionOverlay(sessionId: 's1');
+
+    expect(remote.fetchCount, equals(2));
+    expect(overlay.fromCache, isTrue);
+    expect(overlay.sessionStatusSnapshot, isNotNull);
+  });
+
+  test('returns cached overlay when remote aggregate is missing', () async {
+    final remote = _FakeOverlayRemoteRepository();
+    final cache = _InMemoryOverlayCacheRepository();
+    DateTime now = DateTime(2026, 3, 30, 9, 0);
+    final repository = CachedCommunityOverlayRepository(
+      primary: remote,
+      cache: cache,
+      nowProvider: () => now,
+    );
+
+    await repository.fetchSessionOverlay(sessionId: 's1');
+    remote.nextResult = CommunityOverlayResult(
+      fetchedAt: DateTime(2026, 3, 30, 9, 6),
+      fromCache: false,
+    );
+    now = now.add(const Duration(minutes: 6));
+
+    final overlay = await repository.fetchSessionOverlay(sessionId: 's1');
+
+    expect(overlay.fromCache, isTrue);
+    expect(overlay.sessionStatusSnapshot, isNotNull);
+  });
+
+  test('returns empty only when no cached overlay exists', () async {
+    final remote = _FakeOverlayRemoteRepository(
+      nextResult: CommunityOverlayResult(
+        fetchedAt: DateTime(2026, 3, 30, 9, 0),
+        fromCache: false,
+      ),
+    );
+    final cache = _InMemoryOverlayCacheRepository();
+    final repository = CachedCommunityOverlayRepository(
+      primary: remote,
+      cache: cache,
+      nowProvider: () => DateTime(2026, 3, 30, 9, 0),
+    );
+
+    final overlay = await repository.fetchSessionOverlay(sessionId: 's1');
+
+    expect(overlay.fromCache, isFalse);
+    expect(overlay.sessionStatusSnapshot, isNull);
+    expect(overlay.predictedStopTimes, isEmpty);
+  });
 }
 
 class _FakeOverlayRemoteRepository implements CommunityOverlayRepository {
+  _FakeOverlayRemoteRepository({this.nextResult});
+
   int fetchCount = 0;
+  bool shouldThrow = false;
+  CommunityOverlayResult? nextResult;
 
   @override
   Future<CommunityOverlayResult> fetchSessionOverlay({
@@ -70,6 +139,13 @@ class _FakeOverlayRemoteRepository implements CommunityOverlayRepository {
     bool forceRefresh = false,
   }) async {
     fetchCount += 1;
+    if (shouldThrow) {
+      throw StateError('offline');
+    }
+    final result = nextResult;
+    if (result != null) {
+      return result;
+    }
     return CommunityOverlayResult(
       sessionStatusSnapshot: SessionStatusSnapshot(
         sessionId: sessionId,

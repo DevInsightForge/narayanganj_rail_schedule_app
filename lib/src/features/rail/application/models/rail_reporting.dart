@@ -3,6 +3,7 @@ enum RailReportActionReason {
   beforeWindow,
   afterWindow,
   alreadySubmitted,
+  stationCapacityReached,
   temporarilyUnavailable,
   eligible,
   verificationLimitedEligible,
@@ -14,6 +15,7 @@ enum RailReportSubmissionFailureReason {
   authNotReady,
   invalidPayload,
   permissionDenied,
+  stationCapacityReached,
 }
 
 enum RailReportVisibility { hidden, visible }

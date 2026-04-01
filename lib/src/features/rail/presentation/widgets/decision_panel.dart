@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../community/domain/entities/delay_status.dart';
 import '../../../community/domain/entities/session_status_snapshot.dart';
-import '../../application/models/rail_reporting.dart';
 import '../../domain/services/rail_board_service.dart';
 import '../bloc/rail_board_cubit.dart';
 import 'panel_palette.dart';
