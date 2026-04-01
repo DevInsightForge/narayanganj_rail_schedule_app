@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_ledger_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_community_overlay_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_rate_limit_policy_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_device_identity_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_session_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_overlay_result.dart';
@@ -13,7 +13,6 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/entities
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/device_identity.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/firebase_auth_readiness.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/predicted_stop_time.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/rate_limit_policy.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/report_confidence.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/session_status_snapshot.dart';
@@ -21,25 +20,25 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/entities
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/arrival_report_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/device_identity_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/application/models/rail_reporting.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/models/rail_schedule_document_parser.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/schedule_data_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/application/models/rail_reporting.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/selection_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_bloc.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_cubit.dart';
 
 import 'support/bundled_schedule_fixture.dart';
 
 void main() {
   final bundledSchedule = loadBundledScheduleFixture();
 
-  group('RailBoardBloc arrival reporting', () {
+  group('RailBoardCubit arrival reporting', () {
     test('submits one-tap arrival report when session is eligible', () async {
       final reports = FakeArrivalReportRepository();
       final ledger = FakeArrivalReportLedgerRepository();
       final deviceIdentityRepository = _FixedDeviceIdentityRepository();
-      final bloc = _buildBloc(
+      final cubit = _buildCubit(
         bundledSchedule: bundledSchedule,
         arrivalReportRepository: reports,
         arrivalReportLedgerRepository: ledger,
@@ -49,24 +48,26 @@ void main() {
       );
 
       await _waitForState(
-        bloc,
+        cubit,
         (state) => state.status == RailBoardStatus.ready,
       );
-      bloc.add(const RailBoardArrivalReportRequested());
+
+      await cubit.submitArrivalReport();
 
       final reportState = await _waitForState(
-        bloc,
+        cubit,
         (state) =>
             state.reportSubmissionStatus == RailReportSubmissionStatus.success,
       );
       expect(reportState.reportFeedbackMessage, contains('Arrival reported'));
+      expect(reportState.report.hasReportedCurrentSession, isTrue);
+      expect(reportState.report.submitEnabled, isFalse);
+
       final stored = await reports.fetchStopReports(
         sessionId: _seedSessions().first.sessionId,
         stationId: 'dhaka',
       );
       expect(stored, isNotEmpty);
-      expect(reportState.report.hasReportedCurrentSession, isTrue);
-      expect(reportState.report.submitEnabled, isFalse);
       expect(
         await ledger.hasSubmitted(
           sessionId: _seedSessions().first.sessionId,
@@ -76,23 +77,26 @@ void main() {
         isTrue,
       );
 
-      bloc.add(const RailBoardArrivalReportRequested());
+      await cubit.submitArrivalReport();
       final duplicateState = await _waitForState(
-        bloc,
+        cubit,
         (state) =>
             state.reportSubmissionStatus == RailReportSubmissionStatus.error,
       );
-      expect(duplicateState.report.hasReportedCurrentSession, isTrue);
       expect(
         duplicateState.reportFeedbackMessage,
-        contains('already reported arrival'),
+        contains('Reporting is not available for this train yet.'),
       );
-      final storedAfterRetry = await reports.fetchStopReports(
-        sessionId: _seedSessions().first.sessionId,
-        stationId: 'dhaka',
+      expect(duplicateState.report.hasReportedCurrentSession, isTrue);
+      expect(
+        await reports.fetchStopReports(
+          sessionId: _seedSessions().first.sessionId,
+          stationId: 'dhaka',
+        ),
+        hasLength(1),
       );
-      expect(storedAfterRetry.length, equals(1));
-      await bloc.close();
+
+      await cubit.close();
     });
 
     test('hides reporting action while auth readiness is resolving', () async {
@@ -105,7 +109,7 @@ void main() {
           lastSeenAt: DateTime(2026, 3, 28, 4),
         ),
       );
-      final bloc = _buildBloc(
+      final cubit = _buildCubit(
         bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
         arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
@@ -115,7 +119,7 @@ void main() {
       );
 
       final resolvingState = await _waitForState(
-        bloc,
+        cubit,
         (state) =>
             state.status == RailBoardStatus.ready &&
             state.report.authReadiness.status ==
@@ -128,7 +132,7 @@ void main() {
         const FirebaseAuthReadiness.ready('device-1'),
       );
       final readyState = await _waitForState(
-        bloc,
+        cubit,
         (state) =>
             state.status == RailBoardStatus.ready &&
             state.report.authReadiness.status ==
@@ -136,7 +140,7 @@ void main() {
       );
       expect(readyState.report.visibility, RailReportVisibility.visible);
       expect(readyState.report.submitEnabled, isTrue);
-      await bloc.close();
+      await cubit.close();
     });
 
     test('hides reporting action when auth readiness fails', () async {
@@ -148,7 +152,7 @@ void main() {
           lastSeenAt: DateTime(2026, 3, 28, 4),
         ),
       );
-      final bloc = _buildBloc(
+      final cubit = _buildCubit(
         bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
         arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
@@ -158,7 +162,7 @@ void main() {
       );
 
       final failedState = await _waitForState(
-        bloc,
+        cubit,
         (state) =>
             state.status == RailBoardStatus.ready &&
             state.report.authReadiness.status ==
@@ -166,46 +170,11 @@ void main() {
       );
       expect(failedState.report.visibility, RailReportVisibility.hidden);
       expect(failedState.report.submitEnabled, isFalse);
-      await bloc.close();
-    });
-
-    test('submits arrival report when local policy is constrained', () async {
-      final bloc = _buildBloc(
-        bundledSchedule: bundledSchedule,
-        arrivalReportRepository: FakeArrivalReportRepository(),
-        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
-        communityOverlayRepository: FakeCommunityOverlayRepository(),
-        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
-        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(
-          seed: const {
-            'arrival_report': RateLimitPolicy(
-              key: 'arrival_report',
-              maxEvents: 0,
-              windowSeconds: 60,
-              coolDownSeconds: 30,
-            ),
-          },
-        ),
-        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
-      );
-
-      await _waitForState(
-        bloc,
-        (state) => state.status == RailBoardStatus.ready,
-      );
-      bloc.add(const RailBoardArrivalReportRequested());
-
-      final reportState = await _waitForState(
-        bloc,
-        (state) =>
-            state.reportSubmissionStatus == RailReportSubmissionStatus.success,
-      );
-      expect(reportState.reportFeedbackMessage, contains('Arrival reported'));
-      await bloc.close();
+      await cubit.close();
     });
 
     test('fails gracefully when no active report window exists', () async {
-      final bloc = _buildBloc(
+      final cubit = _buildCubit(
         bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
         arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
@@ -215,23 +184,27 @@ void main() {
       );
 
       await _waitForState(
-        bloc,
+        cubit,
         (state) => state.status == RailBoardStatus.ready,
       );
-      bloc.add(const RailBoardArrivalReportRequested());
+
+      await cubit.submitArrivalReport();
 
       final reportState = await _waitForState(
-        bloc,
+        cubit,
         (state) =>
             state.reportSubmissionStatus == RailReportSubmissionStatus.error,
       );
-      expect(reportState.reportFeedbackMessage, contains('Reporting opens in'));
-      await bloc.close();
+      expect(
+        reportState.reportFeedbackMessage,
+        contains('Reporting is not available'),
+      );
+      await cubit.close();
     });
 
     test('builds ready community insights from aggregate overlay', () async {
       final session = _seedSessions().first;
-      final bloc = _buildBloc(
+      final cubit = _buildCubit(
         bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
         arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
@@ -249,23 +222,22 @@ void main() {
       );
 
       final insightState = await _waitForState(
-        bloc,
+        cubit,
         (state) =>
             state.communityInsightStatus == RailCommunityInsightStatus.ready,
       );
       expect(insightState.sessionStatusSnapshot, isNotNull);
       expect(insightState.predictedStopTimes, isNotEmpty);
-      await bloc.close();
+      await cubit.close();
     });
 
     test(
       'does not queue failed reports and retries only on explicit submit',
       () async {
-        final session = _seedSessions().first;
         final reports = _FlakyArrivalReportRepository();
         final ledger = FakeArrivalReportLedgerRepository();
         final deviceIdentityRepository = _FixedDeviceIdentityRepository();
-        final bloc = _buildBloc(
+        final cubit = _buildCubit(
           bundledSchedule: bundledSchedule,
           arrivalReportRepository: reports,
           arrivalReportLedgerRepository: ledger,
@@ -275,20 +247,20 @@ void main() {
         );
 
         await _waitForState(
-          bloc,
+          cubit,
           (state) => state.status == RailBoardStatus.ready,
         );
-        bloc.add(const RailBoardArrivalReportRequested());
 
+        await cubit.submitArrivalReport();
         await _waitForState(
-          bloc,
+          cubit,
           (state) =>
               state.reportSubmissionStatus == RailReportSubmissionStatus.error,
         );
-        expect(reports.submitted.length, equals(0));
+        expect(reports.submitted, isEmpty);
         expect(
           await ledger.hasSubmitted(
-            sessionId: session.sessionId,
+            sessionId: _seedSessions().first.sessionId,
             stationId: 'dhaka',
             deviceId: deviceIdentityRepository.identity.deviceId,
           ),
@@ -296,16 +268,15 @@ void main() {
         );
 
         reports.failSubmission = false;
-        bloc.add(const RailBoardArrivalReportRequested());
+        await cubit.submitArrivalReport();
         await _waitForState(
-          bloc,
+          cubit,
           (state) =>
               state.reportSubmissionStatus ==
               RailReportSubmissionStatus.success,
         );
-        expect(reports.submitted.length, equals(1));
-
-        await bloc.close();
+        expect(reports.submitted, hasLength(1));
+        await cubit.close();
       },
     );
 
@@ -314,7 +285,7 @@ void main() {
       () async {
         final overlayRepository = FakeCommunityOverlayRepository()
           ..failFetch = true;
-        final bloc = _buildBloc(
+        final cubit = _buildCubit(
           bundledSchedule: bundledSchedule,
           arrivalReportRepository: FakeArrivalReportRepository(),
           arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
@@ -324,7 +295,7 @@ void main() {
         );
 
         final failedInsightState = await _waitForState(
-          bloc,
+          cubit,
           (state) =>
               state.communityInsightStatus == RailCommunityInsightStatus.error,
         );
@@ -335,7 +306,7 @@ void main() {
           contains('temporarily unavailable'),
         );
 
-        await bloc.close();
+        await cubit.close();
       },
     );
 
@@ -343,7 +314,7 @@ void main() {
       'marks community insights as stale when overlay freshness is old',
       () async {
         final session = _seedSessions().first;
-        final bloc = _buildBloc(
+        final cubit = _buildCubit(
           bundledSchedule: bundledSchedule,
           arrivalReportRepository: FakeArrivalReportRepository(),
           arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
@@ -361,16 +332,16 @@ void main() {
         );
 
         final insightState = await _waitForState(
-          bloc,
+          cubit,
           (state) =>
               state.communityInsightStatus == RailCommunityInsightStatus.stale,
         );
         expect(insightState.sessionStatusSnapshot, isNotNull);
-        await bloc.close();
+        await cubit.close();
       },
     );
 
-    test('does not refetch community overlay on ticker updates', () async {
+    test('does not refetch community overlay on tick updates', () async {
       DateTime now = DateTime(2026, 3, 28, 4, 25);
       final session = _seedSessions().first;
       final overlayRepository = FakeCommunityOverlayRepository(
@@ -382,7 +353,7 @@ void main() {
           ),
         },
       );
-      final bloc = _buildBloc(
+      final cubit = _buildCubit(
         bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
         arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
@@ -392,32 +363,31 @@ void main() {
       );
 
       await _waitForState(
-        bloc,
+        cubit,
         (state) =>
             state.communityInsightStatus == RailCommunityInsightStatus.ready,
       );
       expect(overlayRepository.fetchCounts[session.sessionId], equals(1));
 
       now = DateTime(2026, 3, 28, 4, 26);
-      bloc.add(const RailBoardTicked());
+      await cubit.tick();
       await _waitForState(
-        bloc,
+        cubit,
         (state) =>
             state.status == RailBoardStatus.ready &&
             state.report.actionReason == RailReportActionReason.eligible,
       );
       expect(overlayRepository.fetchCounts[session.sessionId], equals(1));
-      await bloc.close();
+      await cubit.close();
     });
 
     test(
-      'persists successful submission ledger across bloc restarts',
+      'persists successful submission ledger across cubit restarts',
       () async {
-        final session = _seedSessions().first;
         final ledger = FakeArrivalReportLedgerRepository();
         final reports = FakeArrivalReportRepository();
         final deviceIdentityRepository = _FixedDeviceIdentityRepository();
-        final firstBloc = _buildBloc(
+        final firstCubit = _buildCubit(
           bundledSchedule: bundledSchedule,
           arrivalReportRepository: reports,
           arrivalReportLedgerRepository: ledger,
@@ -427,19 +397,19 @@ void main() {
         );
 
         await _waitForState(
-          firstBloc,
+          firstCubit,
           (state) => state.status == RailBoardStatus.ready,
         );
-        firstBloc.add(const RailBoardArrivalReportRequested());
+        await firstCubit.submitArrivalReport();
         await _waitForState(
-          firstBloc,
+          firstCubit,
           (state) =>
               state.reportSubmissionStatus ==
               RailReportSubmissionStatus.success,
         );
-        await firstBloc.close();
+        await firstCubit.close();
 
-        final secondBloc = _buildBloc(
+        final secondCubit = _buildCubit(
           bundledSchedule: bundledSchedule,
           arrivalReportRepository: reports,
           arrivalReportLedgerRepository: ledger,
@@ -449,7 +419,7 @@ void main() {
         );
 
         final readyState = await _waitForState(
-          secondBloc,
+          secondCubit,
           (state) =>
               state.status == RailBoardStatus.ready &&
               state.report.actionReason ==
@@ -458,18 +428,18 @@ void main() {
         expect(readyState.report.hasReportedCurrentSession, isTrue);
         expect(
           await ledger.hasSubmitted(
-            sessionId: session.sessionId,
+            sessionId: _seedSessions().first.sessionId,
             stationId: 'dhaka',
             deviceId: deviceIdentityRepository.identity.deviceId,
           ),
           isTrue,
         );
-        await secondBloc.close();
+        await secondCubit.close();
       },
     );
 
     test('disables reporting before eligibility window opens', () async {
-      final bloc = _buildBloc(
+      final cubit = _buildCubit(
         bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
         arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
@@ -479,19 +449,18 @@ void main() {
       );
 
       final state = await _waitForState(
-        bloc,
+        cubit,
         (state) =>
             state.status == RailBoardStatus.ready &&
             state.report.actionReason == RailReportActionReason.beforeWindow,
       );
       expect(state.report.visibility, RailReportVisibility.visible);
       expect(state.report.submitEnabled, isFalse);
-      expect(state.report.actionHint, contains('Reporting opens in'));
-      await bloc.close();
+      await cubit.close();
     });
 
     test('enables reporting at eligibility window start boundary', () async {
-      final bloc = _buildBloc(
+      final cubit = _buildCubit(
         bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
         arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
@@ -501,20 +470,20 @@ void main() {
       );
 
       final state = await _waitForState(
-        bloc,
+        cubit,
         (state) =>
             state.status == RailBoardStatus.ready &&
             state.report.actionReason == RailReportActionReason.eligible,
       );
       expect(state.report.visibility, RailReportVisibility.visible);
       expect(state.report.submitEnabled, isTrue);
-      await bloc.close();
+      await cubit.close();
     });
 
     test(
       'marks reporting unavailable when matching train session is no longer next',
       () async {
-        final bloc = _buildBloc(
+        final cubit = _buildCubit(
           bundledSchedule: bundledSchedule,
           arrivalReportRepository: FakeArrivalReportRepository(),
           arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
@@ -524,7 +493,7 @@ void main() {
         );
 
         final state = await _waitForState(
-          bloc,
+          cubit,
           (state) =>
               state.status == RailBoardStatus.ready &&
               state.report.actionReason == RailReportActionReason.noSession &&
@@ -532,13 +501,13 @@ void main() {
         );
         expect(state.report.visibility, RailReportVisibility.visible);
         expect(state.report.submitEnabled, isFalse);
-        await bloc.close();
+        await cubit.close();
       },
     );
 
     test('recomputes reporting eligibility on tick transition', () async {
       DateTime now = DateTime(2026, 3, 28, 4, 24);
-      final bloc = _buildBloc(
+      final cubit = _buildCubit(
         bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
         arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
@@ -548,29 +517,29 @@ void main() {
       );
 
       await _waitForState(
-        bloc,
+        cubit,
         (state) =>
             state.status == RailBoardStatus.ready &&
             state.report.actionReason == RailReportActionReason.beforeWindow,
       );
       now = DateTime(2026, 3, 28, 4, 25);
-      bloc.add(const RailBoardTicked());
+      await cubit.tick();
       final unlocked = await _waitForState(
-        bloc,
+        cubit,
         (state) =>
             state.report.actionReason == RailReportActionReason.eligible &&
             state.report.submitEnabled,
       );
       expect(unlocked.report.visibility, RailReportVisibility.visible);
       expect(unlocked.report.submitEnabled, isTrue);
-      await bloc.close();
+      await cubit.close();
     });
 
     test(
       'skips community reporting and insights when community features are disabled',
       () async {
         final reports = FakeArrivalReportRepository();
-        final bloc = _buildBloc(
+        final cubit = _buildCubit(
           bundledSchedule: bundledSchedule,
           arrivalReportRepository: reports,
           arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
@@ -581,16 +550,16 @@ void main() {
         );
 
         final ready = await _waitForState(
-          bloc,
+          cubit,
           (state) => state.status == RailBoardStatus.ready,
         );
         expect(ready.communityFeaturesEnabled, isFalse);
         expect(ready.communityInsightStatus, RailCommunityInsightStatus.idle);
 
-        bloc.add(const RailBoardArrivalReportRequested());
+        await cubit.submitArrivalReport();
 
         expect(
-          bloc.state.reportSubmissionStatus,
+          cubit.state.reportSubmissionStatus,
           RailReportSubmissionStatus.idle,
         );
         final stored = await reports.fetchStopReports(
@@ -598,23 +567,22 @@ void main() {
           stationId: 'dhaka',
         );
         expect(stored, isEmpty);
-        await bloc.close();
+        await cubit.close();
       },
     );
   });
 }
 
-RailBoardBloc _buildBloc({
+RailBoardCubit _buildCubit({
   required dynamic bundledSchedule,
   required ArrivalReportRepository arrivalReportRepository,
   required FakeArrivalReportLedgerRepository arrivalReportLedgerRepository,
   required FakeCommunityOverlayRepository communityOverlayRepository,
   required DeviceIdentityRepository deviceIdentityRepository,
-  FakeRateLimitPolicyRepository? rateLimitPolicyRepository,
   bool communityFeaturesEnabled = true,
   required DateTime Function() nowProvider,
 }) {
-  return RailBoardBloc(
+  return RailBoardCubit(
     boardService: RailBoardService(schedule: bundledSchedule),
     scheduleDataRepository: _FakeScheduleDataRepository(),
     selectionRepository: _InMemorySelectionRepository(
@@ -629,10 +597,9 @@ RailBoardBloc _buildBloc({
     arrivalReportLedgerRepository: arrivalReportLedgerRepository,
     communityOverlayRepository: communityOverlayRepository,
     deviceIdentityRepository: deviceIdentityRepository,
-    rateLimitPolicyRepository:
-        rateLimitPolicyRepository ?? FakeRateLimitPolicyRepository(),
     communityFeaturesEnabled: communityFeaturesEnabled,
     nowProvider: nowProvider,
+    enableTicker: false,
   );
 }
 
@@ -677,14 +644,14 @@ CommunityOverlayResult _overlayResult({
 }
 
 Future<RailBoardState> _waitForState(
-  RailBoardBloc bloc,
+  RailBoardCubit cubit,
   bool Function(RailBoardState) predicate,
 ) async {
-  final current = bloc.state;
+  final current = cubit.state;
   if (predicate(current)) {
     return current;
   }
-  return bloc.stream.firstWhere(predicate);
+  return cubit.stream.firstWhere(predicate);
 }
 
 class _FakeScheduleDataRepository extends ScheduleDataRepository {
@@ -783,9 +750,6 @@ class _FixedDeviceIdentityRepository implements DeviceIdentityRepository {
   @override
   Future<DeviceIdentity> readOrCreateIdentity({String? attemptId}) async =>
       identity;
-
-  @override
-  Future<void> touchIdentity(DateTime now, {String? attemptId}) async {}
 }
 
 class _ResolvingDeviceIdentityRepository implements DeviceIdentityRepository {
@@ -805,7 +769,4 @@ class _ResolvingDeviceIdentityRepository implements DeviceIdentityRepository {
   @override
   Future<DeviceIdentity> readOrCreateIdentity({String? attemptId}) async =>
       identity;
-
-  @override
-  Future<void> touchIdentity(DateTime now, {String? attemptId}) async {}
 }

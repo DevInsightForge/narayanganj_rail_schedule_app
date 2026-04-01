@@ -24,13 +24,9 @@ class SharedPreferencesFirebaseIdentityStateRepository
     if (uid.isEmpty) {
       return null;
     }
-    final profileWrittenAtValue = '${decoded['profileWrittenAt'] ?? ''}'.trim();
     return FirebaseIdentityState(
       uid: uid,
       handshakeCompleted: decoded['handshakeCompleted'] == true,
-      profileWrittenAt: profileWrittenAtValue.isEmpty
-          ? null
-          : DateTime.tryParse(profileWrittenAtValue)?.toLocal(),
     );
   }
 
@@ -40,7 +36,6 @@ class SharedPreferencesFirebaseIdentityStateRepository
     final payload = <String, dynamic>{
       'uid': state.uid,
       'handshakeCompleted': state.handshakeCompleted,
-      'profileWrittenAt': state.profileWrittenAt?.toUtc().toIso8601String(),
     };
     await preferences.setString(_storageKey, jsonEncode(payload));
   }

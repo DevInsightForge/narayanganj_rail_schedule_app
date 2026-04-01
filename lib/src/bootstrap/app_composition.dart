@@ -5,34 +5,27 @@ import '../core/errors/error_reporter.dart';
 import '../core/firebase/firebase_runtime.dart';
 import '../features/community/data/mappers/rail_schedule_template_mapper.dart';
 import '../features/community/data/repositories/cached/cached_community_overlay_repository.dart';
-import '../features/community/data/repositories/fake/fake_arrival_report_repository.dart';
-import '../features/community/data/repositories/fake/fake_community_overlay_repository.dart';
-import '../features/community/data/repositories/fake/fake_device_identity_repository.dart';
-import '../features/community/data/repositories/fake/fake_prediction_repository.dart';
-import '../features/community/data/repositories/fake/fake_rate_limit_policy_repository.dart';
 import '../features/community/data/repositories/firebase/firebase_arrival_report_repository.dart';
 import '../features/community/data/repositories/firebase/firebase_community_overlay_repository.dart';
 import '../features/community/data/repositories/firebase/firebase_device_identity_repository.dart';
-import '../features/community/data/repositories/firebase/firebase_prediction_repository.dart';
 import '../features/community/data/repositories/local/generated_session_repository.dart';
 import '../features/community/data/repositories/local/shared_preferences_arrival_report_ledger_repository.dart';
 import '../features/community/data/repositories/local/shared_preferences_community_overlay_cache_repository.dart';
 import '../features/community/data/repositories/local/shared_preferences_firebase_identity_state_repository.dart';
-import '../features/community/data/repositories/resilient/resilient_prediction_repository.dart';
-import '../features/community/domain/entities/rate_limit_policy.dart';
+import '../features/community/data/repositories/noop/noop_arrival_report_repository.dart';
+import '../features/community/data/repositories/noop/noop_community_overlay_repository.dart';
+import '../features/community/data/repositories/noop/noop_device_identity_repository.dart';
 import '../features/community/domain/repositories/arrival_report_ledger_repository.dart';
 import '../features/community/domain/repositories/arrival_report_repository.dart';
 import '../features/community/domain/repositories/community_overlay_repository.dart';
 import '../features/community/domain/repositories/device_identity_repository.dart';
-import '../features/community/domain/repositories/prediction_repository.dart';
-import '../features/community/domain/repositories/rate_limit_policy_repository.dart';
 import '../features/community/domain/repositories/session_repository.dart';
 import '../features/rail/data/repositories/schedule_data_repository.dart';
 import '../features/rail/data/repositories/shared_preferences_selection_repository.dart';
 import '../features/rail/domain/entities/rail_schedule.dart';
 import '../features/rail/domain/repositories/selection_repository.dart';
 import '../features/rail/domain/services/rail_board_service.dart';
-import '../features/rail/presentation/bloc/rail_board_bloc.dart';
+import '../features/rail/presentation/bloc/rail_board_cubit.dart';
 
 class AppComposition {
   AppComposition({
@@ -53,20 +46,9 @@ class AppComposition {
        communityOverlayRepository = _buildCommunityOverlayRepository(
          firebaseRuntime,
        ),
-       predictionRepository = _buildPredictionRepository(firebaseRuntime),
        deviceIdentityRepository = _buildDeviceIdentityRepository(
          firebaseRuntime,
          errorReporter,
-       ),
-       rateLimitPolicyRepository = FakeRateLimitPolicyRepository(
-         seed: const {
-           'arrival_report': RateLimitPolicy(
-             key: 'arrival_report',
-             maxEvents: 3,
-             windowSeconds: 120,
-             coolDownSeconds: 30,
-           ),
-         },
        );
 
   final FirebaseRuntime firebaseRuntime;
@@ -78,12 +60,10 @@ class AppComposition {
   final ArrivalReportRepository arrivalReportRepository;
   final ArrivalReportLedgerRepository arrivalReportLedgerRepository;
   final CommunityOverlayRepository communityOverlayRepository;
-  final PredictionRepository predictionRepository;
   final DeviceIdentityRepository deviceIdentityRepository;
-  final RateLimitPolicyRepository rateLimitPolicyRepository;
 
-  RailBoardBloc createRailBoardBloc() {
-    return RailBoardBloc(
+  RailBoardCubit createRailBoardCubit() {
+    return RailBoardCubit(
       boardService: RailBoardService(schedule: bundledSchedule),
       scheduleDataRepository: scheduleDataRepository,
       selectionRepository: selectionRepository,
@@ -92,7 +72,6 @@ class AppComposition {
       arrivalReportLedgerRepository: arrivalReportLedgerRepository,
       communityOverlayRepository: communityOverlayRepository,
       deviceIdentityRepository: deviceIdentityRepository,
-      rateLimitPolicyRepository: rateLimitPolicyRepository,
       errorReporter: errorReporter,
       communityFeaturesEnabled: firebaseRuntime.initialized,
     );
@@ -102,7 +81,7 @@ class AppComposition {
     FirebaseRuntime firebaseRuntime,
   ) {
     if (!firebaseRuntime.initialized) {
-      return FakeArrivalReportRepository();
+      return const NoOpArrivalReportRepository();
     }
     return FirebaseArrivalReportRepository(
       firestore: FirebaseFirestore.instance,
@@ -110,26 +89,11 @@ class AppComposition {
     );
   }
 
-  static PredictionRepository _buildPredictionRepository(
-    FirebaseRuntime firebaseRuntime,
-  ) {
-    final fallback = FakePredictionRepository();
-    if (!firebaseRuntime.initialized) {
-      return fallback;
-    }
-    return ResilientPredictionRepository(
-      primary: FirebasePredictionRepository(
-        firestore: FirebaseFirestore.instance,
-      ),
-      fallback: fallback,
-    );
-  }
-
   static CommunityOverlayRepository _buildCommunityOverlayRepository(
     FirebaseRuntime firebaseRuntime,
   ) {
     if (!firebaseRuntime.initialized) {
-      return FakeCommunityOverlayRepository();
+      return const NoOpCommunityOverlayRepository();
     }
     return CachedCommunityOverlayRepository(
       primary: FirebaseCommunityOverlayRepository(
@@ -144,11 +108,10 @@ class AppComposition {
     ErrorReporter errorReporter,
   ) {
     if (!firebaseRuntime.initialized) {
-      return FakeDeviceIdentityRepository();
+      return const NoOpDeviceIdentityRepository();
     }
     return FirebaseDeviceIdentityRepository(
       auth: FirebaseAuth.instance,
-      firestore: FirebaseFirestore.instance,
       identityStateRepository:
           SharedPreferencesFirebaseIdentityStateRepository(),
       errorReporter: errorReporter,

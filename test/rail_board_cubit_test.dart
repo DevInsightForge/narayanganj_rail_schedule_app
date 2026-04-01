@@ -1,9 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_ledger_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_community_overlay_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_device_identity_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_rate_limit_policy_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_session_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/train_session.dart';
@@ -14,15 +13,15 @@ import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/selection_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_bloc.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_cubit.dart';
 
 import 'support/bundled_schedule_fixture.dart';
 
 void main() {
   final bundledSchedule = loadBundledScheduleFixture();
-  group('RailBoardBloc startup', () {
+  group('RailBoardCubit startup', () {
     test('loads bundled data when cached and remote are unavailable', () async {
-      final bloc = RailBoardBloc(
+      final cubit = RailBoardCubit(
         boardService: RailBoardService(schedule: bundledSchedule),
         scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(),
@@ -31,15 +30,14 @@ void main() {
         arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
         communityOverlayRepository: FakeCommunityOverlayRepository(),
         deviceIdentityRepository: FakeDeviceIdentityRepository(),
-        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
       );
 
-      final state = await bloc.stream.firstWhere(
+      final state = await cubit.stream.firstWhere(
         (state) => state.status == RailBoardStatus.ready,
       );
 
       expect(state.snapshot.dataSourceLabel, equals('Bundled'));
-      await bloc.close();
+      await cubit.close();
     });
 
     test('loads cached first, then remote when available', () async {
@@ -51,7 +49,7 @@ void main() {
         trips: cachedSchedule.trips,
       );
 
-      final bloc = RailBoardBloc(
+      final cubit = RailBoardCubit(
         boardService: RailBoardService(schedule: bundledSchedule),
         scheduleDataRepository: _FakeScheduleDataRepository(
           stored: ScheduleLoadResult(
@@ -71,13 +69,12 @@ void main() {
         arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
         communityOverlayRepository: FakeCommunityOverlayRepository(),
         deviceIdentityRepository: FakeDeviceIdentityRepository(),
-        rateLimitPolicyRepository: FakeRateLimitPolicyRepository(),
       );
 
-      final firstReady = await bloc.stream.firstWhere(
+      final firstReady = await cubit.stream.firstWhere(
         (state) => state.status == RailBoardStatus.ready,
       );
-      final secondReady = await bloc.stream.firstWhere(
+      final secondReady = await cubit.stream.firstWhere(
         (state) =>
             state.status == RailBoardStatus.ready &&
             state.snapshot.dataSourceLabel == 'Remote',
@@ -85,7 +82,7 @@ void main() {
 
       expect(firstReady.snapshot.dataSourceLabel, equals('Cached'));
       expect(secondReady.snapshot.scheduleVersion, equals('2026.04.remote'));
-      await bloc.close();
+      await cubit.close();
     });
   });
 }

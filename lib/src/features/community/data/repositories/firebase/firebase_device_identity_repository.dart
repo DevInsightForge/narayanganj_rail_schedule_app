@@ -1,9 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../../../../core/errors/error_report_context.dart';
 import '../../../../../core/errors/error_reporter.dart';
-import '../../../../../core/logging/debug_logger.dart';
 import '../../../domain/entities/device_identity.dart';
 import '../../../domain/entities/firebase_auth_readiness.dart';
 import '../../../domain/entities/firebase_identity_state.dart';
@@ -25,30 +23,19 @@ class FirebaseResolvedIdentity {
 class FirebaseDeviceIdentityRepository implements DeviceIdentityRepository {
   FirebaseDeviceIdentityRepository({
     FirebaseAuth? auth,
-    FirebaseFirestore? firestore,
     required FirebaseIdentityStateRepository identityStateRepository,
     Future<FirebaseResolvedIdentity> Function()? identityResolver,
-    Future<void> Function(String uid, DateTime now)? profileWriter,
     ErrorReporter? errorReporter,
-    DebugLogger? logger,
   }) : assert(auth != null || identityResolver != null),
-       assert(firestore != null || profileWriter != null),
        _auth = auth,
-       _firestore = firestore,
        _identityStateRepository = identityStateRepository,
        _identityResolver = identityResolver,
-       _profileWriter = profileWriter,
-       _errorReporter = errorReporter ?? const NoopErrorReporter(),
-       _logger =
-           logger ?? const DebugLogger('FirebaseDeviceIdentityRepository');
+       _errorReporter = errorReporter ?? const NoopErrorReporter();
 
   final FirebaseAuth? _auth;
-  final FirebaseFirestore? _firestore;
   final FirebaseIdentityStateRepository _identityStateRepository;
   final Future<FirebaseResolvedIdentity> Function()? _identityResolver;
-  final Future<void> Function(String uid, DateTime now)? _profileWriter;
   final ErrorReporter _errorReporter;
-  final DebugLogger _logger;
   Future<FirebaseAuthReadiness>? _pendingAuthReadiness;
   FirebaseAuthReadiness _cachedAuthReadiness =
       const FirebaseAuthReadiness.unknown();
@@ -58,19 +45,11 @@ class FirebaseDeviceIdentityRepository implements DeviceIdentityRepository {
     final cached = _cachedAuthReadiness;
     if (cached.status == FirebaseAuthReadinessStatus.ready ||
         cached.status == FirebaseAuthReadinessStatus.failed) {
-      _logger.log(
-        'auth_resolve_cached',
-        context: _context(attemptId: attemptId, uid: cached.uid).toMap(),
-      );
       return Future.value(cached);
     }
 
     final pending = _pendingAuthReadiness;
     if (pending != null) {
-      _logger.log(
-        'auth_resolve_pending',
-        context: _context(attemptId: attemptId).toMap(),
-      );
       return pending;
     }
 
@@ -95,26 +74,6 @@ class FirebaseDeviceIdentityRepository implements DeviceIdentityRepository {
     );
   }
 
-  @override
-  Future<void> touchIdentity(DateTime now, {String? attemptId}) async {
-    final identity = await readOrCreateIdentity(attemptId: attemptId);
-    final state = await _identityStateRepository.read();
-    if (state != null &&
-        state.uid == identity.deviceId &&
-        state.profileWrittenAt != null) {
-      return;
-    }
-    await (_profileWriter?.call(identity.deviceId, now) ??
-        _writeProfile(identity.deviceId, now));
-    await _identityStateRepository.write(
-      FirebaseIdentityState(
-        uid: identity.deviceId,
-        handshakeCompleted: true,
-        profileWrittenAt: now,
-      ),
-    );
-  }
-
   Future<FirebaseResolvedIdentity> _resolveIdentity() async {
     final auth = _auth;
     if (auth == null) {
@@ -136,26 +95,10 @@ class FirebaseDeviceIdentityRepository implements DeviceIdentityRepository {
     );
   }
 
-  Future<void> _writeProfile(String uid, DateTime now) async {
-    final firestore = _firestore;
-    if (firestore == null) {
-      throw StateError('Missing FirebaseFirestore instance.');
-    }
-    await firestore.collection('user_profiles').doc(uid).set({
-      'uid': uid,
-      'lastSeenAt': Timestamp.fromDate(now),
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-  }
-
   Future<FirebaseAuthReadiness> _resolveAuthReadiness({
     String? attemptId,
   }) async {
     _cachedAuthReadiness = const FirebaseAuthReadiness.resolving();
-    _logger.log(
-      'auth_resolve_start',
-      context: _context(attemptId: attemptId).toMap(),
-    );
     try {
       final existingState = await _identityStateRepository.read();
       if (existingState != null &&
@@ -163,13 +106,6 @@ class FirebaseDeviceIdentityRepository implements DeviceIdentityRepository {
           existingState.uid.isNotEmpty) {
         final ready = FirebaseAuthReadiness.ready(existingState.uid);
         _cachedAuthReadiness = ready;
-        _logger.log(
-          'auth_resolve_success',
-          context: _context(
-            attemptId: attemptId,
-            uid: existingState.uid,
-          ).toMap(),
-        );
         return ready;
       }
 
@@ -181,18 +117,10 @@ class FirebaseDeviceIdentityRepository implements DeviceIdentityRepository {
       await _identityStateRepository.write(nextState);
       final ready = FirebaseAuthReadiness.ready(resolved.uid);
       _cachedAuthReadiness = ready;
-      _logger.log(
-        'auth_resolve_success',
-        context: _context(attemptId: attemptId, uid: resolved.uid).toMap(),
-      );
       return ready;
     } catch (error, stackTrace) {
       final failed = const FirebaseAuthReadiness.failed();
       _cachedAuthReadiness = failed;
-      _logger.log(
-        'auth_resolve_fail',
-        context: _context(attemptId: attemptId).toMap(),
-      );
       await _errorReporter.reportNonFatal(
         error,
         stackTrace,

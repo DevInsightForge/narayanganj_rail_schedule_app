@@ -5,6 +5,4 @@ abstract class DeviceIdentityRepository {
   Future<FirebaseAuthReadiness> readAuthReadiness({String? attemptId});
 
   Future<DeviceIdentity> readOrCreateIdentity({String? attemptId});
-
-  Future<void> touchIdentity(DateTime now, {String? attemptId});
 }

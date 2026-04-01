@@ -4,13 +4,11 @@ import 'package:flutter/services.dart';
 
 import 'bootstrap/app_composition.dart';
 import 'core/theme/app_theme.dart';
-import 'features/community/domain/repositories/community_overlay_repository.dart';
 import 'features/community/domain/repositories/arrival_report_repository.dart';
+import 'features/community/domain/repositories/community_overlay_repository.dart';
 import 'features/community/domain/repositories/device_identity_repository.dart';
-import 'features/community/domain/repositories/prediction_repository.dart';
-import 'features/community/domain/repositories/rate_limit_policy_repository.dart';
 import 'features/community/domain/repositories/session_repository.dart';
-import 'features/rail/presentation/bloc/rail_board_bloc.dart';
+import 'features/rail/presentation/bloc/rail_board_cubit.dart';
 import 'features/rail/presentation/pages/rail_board_page.dart';
 
 class NarayanganjRailScheduleApp extends StatelessWidget {
@@ -31,18 +29,12 @@ class NarayanganjRailScheduleApp extends StatelessWidget {
         RepositoryProvider<CommunityOverlayRepository>.value(
           value: composition.communityOverlayRepository,
         ),
-        RepositoryProvider<PredictionRepository>.value(
-          value: composition.predictionRepository,
-        ),
         RepositoryProvider<DeviceIdentityRepository>.value(
           value: composition.deviceIdentityRepository,
         ),
-        RepositoryProvider<RateLimitPolicyRepository>.value(
-          value: composition.rateLimitPolicyRepository,
-        ),
       ],
-      child: BlocProvider<RailBoardBloc>(
-        create: (_) => composition.createRailBoardBloc(),
+      child: BlocProvider<RailBoardCubit>(
+        create: (_) => composition.createRailBoardCubit(),
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light(),

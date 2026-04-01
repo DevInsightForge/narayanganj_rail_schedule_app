@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../community/domain/entities/predicted_stop_time.dart';
 import '../../domain/entities/rail_snapshot.dart';
-import '../bloc/rail_board_bloc.dart';
+import '../bloc/rail_board_cubit.dart';
 import '../widgets/decision_panel.dart';
 import '../widgets/footer_panel.dart';
 import '../widgets/header_panel.dart';
@@ -32,7 +32,7 @@ class RailBoardPage extends StatelessWidget {
         child: SafeArea(
           child: MultiBlocListener(
             listeners: [
-              BlocListener<RailBoardBloc, RailBoardState>(
+              BlocListener<RailBoardCubit, RailBoardState>(
                 listenWhen: (previous, current) =>
                     previous.report.feedbackMessage !=
                     current.report.feedbackMessage,
@@ -47,7 +47,7 @@ class RailBoardPage extends StatelessWidget {
                 },
               ),
             ],
-            child: BlocBuilder<RailBoardBloc, RailBoardState>(
+            child: BlocBuilder<RailBoardCubit, RailBoardState>(
               buildWhen: (previous, current) =>
                   previous.status != current.status ||
                   previous.errorMessage != current.errorMessage,
@@ -73,9 +73,7 @@ class RailBoardPage extends StatelessWidget {
                       icon: Icons
                           .signal_wifi_statusbar_connected_no_internet_4_rounded,
                       action: FilledButton.icon(
-                        onPressed: () => context.read<RailBoardBloc>().add(
-                          const RailBoardRetryRequested(),
-                        ),
+                        onPressed: () => context.read<RailBoardCubit>().retry(),
                         icon: const Icon(Icons.refresh_rounded),
                         label: const Text('Retry'),
                       ),
@@ -120,7 +118,7 @@ class _ReadyBoardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final boardService = context.read<RailBoardBloc>().boardService;
+    final boardService = context.read<RailBoardCubit>().boardService;
 
     return RepositoryProvider.value(
       value: boardService,
@@ -147,40 +145,11 @@ class _ReadyBoardContent extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  BlocSelector<
-                    RailBoardBloc,
-                    RailBoardState,
-                    RailBoardViewState
-                  >(
-                    selector: (state) => state.view,
-                    builder: (context, view) => HeaderPanel(view: view),
-                  ),
+                  const _HeaderSelector(),
                   SizedBox(height: tokens.panelGap),
-                  if (tokens.isWide)
-                    _WideBoard(tokens: tokens)
-                  else
-                    _CompactBoard(tokens: tokens),
+                  _BoardPanels(tokens: tokens),
                   SizedBox(height: tokens.panelGap),
-                  BlocSelector<
-                    RailBoardBloc,
-                    RailBoardState,
-                    ({
-                      String dataSourceLabel,
-                      DateTime? lastUpdatedAt,
-                      String scheduleVersion,
-                    })
-                  >(
-                    selector: (state) => (
-                      dataSourceLabel: state.view.snapshot.dataSourceLabel,
-                      lastUpdatedAt: state.view.snapshot.lastUpdatedAt,
-                      scheduleVersion: state.view.snapshot.scheduleVersion,
-                    ),
-                    builder: (context, slice) => FooterPanel(
-                      dataSourceLabel: slice.dataSourceLabel,
-                      lastUpdatedAt: slice.lastUpdatedAt,
-                      scheduleVersion: slice.scheduleVersion,
-                    ),
-                  ),
+                  const _FooterSelector(),
                 ],
               ),
             ),
@@ -191,136 +160,151 @@ class _ReadyBoardContent extends StatelessWidget {
   }
 }
 
-class _WideBoard extends StatelessWidget {
-  const _WideBoard({required this.tokens});
+class _BoardPanels extends StatelessWidget {
+  const _BoardPanels({required this.tokens});
 
   final RailBoardTokens tokens;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    if (tokens.isWide) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 6,
+            child: Column(
+              children: [
+                const _DecisionSelector(),
+                SizedBox(height: tokens.panelGap),
+                const _TimelineSelector(),
+              ],
+            ),
+          ),
+          SizedBox(width: tokens.panelGap),
+          Expanded(
+            flex: 4,
+            child: Column(
+              children: [
+                const _UpcomingSelector(),
+                SizedBox(height: tokens.panelGap),
+                const NoticePanel(),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
       children: [
-        Expanded(
-          flex: 6,
-          child: Column(
-            children: [
-              BlocSelector<
-                RailBoardBloc,
-                RailBoardState,
-                ({
-                  RailBoardViewState view,
-                  RailBoardReportState report,
-                  RailBoardCommunityState community,
-                })
-              >(
-                selector: (state) => (
-                  view: state.view,
-                  report: state.report,
-                  community: state.community,
-                ),
-                builder: (context, slice) => DecisionPanel(
-                  view: slice.view,
-                  report: slice.report,
-                  community: slice.community,
-                ),
-              ),
-              SizedBox(height: tokens.panelGap),
-              BlocSelector<
-                RailBoardBloc,
-                RailBoardState,
-                ({
-                  RailBoardSnapshot snapshot,
-                  List<PredictedStopTime> predictedStopTimes,
-                })
-              >(
-                selector: (state) => (
-                  snapshot: state.view.snapshot,
-                  predictedStopTimes: state.community.predictedStopTimes,
-                ),
-                builder: (context, slice) => TimelinePanel(
-                  snapshot: slice.snapshot,
-                  predictedStopTimes: slice.predictedStopTimes,
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(width: tokens.panelGap),
-        Expanded(
-          flex: 4,
-          child: Column(
-            children: [
-              BlocSelector<RailBoardBloc, RailBoardState, RailBoardViewState>(
-                selector: (state) => state.view,
-                builder: (context, view) =>
-                    UpcomingPanel(snapshot: view.snapshot),
-              ),
-              SizedBox(height: tokens.panelGap),
-              const NoticePanel(),
-            ],
-          ),
-        ),
+        const _DecisionSelector(),
+        SizedBox(height: tokens.panelGap),
+        const _TimelineSelector(),
+        SizedBox(height: tokens.panelGap),
+        const _UpcomingSelector(),
+        SizedBox(height: tokens.panelGap),
+        const NoticePanel(),
       ],
     );
   }
 }
 
-class _CompactBoard extends StatelessWidget {
-  const _CompactBoard({required this.tokens});
-
-  final RailBoardTokens tokens;
+class _HeaderSelector extends StatelessWidget {
+  const _HeaderSelector();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        BlocSelector<
-          RailBoardBloc,
-          RailBoardState,
-          ({
-            RailBoardViewState view,
-            RailBoardReportState report,
-            RailBoardCommunityState community,
-          })
-        >(
-          selector: (state) => (
-            view: state.view,
-            report: state.report,
-            community: state.community,
-          ),
-          builder: (context, slice) => DecisionPanel(
-            view: slice.view,
-            report: slice.report,
-            community: slice.community,
-          ),
-        ),
-        SizedBox(height: tokens.panelGap),
-        BlocSelector<
-          RailBoardBloc,
-          RailBoardState,
-          ({
-            RailBoardSnapshot snapshot,
-            List<PredictedStopTime> predictedStopTimes,
-          })
-        >(
-          selector: (state) => (
-            snapshot: state.view.snapshot,
-            predictedStopTimes: state.community.predictedStopTimes,
-          ),
-          builder: (context, slice) => TimelinePanel(
-            snapshot: slice.snapshot,
-            predictedStopTimes: slice.predictedStopTimes,
-          ),
-        ),
-        SizedBox(height: tokens.panelGap),
-        BlocSelector<RailBoardBloc, RailBoardState, RailBoardViewState>(
-          selector: (state) => state.view,
-          builder: (context, view) => UpcomingPanel(snapshot: view.snapshot),
-        ),
-        SizedBox(height: tokens.panelGap),
-        const NoticePanel(),
-      ],
+    return BlocSelector<RailBoardCubit, RailBoardState, RailBoardViewState>(
+      selector: (state) => state.view,
+      builder: (context, view) => HeaderPanel(view: view),
+    );
+  }
+}
+
+class _DecisionSelector extends StatelessWidget {
+  const _DecisionSelector();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<
+      RailBoardCubit,
+      RailBoardState,
+      ({
+        RailBoardViewState view,
+        RailBoardReportState report,
+        RailBoardCommunityState community,
+      })
+    >(
+      selector: (state) =>
+          (view: state.view, report: state.report, community: state.community),
+      builder: (context, slice) => DecisionPanel(
+        view: slice.view,
+        report: slice.report,
+        community: slice.community,
+      ),
+    );
+  }
+}
+
+class _TimelineSelector extends StatelessWidget {
+  const _TimelineSelector();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<
+      RailBoardCubit,
+      RailBoardState,
+      ({RailBoardSnapshot snapshot, List<PredictedStopTime> predictedStopTimes})
+    >(
+      selector: (state) => (
+        snapshot: state.view.snapshot,
+        predictedStopTimes: state.community.predictedStopTimes,
+      ),
+      builder: (context, slice) => TimelinePanel(
+        snapshot: slice.snapshot,
+        predictedStopTimes: slice.predictedStopTimes,
+      ),
+    );
+  }
+}
+
+class _UpcomingSelector extends StatelessWidget {
+  const _UpcomingSelector();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<RailBoardCubit, RailBoardState, RailBoardViewState>(
+      selector: (state) => state.view,
+      builder: (context, view) => UpcomingPanel(snapshot: view.snapshot),
+    );
+  }
+}
+
+class _FooterSelector extends StatelessWidget {
+  const _FooterSelector();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<
+      RailBoardCubit,
+      RailBoardState,
+      ({
+        String dataSourceLabel,
+        DateTime? lastUpdatedAt,
+        String scheduleVersion,
+      })
+    >(
+      selector: (state) => (
+        dataSourceLabel: state.view.snapshot.dataSourceLabel,
+        lastUpdatedAt: state.view.snapshot.lastUpdatedAt,
+        scheduleVersion: state.view.snapshot.scheduleVersion,
+      ),
+      builder: (context, slice) => FooterPanel(
+        dataSourceLabel: slice.dataSourceLabel,
+        lastUpdatedAt: slice.lastUpdatedAt,
+        scheduleVersion: slice.scheduleVersion,
+      ),
     );
   }
 }

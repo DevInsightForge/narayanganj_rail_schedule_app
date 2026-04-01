@@ -5,7 +5,7 @@ import '../../../community/domain/entities/delay_status.dart';
 import '../../../community/domain/entities/session_status_snapshot.dart';
 import '../../application/models/rail_reporting.dart';
 import '../../domain/services/rail_board_service.dart';
-import '../bloc/rail_board_bloc.dart';
+import '../bloc/rail_board_cubit.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
 import 'rail_primitives.dart';
@@ -98,9 +98,8 @@ class DecisionPanel extends StatelessWidget {
             _CommunityPanel(
               report: report,
               community: community,
-              onPressed: () => context.read<RailBoardBloc>().add(
-                const RailBoardArrivalReportRequested(),
-              ),
+              onPressed: () =>
+                  context.read<RailBoardCubit>().submitArrivalReport(),
             ),
           ],
         ],
@@ -162,8 +161,7 @@ class _CommunityPanel extends StatelessWidget {
         children: [
           RailSectionHeader(
             eyebrow: 'Community signal',
-            title: _title(community.insightStatus),
-            subtitle: _description(community.insightStatus),
+            title: _headline(community.insightStatus),
           ),
           if (status != null) ...[
             SizedBox(height: tokens.sectionGap),
@@ -200,18 +198,6 @@ class _CommunityPanel extends StatelessWidget {
             SizedBox(height: tokens.sectionGap),
             Divider(color: tokens.border, height: 1),
             SizedBox(height: tokens.sectionGap),
-            if (report.actionHint != null &&
-                report.actionHint!.isNotEmpty &&
-                report.actionReason != RailReportActionReason.eligible)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  report.actionHint!,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
-                ),
-              ),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
@@ -245,28 +231,15 @@ class _CommunityPanel extends StatelessWidget {
     );
   }
 
-  String _title(RailCommunityInsightStatus status) {
+  String _headline(RailCommunityInsightStatus status) {
     return switch (status) {
-      RailCommunityInsightStatus.stale => 'Reported Delay (Stale)',
-      RailCommunityInsightStatus.error => 'Reported Delay Offline',
-      _ => 'Reported Delay',
-    };
-  }
-
-  String _description(RailCommunityInsightStatus status) {
-    return switch (status) {
-      RailCommunityInsightStatus.loading =>
-        'Refreshing rider reports for the active train session.',
+      RailCommunityInsightStatus.loading => 'Refreshing rider reports',
       RailCommunityInsightStatus.ready =>
-        'Latest rider observations have been aggregated into one delay signal.',
-      RailCommunityInsightStatus.stale =>
-        'The latest rider signal is older than preferred but still shown for context.',
-      RailCommunityInsightStatus.empty =>
-        'No rider report has been submitted for this train yet.',
-      RailCommunityInsightStatus.error =>
-        'Live rider signal is unavailable. The official schedule still works.',
-      RailCommunityInsightStatus.idle =>
-        'Community status will appear when a matching train session is active.',
+        'Rider reports merged into one delay signal',
+      RailCommunityInsightStatus.stale => 'Reported delay is stale',
+      RailCommunityInsightStatus.empty => 'No rider reports yet',
+      RailCommunityInsightStatus.error => 'Live rider signal unavailable',
+      RailCommunityInsightStatus.idle => 'Community status appears when active',
     };
   }
 
@@ -276,7 +249,6 @@ class _CommunityPanel extends StatelessWidget {
     }
     return switch (report.status) {
       RailReportSubmissionStatus.submitting => 'Submitting Report...',
-      RailReportSubmissionStatus.rateLimited => 'Please Wait',
       RailReportSubmissionStatus.error =>
         report.submitEnabled
             ? 'Submit Arrival Report'

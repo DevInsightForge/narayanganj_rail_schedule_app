@@ -1,14 +1,15 @@
-part of 'rail_board_bloc.dart';
+import 'package:equatable/equatable.dart';
+
+import '../../../community/domain/entities/firebase_auth_readiness.dart';
+import '../../../community/domain/entities/predicted_stop_time.dart';
+import '../../../community/domain/entities/session_status_snapshot.dart';
+import '../../application/models/rail_reporting.dart';
+import '../../domain/entities/rail_selection.dart';
+import '../../domain/entities/rail_snapshot.dart';
 
 enum RailBoardStatus { loading, ready, failure }
 
-enum RailReportSubmissionStatus {
-  idle,
-  submitting,
-  success,
-  rateLimited,
-  error,
-}
+enum RailReportSubmissionStatus { idle, submitting, success, error }
 
 enum RailCommunityInsightStatus { idle, loading, ready, stale, empty, error }
 
@@ -71,62 +72,44 @@ class RailBoardReportState extends Equatable {
   const RailBoardReportState({
     this.status = RailReportSubmissionStatus.idle,
     this.feedbackMessage,
-    this.retryAfterSeconds,
     this.actionReason = RailReportActionReason.noSession,
     this.authReadiness = const FirebaseAuthReadiness.unknown(),
-    this.guardOutcome = RailReportGuardOutcome.hiddenAuthPending,
     this.visibility = RailReportVisibility.hidden,
     this.submitEnabled = false,
     this.hasReportedCurrentSession = false,
-    this.actionHint,
   });
 
   final RailReportSubmissionStatus status;
   final String? feedbackMessage;
-  final int? retryAfterSeconds;
   final RailReportActionReason actionReason;
   final FirebaseAuthReadiness authReadiness;
-  final RailReportGuardOutcome guardOutcome;
   final RailReportVisibility visibility;
   final bool submitEnabled;
   final bool hasReportedCurrentSession;
-  final String? actionHint;
-
-  bool get isActionEnabled => submitEnabled;
 
   bool get isActionVisible => visibility == RailReportVisibility.visible;
 
   RailBoardReportState copyWith({
     RailReportSubmissionStatus? status,
     String? feedbackMessage,
-    int? retryAfterSeconds,
     RailReportActionReason? actionReason,
     FirebaseAuthReadiness? authReadiness,
-    RailReportGuardOutcome? guardOutcome,
     RailReportVisibility? visibility,
     bool? submitEnabled,
     bool? hasReportedCurrentSession,
-    String? actionHint,
-    bool clearActionHint = false,
     bool clearFeedback = false,
-    bool clearRetryAfter = false,
   }) {
     return RailBoardReportState(
       status: status ?? this.status,
       feedbackMessage: clearFeedback
           ? null
           : feedbackMessage ?? this.feedbackMessage,
-      retryAfterSeconds: clearRetryAfter
-          ? null
-          : retryAfterSeconds ?? this.retryAfterSeconds,
       actionReason: actionReason ?? this.actionReason,
       authReadiness: authReadiness ?? this.authReadiness,
-      guardOutcome: guardOutcome ?? this.guardOutcome,
       visibility: visibility ?? this.visibility,
       submitEnabled: submitEnabled ?? this.submitEnabled,
       hasReportedCurrentSession:
           hasReportedCurrentSession ?? this.hasReportedCurrentSession,
-      actionHint: clearActionHint ? null : actionHint ?? this.actionHint,
     );
   }
 
@@ -134,14 +117,11 @@ class RailBoardReportState extends Equatable {
   List<Object?> get props => [
     status,
     feedbackMessage,
-    retryAfterSeconds,
     actionReason,
     authReadiness,
-    guardOutcome,
     visibility,
     submitEnabled,
     hasReportedCurrentSession,
-    actionHint,
   ];
 }
 
@@ -221,7 +201,6 @@ class RailBoardState extends Equatable {
   RailBoardSnapshot get snapshot => view.snapshot;
   RailReportSubmissionStatus get reportSubmissionStatus => report.status;
   String? get reportFeedbackMessage => report.feedbackMessage;
-  int? get reportRetryAfterSeconds => report.retryAfterSeconds;
   RailCommunityInsightStatus get communityInsightStatus =>
       community.insightStatus;
   SessionStatusSnapshot? get sessionStatusSnapshot =>

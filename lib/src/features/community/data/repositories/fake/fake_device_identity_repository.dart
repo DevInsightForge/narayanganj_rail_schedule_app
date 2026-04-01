@@ -29,12 +29,6 @@ class FakeDeviceIdentityRepository implements DeviceIdentityRepository {
     return created;
   }
 
-  @override
-  Future<void> touchIdentity(DateTime now, {String? attemptId}) async {
-    final identity = await readOrCreateIdentity(attemptId: attemptId);
-    _identity = identity.copyWith(lastSeenAt: now);
-  }
-
   String _generateDeviceId() {
     final random = Random.secure();
     final timestamp = DateTime.now().microsecondsSinceEpoch.toRadixString(16);

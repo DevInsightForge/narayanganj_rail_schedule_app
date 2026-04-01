@@ -8,7 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   test('readAuthReadiness resolves and persists ready state', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
-    var profileWriteCount = 0;
     final stateRepository = SharedPreferencesFirebaseIdentityStateRepository();
     final repository = FirebaseDeviceIdentityRepository(
       identityStateRepository: stateRepository,
@@ -17,24 +16,22 @@ void main() {
         createdAt: DateTime(2026, 3, 30, 9, 0),
         lastSeenAt: DateTime(2026, 3, 30, 9, 0),
       ),
-      profileWriter: (uid, now) async {
-        profileWriteCount += 1;
-      },
     );
 
     final readiness = await repository.readAuthReadiness();
 
     expect(readiness.status, equals(FirebaseAuthReadinessStatus.ready));
     expect(readiness.uid, equals('uid-1'));
-    expect(await stateRepository.read(), isNotNull);
-    await repository.touchIdentity(DateTime(2026, 3, 30, 9, 1));
-    await repository.touchIdentity(DateTime(2026, 3, 30, 9, 2));
-
-    expect(profileWriteCount, equals(1));
+    expect(
+      await stateRepository.read(),
+      equals(
+        const FirebaseIdentityState(uid: 'uid-1', handshakeCompleted: true),
+      ),
+    );
   });
 
   test(
-    'subsequent launches reuse persisted handshake without rewriting profile',
+    'subsequent launches reuse persisted handshake without resolving again',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final stateRepository =
@@ -43,7 +40,6 @@ void main() {
         const FirebaseIdentityState(uid: 'uid-1', handshakeCompleted: true),
       );
 
-      var profileWriteCount = 0;
       final repository = FirebaseDeviceIdentityRepository(
         identityStateRepository: stateRepository,
         identityResolver: () async => FirebaseResolvedIdentity(
@@ -51,23 +47,27 @@ void main() {
           createdAt: DateTime(2026, 3, 30, 9, 0),
           lastSeenAt: DateTime(2026, 3, 30, 9, 0),
         ),
-        profileWriter: (uid, now) async {
-          profileWriteCount += 1;
-        },
       );
 
-      await repository.touchIdentity(DateTime(2026, 3, 30, 9, 1));
-      await repository.touchIdentity(DateTime(2026, 3, 30, 9, 2));
+      final readiness = await repository.readAuthReadiness();
+      final identity = await repository.readOrCreateIdentity();
 
-      expect(profileWriteCount, equals(1));
+      expect(readiness.status, equals(FirebaseAuthReadinessStatus.ready));
+      expect(readiness.uid, equals('uid-1'));
+      expect(identity.deviceId, equals('uid-1'));
+      expect(
+        await stateRepository.read(),
+        equals(
+          const FirebaseIdentityState(uid: 'uid-1', handshakeCompleted: true),
+        ),
+      );
     },
   );
 
   test(
-    'failed auth readiness reports failure without writing profile',
+    'failed auth readiness reports failure without persisting identity',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
-      var profileWriteCount = 0;
       final stateRepository =
           SharedPreferencesFirebaseIdentityStateRepository();
       final repository = FirebaseDeviceIdentityRepository(
@@ -75,15 +75,11 @@ void main() {
         identityResolver: () async {
           throw StateError('auth failed');
         },
-        profileWriter: (uid, now) async {
-          profileWriteCount += 1;
-        },
       );
 
       final readiness = await repository.readAuthReadiness();
 
       expect(readiness.status, equals(FirebaseAuthReadinessStatus.failed));
-      expect(profileWriteCount, equals(0));
       expect(await stateRepository.read(), isNull);
     },
   );

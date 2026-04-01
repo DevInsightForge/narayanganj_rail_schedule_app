@@ -82,8 +82,6 @@ FIREBASE_APPCHECK_WEB_KEY=
 - Arrival report submission is treated as successful only after the Firestore write completes.
 - `session_status_snapshots/{sessionId}` is the primary read path for optional community overlay data.
 - `predicted_stops` is now treated as legacy/administrative Firestore structure and is not read by the app in normal flows.
-- `user_profiles` is owner-write metadata only with no client reads.
-- `user_profiles` writes are capped to the first successful Firebase handshake on a device instead of being treated as a heartbeat channel.
 - Arrival reporting UI stays hidden until anonymous auth readiness resolves, while community overlay insight can still render independently.
 
 ## Firebase Spark Plan Considerations
@@ -91,7 +89,6 @@ FIREBASE_APPCHECK_WEB_KEY=
 - Firestore is used only for optional community-driven signals:
   - anonymous arrival report writes into `station_reports`
   - aggregate session overlay reads from `session_status_snapshots/{sessionId}`
-  - one-time anonymous identity bootstrap metadata in `user_profiles`
 - Spark free-tier limits to design around:
   - `50,000` document reads per day
   - `20,000` document writes per day
@@ -108,12 +105,10 @@ FIREBASE_APPCHECK_WEB_KEY=
   - keep `session_status_snapshots/{sessionId}` compact and aggregate-oriented
   - avoid realtime listeners for community overlay data
   - avoid broad `station_reports` scans and per-stop polling
-  - avoid writing `user_profiles` on every app launch, resume, or refresh
   - prefer schedule-only mode if Firebase is misconfigured or degraded
 - Risky patterns to avoid:
   - querying many stops individually for the same train session
   - reading `predicted_stops` subcollections on every refresh
-  - writing profile heartbeat metadata on every session
   - depending on Firestore cleanup features that require Blaze billing
 - The app remains fully usable with Firebase disabled or degraded because the official bundled/cached timetable stays offline-first.
 

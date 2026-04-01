@@ -8,7 +8,7 @@ enum RailReportActionReason {
   verificationLimitedEligible,
 }
 
-enum RailReportSubmissionOutcome { success, rateLimited, error }
+enum RailReportSubmissionOutcome { success, error }
 
 enum RailReportSubmissionFailureReason {
   authNotReady,
@@ -18,23 +18,10 @@ enum RailReportSubmissionFailureReason {
 
 enum RailReportVisibility { hidden, visible }
 
-enum RailReportGuardOutcome {
-  hiddenAuthPending,
-  visibleBlockedWindow,
-  visibleBlockedAlreadyReported,
-  visibleEnabled,
-}
-
 class RailReportAvailabilityResult {
-  const RailReportAvailabilityResult({
-    required this.reason,
-    this.boardingAt,
-    this.retryAfterSeconds,
-  });
+  const RailReportAvailabilityResult({required this.reason});
 
   final RailReportActionReason reason;
-  final DateTime? boardingAt;
-  final int? retryAfterSeconds;
 }
 
 class RailReportSubmissionResult {
@@ -42,13 +29,11 @@ class RailReportSubmissionResult {
     required this.outcome,
     required this.reason,
     required this.feedbackMessage,
-    this.retryAfterSeconds,
     this.failureReason,
   });
 
   final RailReportSubmissionOutcome outcome;
   final RailReportActionReason reason;
   final String feedbackMessage;
-  final int? retryAfterSeconds;
   final RailReportSubmissionFailureReason? failureReason;
 }

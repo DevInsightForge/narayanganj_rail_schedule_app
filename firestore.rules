@@ -13,10 +13,6 @@ service cloud.firestore {
       ];
     }
 
-    function profileKeys() {
-      return ['uid', 'lastSeenAt', 'updatedAt'];
-    }
-
     function isSignedIn() {
       return request.auth != null;
     }
@@ -42,14 +38,6 @@ service cloud.firestore {
         && isRecentSubmittedAt(request.resource.data.submittedAt);
     }
 
-    function isValidUserProfile(uid) {
-      return request.auth.uid == uid
-        && hasAllowedKeys(profileKeys())
-        && request.resource.data.uid == uid
-        && (!('lastSeenAt' in request.resource.data) || request.resource.data.lastSeenAt is timestamp)
-        && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
-    }
-
     match /station_reports/{reportId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && isValidStationReport();
@@ -66,10 +54,5 @@ service cloud.firestore {
       }
     }
 
-    match /user_profiles/{uid} {
-      allow read: if false;
-      allow create, update: if isSignedIn() && isValidUserProfile(uid);
-      allow delete: if false;
-    }
   }
 }

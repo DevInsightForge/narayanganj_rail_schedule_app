@@ -1,12 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/mappers/community_dto_mapper.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/mappers/rail_schedule_template_mapper.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_device_identity_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_rate_limit_policy_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_session_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/rate_limit_policy.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
 
@@ -93,58 +90,6 @@ void main() {
 
       expect(identity.deviceId, equals(sameIdentity.deviceId));
       expect(identity.createdAt, equals(sameIdentity.createdAt));
-    });
-
-    test('rate limit repository enforces simple window policy', () async {
-      final repository = FakeRateLimitPolicyRepository(
-        seed: const {
-          'arrival_report': RateLimitPolicy(
-            key: 'arrival_report',
-            maxEvents: 2,
-            windowSeconds: 60,
-            coolDownSeconds: 30,
-          ),
-        },
-      );
-      final now = DateTime(2026, 3, 28, 10, 0);
-
-      final first = await repository.checkAllowance(
-        key: 'arrival_report',
-        now: now,
-      );
-      await repository.recordEvent(key: 'arrival_report', now: now);
-      await repository.recordEvent(
-        key: 'arrival_report',
-        now: now.add(const Duration(seconds: 5)),
-      );
-      final blocked = await repository.checkAllowance(
-        key: 'arrival_report',
-        now: now.add(const Duration(seconds: 10)),
-      );
-
-      expect(first.allowed, isTrue);
-      expect(blocked.allowed, isFalse);
-      expect(blocked.retryAfterSeconds, greaterThan(0));
-    });
-
-    test('community dto mapper round-trips arrival report values', () {
-      const mapper = CommunityDtoMapper();
-      final report = ArrivalReport(
-        reportId: 'r-1',
-        sessionId: 's-1',
-        stationId: 'dhaka',
-        deviceId: 'dev-1',
-        observedArrivalAt: DateTime.utc(2026, 3, 28, 8, 0),
-        submittedAt: DateTime.utc(2026, 3, 28, 8, 1),
-      );
-
-      final dto = mapper.toArrivalReportDto(report);
-      final restored = mapper.fromArrivalReportDto(dto);
-
-      expect(restored.reportId, equals(report.reportId));
-      expect(restored.sessionId, equals(report.sessionId));
-      expect(restored.stationId, equals(report.stationId));
-      expect(restored.deviceId, equals(report.deviceId));
     });
   });
 }

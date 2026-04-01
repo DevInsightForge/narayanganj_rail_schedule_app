@@ -1,7 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-import 'moderation_flag.dart';
-
 class ArrivalReport extends Equatable {
   const ArrivalReport({
     required this.reportId,
@@ -10,7 +8,6 @@ class ArrivalReport extends Equatable {
     required this.deviceId,
     required this.observedArrivalAt,
     required this.submittedAt,
-    this.flags = const [],
   });
 
   final String reportId;
@@ -19,7 +16,6 @@ class ArrivalReport extends Equatable {
   final String deviceId;
   final DateTime observedArrivalAt;
   final DateTime submittedAt;
-  final List<ModerationFlag> flags;
 
   @override
   List<Object?> get props => [
@@ -29,6 +25,5 @@ class ArrivalReport extends Equatable {
     deviceId,
     observedArrivalAt,
     submittedAt,
-    flags,
   ];
 }

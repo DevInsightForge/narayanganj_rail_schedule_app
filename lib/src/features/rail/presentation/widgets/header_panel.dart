@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/rail_snapshot.dart';
-import '../bloc/rail_board_bloc.dart';
+import '../bloc/rail_board_cubit.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
 
@@ -16,7 +16,7 @@ class HeaderPanel extends StatelessWidget {
     final tokens = RailBoardTokens.of(context);
     final textTheme = Theme.of(context).textTheme;
     final nextService = view.snapshot.nextService;
-    final boardService = context.read<RailBoardBloc>().boardService;
+    final boardService = context.read<RailBoardCubit>().boardService;
 
     return PanelShell(
       surface: RailPanelSurface.accent,
@@ -90,9 +90,8 @@ class HeaderPanel extends StatelessWidget {
             options: view.directionOptions,
             value: view.selection.direction,
             scrollable: false,
-            onPressed: (value) => context.read<RailBoardBloc>().add(
-              RailBoardDirectionChanged(value),
-            ),
+            onPressed: (value) =>
+                context.read<RailBoardCubit>().changeDirection(value),
           ),
           SizedBox(height: tokens.itemGap),
           _SelectionStrip(
@@ -100,9 +99,8 @@ class HeaderPanel extends StatelessWidget {
             options: view.boardingStations,
             value: view.selection.boardingStationId,
             scrollable: true,
-            onPressed: (value) => context.read<RailBoardBloc>().add(
-              RailBoardBoardingChanged(value),
-            ),
+            onPressed: (value) =>
+                context.read<RailBoardCubit>().changeBoarding(value),
           ),
           SizedBox(height: tokens.itemGap),
           _SelectionStrip(
@@ -110,9 +108,8 @@ class HeaderPanel extends StatelessWidget {
             options: view.destinationStations,
             value: view.selection.destinationStationId,
             scrollable: true,
-            onPressed: (value) => context.read<RailBoardBloc>().add(
-              RailBoardDestinationChanged(value),
-            ),
+            onPressed: (value) =>
+                context.read<RailBoardCubit>().changeDestination(value),
           ),
         ],
       ),
