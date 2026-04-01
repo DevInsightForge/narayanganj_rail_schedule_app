@@ -73,7 +73,10 @@ class RailBoardReportState extends Equatable {
     this.feedbackMessage,
     this.retryAfterSeconds,
     this.actionReason = RailReportActionReason.noSession,
-    this.isActionEnabled = false,
+    this.authReadiness = const FirebaseAuthReadiness.unknown(),
+    this.guardOutcome = RailReportGuardOutcome.hiddenAuthPending,
+    this.visibility = RailReportVisibility.hidden,
+    this.submitEnabled = false,
     this.hasReportedCurrentSession = false,
     this.actionHint,
   });
@@ -82,16 +85,26 @@ class RailBoardReportState extends Equatable {
   final String? feedbackMessage;
   final int? retryAfterSeconds;
   final RailReportActionReason actionReason;
-  final bool isActionEnabled;
+  final FirebaseAuthReadiness authReadiness;
+  final RailReportGuardOutcome guardOutcome;
+  final RailReportVisibility visibility;
+  final bool submitEnabled;
   final bool hasReportedCurrentSession;
   final String? actionHint;
+
+  bool get isActionEnabled => submitEnabled;
+
+  bool get isActionVisible => visibility == RailReportVisibility.visible;
 
   RailBoardReportState copyWith({
     RailReportSubmissionStatus? status,
     String? feedbackMessage,
     int? retryAfterSeconds,
     RailReportActionReason? actionReason,
-    bool? isActionEnabled,
+    FirebaseAuthReadiness? authReadiness,
+    RailReportGuardOutcome? guardOutcome,
+    RailReportVisibility? visibility,
+    bool? submitEnabled,
     bool? hasReportedCurrentSession,
     String? actionHint,
     bool clearActionHint = false,
@@ -107,7 +120,10 @@ class RailBoardReportState extends Equatable {
           ? null
           : retryAfterSeconds ?? this.retryAfterSeconds,
       actionReason: actionReason ?? this.actionReason,
-      isActionEnabled: isActionEnabled ?? this.isActionEnabled,
+      authReadiness: authReadiness ?? this.authReadiness,
+      guardOutcome: guardOutcome ?? this.guardOutcome,
+      visibility: visibility ?? this.visibility,
+      submitEnabled: submitEnabled ?? this.submitEnabled,
       hasReportedCurrentSession:
           hasReportedCurrentSession ?? this.hasReportedCurrentSession,
       actionHint: clearActionHint ? null : actionHint ?? this.actionHint,
@@ -120,7 +136,10 @@ class RailBoardReportState extends Equatable {
     feedbackMessage,
     retryAfterSeconds,
     actionReason,
-    isActionEnabled,
+    authReadiness,
+    guardOutcome,
+    visibility,
+    submitEnabled,
     hasReportedCurrentSession,
     actionHint,
   ];

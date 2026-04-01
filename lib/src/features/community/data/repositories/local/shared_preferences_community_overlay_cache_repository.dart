@@ -59,14 +59,11 @@ class SharedPreferencesCommunityOverlayCacheRepository
       'sessionStatusSnapshot': overlay.sessionStatusSnapshot == null
           ? null
           : _writeSnapshot(overlay.sessionStatusSnapshot!),
-      'predictedStopTimes': overlay.predictedStopTimes.map(_writePrediction).toList(
-        growable: false,
-      ),
+      'predictedStopTimes': overlay.predictedStopTimes
+          .map(_writePrediction)
+          .toList(growable: false),
     };
-    await preferences.setString(
-      '$_keyPrefix$sessionId',
-      jsonEncode(payload),
-    );
+    await preferences.setString('$_keyPrefix$sessionId', jsonEncode(payload));
   }
 
   SessionStatusSnapshot _readSnapshot(Map<String, dynamic> map) {
@@ -101,9 +98,8 @@ class SharedPreferencesCommunityOverlayCacheRepository
     return PredictedStopTime(
       sessionId: '${map['sessionId'] ?? ''}',
       stationId: '${map['stationId'] ?? ''}',
-      predictedAt: DateTime.tryParse(
-            '${map['predictedAt'] ?? ''}',
-          )?.toLocal() ??
+      predictedAt:
+          DateTime.tryParse('${map['predictedAt'] ?? ''}')?.toLocal() ??
           DateTime.fromMillisecondsSinceEpoch(0),
       referenceStationId: '${map['referenceStationId'] ?? ''}',
       origin: DataOrigin.values.byName('${map['origin'] ?? 'community'}'),

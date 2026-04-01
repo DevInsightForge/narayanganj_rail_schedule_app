@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../../../core/errors/error_report_context.dart';
+import '../../../../../core/logging/debug_logger.dart';
 import '../../../domain/entities/community_overlay_result.dart';
 import '../../../domain/entities/data_origin.dart';
 import '../../../domain/entities/delay_status.dart';
@@ -13,13 +15,17 @@ class FirebaseCommunityOverlayRepository implements CommunityOverlayRepository {
     required FirebaseFirestore firestore,
     Future<Map<String, dynamic>?> Function(String sessionId)? loader,
     DateTime Function()? nowProvider,
+    DebugLogger? logger,
   }) : _firestore = firestore,
        _loader = loader,
-       _nowProvider = nowProvider ?? DateTime.now;
+       _nowProvider = nowProvider ?? DateTime.now,
+       _logger =
+           logger ?? const DebugLogger('FirebaseCommunityOverlayRepository');
 
   final FirebaseFirestore _firestore;
   final Future<Map<String, dynamic>?> Function(String sessionId)? _loader;
   final DateTime Function() _nowProvider;
+  final DebugLogger _logger;
 
   @override
   Future<CommunityOverlayResult> fetchSessionOverlay({
@@ -29,10 +35,7 @@ class FirebaseCommunityOverlayRepository implements CommunityOverlayRepository {
     final data = await (_loader?.call(sessionId) ?? _load(sessionId));
     final fetchedAt = _nowProvider();
     if (data == null || data.isEmpty) {
-      return CommunityOverlayResult(
-        fetchedAt: fetchedAt,
-        fromCache: false,
-      );
+      return CommunityOverlayResult(fetchedAt: fetchedAt, fromCache: false);
     }
     return CommunityOverlayResult(
       sessionStatusSnapshot: _readSnapshot(sessionId, data),
@@ -43,11 +46,23 @@ class FirebaseCommunityOverlayRepository implements CommunityOverlayRepository {
   }
 
   Future<Map<String, dynamic>?> _load(String sessionId) async {
-    final document = await _firestore
-        .collection('session_status_snapshots')
-        .doc(sessionId)
-        .get();
-    return document.data();
+    try {
+      final document = await _firestore
+          .collection('session_status_snapshots')
+          .doc(sessionId)
+          .get();
+      return document.data();
+    } catch (error) {
+      _logger.log(
+        'overlay_load_fail',
+        context: ErrorReportContext(
+          feature: 'community_overlay',
+          event: 'overlay_load',
+          sessionId: sessionId,
+        ).toMap(),
+      );
+      rethrow;
+    }
   }
 
   SessionStatusSnapshot? _readSnapshot(
@@ -82,21 +97,20 @@ class FirebaseCommunityOverlayRepository implements CommunityOverlayRepository {
     }
     return raw
         .whereType<Map<String, dynamic>>()
-        .map((prediction) => PredictedStopTime(
-              sessionId: '${prediction['sessionId'] ?? sessionId}',
-              stationId: '${prediction['stationId'] ?? ''}',
-              predictedAt:
-                  _readDateTime(prediction['predictedAt']) ?? _nowProvider(),
-              referenceStationId:
-                  '${prediction['referenceStationId'] ?? ''}',
-              origin: _parseDataOrigin(
-                '${prediction['origin'] ?? 'community'}',
-              ),
-              confidence: _readConfidence(
-                _readConfidenceMap(prediction['confidence']) ??
-                    const <String, dynamic>{},
-              ),
-            ))
+        .map(
+          (prediction) => PredictedStopTime(
+            sessionId: '${prediction['sessionId'] ?? sessionId}',
+            stationId: '${prediction['stationId'] ?? ''}',
+            predictedAt:
+                _readDateTime(prediction['predictedAt']) ?? _nowProvider(),
+            referenceStationId: '${prediction['referenceStationId'] ?? ''}',
+            origin: _parseDataOrigin('${prediction['origin'] ?? 'community'}'),
+            confidence: _readConfidence(
+              _readConfidenceMap(prediction['confidence']) ??
+                  const <String, dynamic>{},
+            ),
+          ),
+        )
         .toList(growable: false);
   }
 

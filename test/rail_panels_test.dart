@@ -123,46 +123,47 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('footer panel opens drawer with about content first and policy hyperlinks', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: MediaQuery(
-          data: MediaQueryData(size: Size(390, 844)),
-          child: Scaffold(
-            body: Padding(
-              padding: EdgeInsets.all(16),
-              child: FooterPanel(
-                dataSourceLabel: 'Bundled schedule',
-                lastUpdatedAt: null,
-                scheduleVersion: 'v1',
+  testWidgets(
+    'footer panel opens drawer with about content first and policy hyperlinks',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData(size: Size(390, 844)),
+            child: Scaffold(
+              body: Padding(
+                padding: EdgeInsets.all(16),
+                child: FooterPanel(
+                  dataSourceLabel: 'Bundled schedule',
+                  lastUpdatedAt: null,
+                  scheduleVersion: 'v1',
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
-    await tester.pump();
+      );
+      await tester.pump();
 
-    await tester.tap(find.text('Details'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Details'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('App details'), findsOneWidget);
-    expect(find.text('About'), findsOneWidget);
-    expect(
-      find.text(
-        'Narayanganj Commuter helps riders check the Dhaka-Narayanganj commuter schedule quickly, with official timetable data kept as the baseline view.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Privacy: '), findsOneWidget);
-    expect(find.text('Terms: '), findsOneWidget);
-    expect(find.text('Privacy policy'), findsOneWidget);
-    expect(find.text('Terms of service'), findsOneWidget);
-    expect(find.text('Open link'), findsNWidgets(2));
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.text('App details'), findsOneWidget);
+      expect(find.text('About'), findsOneWidget);
+      expect(
+        find.text(
+          'Narayanganj Commuter helps riders check the Dhaka-Narayanganj commuter schedule quickly, with official timetable data kept as the baseline view.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Privacy: '), findsOneWidget);
+      expect(find.text('Terms: '), findsOneWidget);
+      expect(find.text('Privacy policy'), findsOneWidget);
+      expect(find.text('Terms of service'), findsOneWidget);
+      expect(find.text('Open link'), findsNWidgets(2));
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 class _PanelHarness extends StatelessWidget {

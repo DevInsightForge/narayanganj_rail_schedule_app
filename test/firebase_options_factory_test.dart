@@ -46,6 +46,16 @@ void main() {
 
     expect(factory.create(), isNull);
   });
+
+  test('reads error reporting flag independently', () {
+    final env = <String, String>{
+      'FIREBASE_ENABLED': 'true',
+      'FIREBASE_CRASHLYTICS_ENABLED': 'true',
+    };
+    final factory = FirebaseOptionsFactory(envReader: (key) => env[key]);
+
+    expect(factory.isErrorReportingEnabled, isTrue);
+  });
 }
 
 String? _emptyEnv(String key) => null;

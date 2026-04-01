@@ -26,6 +26,7 @@ void main() {
             enabled: true,
             initialized: false,
             appCheckEnabled: false,
+            errorReportingEnabled: false,
             status: 'failed',
           ),
         ),

@@ -17,3 +17,15 @@ String? readRuntimeEnv(String key) {
 
   return null;
 }
+
+bool readRuntimeBoolEnv(
+  String key, {
+  required bool defaultValue,
+  String? Function(String key)? envReader,
+}) {
+  final raw = (envReader ?? readRuntimeEnv)(key)?.toLowerCase().trim();
+  if (raw == null || raw.isEmpty) {
+    return defaultValue;
+  }
+  return raw == 'true' || raw == '1' || raw == 'yes';
+}

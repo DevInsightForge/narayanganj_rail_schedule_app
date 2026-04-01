@@ -25,6 +25,7 @@ void main() {
 
     expect(runtime.enabled, isTrue);
     expect(runtime.initialized, isFalse);
+    expect(runtime.errorReportingEnabled, isFalse);
     expect(appCheckActivated, isFalse);
   });
 
@@ -40,6 +41,7 @@ void main() {
       final runtime = await bootstrap.initialize();
       expect(runtime.enabled, isFalse);
       expect(runtime.initialized, isFalse);
+      expect(runtime.errorReportingEnabled, isFalse);
     },
   );
 }

@@ -1,6 +1,7 @@
 import '../../../domain/repositories/arrival_report_ledger_repository.dart';
 
-class FakeArrivalReportLedgerRepository implements ArrivalReportLedgerRepository {
+class FakeArrivalReportLedgerRepository
+    implements ArrivalReportLedgerRepository {
   final Map<String, DateTime> _entries = <String, DateTime>{};
 
   @override

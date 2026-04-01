@@ -3,12 +3,17 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
+import '../../../community/domain/entities/firebase_auth_readiness.dart';
 import '../../../community/domain/repositories/arrival_report_repository.dart';
 import '../../../community/domain/repositories/arrival_report_ledger_repository.dart';
 import '../../../community/domain/repositories/community_overlay_repository.dart';
 import '../../../community/domain/repositories/device_identity_repository.dart';
 import '../../../community/domain/repositories/rate_limit_policy_repository.dart';
 import '../../../community/domain/repositories/session_repository.dart';
+import '../../../../core/errors/error_report_context.dart';
+import '../../../../core/errors/error_reporter.dart';
+import '../../../../core/logging/debug_logger.dart';
+import '../../../../core/tracing/attempt_id_factory.dart';
 import '../../../community/domain/services/session_lifecycle_service.dart';
 import '../../application/models/rail_community_insight_result.dart';
 import '../../application/models/rail_reporting.dart';
@@ -37,13 +42,20 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     required CommunityOverlayRepository communityOverlayRepository,
     required DeviceIdentityRepository deviceIdentityRepository,
     required RateLimitPolicyRepository rateLimitPolicyRepository,
+    ErrorReporter? errorReporter,
+    AttemptIdFactory? attemptIdFactory,
+    DebugLogger? logger,
     this.communityFeaturesEnabled = true,
     this.enableTicker = true,
     DateTime Function()? nowProvider,
   }) : _boardService = boardService,
        _scheduleDataRepository = scheduleDataRepository,
        _selectionRepository = selectionRepository,
+       _deviceIdentityRepository = deviceIdentityRepository,
        _nowProvider = nowProvider ?? DateTime.now,
+       _errorReporter = errorReporter ?? const NoopErrorReporter(),
+       _attemptIdFactory = attemptIdFactory ?? AttemptIdFactory(),
+       _logger = logger ?? const DebugLogger('RailBoardBloc'),
        _reportCoordinator = RailReportCoordinator(
          sessionResolver: RailSessionResolver(
            sessionRepository: sessionRepository,
@@ -54,6 +66,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
          arrivalReportLedgerRepository: arrivalReportLedgerRepository,
          deviceIdentityRepository: deviceIdentityRepository,
          rateLimitPolicyRepository: rateLimitPolicyRepository,
+         errorReporter: errorReporter,
        ),
        _communityCoordinator = RailCommunityInsightCoordinator(
          sessionResolver: RailSessionResolver(
@@ -62,6 +75,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
            routeId: _routeId,
          ),
          communityOverlayRepository: communityOverlayRepository,
+         errorReporter: errorReporter,
        ),
        _initialScheduleVersion = boardService.schedule.version,
        _activeSource = ScheduleDataSource.bundled,
@@ -91,7 +105,11 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
   RailBoardService _boardService;
   final ScheduleDataRepository _scheduleDataRepository;
   final SelectionRepository _selectionRepository;
+  final DeviceIdentityRepository _deviceIdentityRepository;
   final DateTime Function() _nowProvider;
+  final ErrorReporter _errorReporter;
+  final AttemptIdFactory _attemptIdFactory;
+  final DebugLogger _logger;
   final bool communityFeaturesEnabled;
   final bool enableTicker;
   final RailReportCoordinator _reportCoordinator;
@@ -116,7 +134,11 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     RailBoardRetryRequested event,
     Emitter<RailBoardState> emit,
   ) async {
-    await _loadBoard(emit: emit, showLoading: true, forceCommunityRefresh: true);
+    await _loadBoard(
+      emit: emit,
+      showLoading: true,
+      forceCommunityRefresh: true,
+    );
   }
 
   Future<void> _loadBoard({
@@ -124,6 +146,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     required bool showLoading,
     bool forceCommunityRefresh = false,
   }) async {
+    final attemptId = _attemptIdFactory.next();
     if (showLoading) {
       emit(state.copyWith(status: RailBoardStatus.loading, clearError: true));
     }
@@ -172,7 +195,13 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
         emit: emit,
         forceCommunityRefresh: forceCommunityRefresh,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      await _reportBlocGuard(
+        error,
+        stackTrace,
+        event: 'load_board',
+        attemptId: attemptId,
+      );
       emit(
         state.copyWith(
           status: RailBoardStatus.failure,
@@ -187,23 +216,44 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     required Emitter<RailBoardState> emit,
     bool forceCommunityRefresh = false,
   }) async {
+    final attemptId = _attemptIdFactory.next();
     final previousDirection = state.selection.direction;
     final previousTrainNo = state.snapshot.nextService?.trainNo;
-    await _selectionRepository.write(selection);
-    emit(_buildState(selection));
-    await _refreshReportAvailability(selection: selection, emit: emit);
-    if (!communityFeaturesEnabled) {
-      return;
-    }
-    final nextDirection = state.selection.direction;
-    final nextTrainNo = state.snapshot.nextService?.trainNo;
-    final trainContextChanged =
-        previousDirection != nextDirection || previousTrainNo != nextTrainNo;
-    if (trainContextChanged || forceCommunityRefresh) {
-      await _refreshCommunityInsights(
+    try {
+      await _selectionRepository.write(selection);
+      emit(_buildState(selection));
+      await _refreshReportAvailability(
         selection: selection,
         emit: emit,
-        forceRefresh: forceCommunityRefresh,
+        attemptId: attemptId,
+      );
+      if (!communityFeaturesEnabled) {
+        return;
+      }
+      final nextDirection = state.selection.direction;
+      final nextTrainNo = state.snapshot.nextService?.trainNo;
+      final trainContextChanged =
+          previousDirection != nextDirection || previousTrainNo != nextTrainNo;
+      if (trainContextChanged || forceCommunityRefresh) {
+        await _refreshCommunityInsights(
+          selection: selection,
+          emit: emit,
+          forceRefresh: forceCommunityRefresh,
+          attemptId: attemptId,
+        );
+      }
+    } catch (error, stackTrace) {
+      await _reportBlocGuard(
+        error,
+        stackTrace,
+        event: 'persist_and_emit',
+        attemptId: attemptId,
+      );
+      emit(
+        state.copyWith(
+          status: RailBoardStatus.failure,
+          errorMessage: _fallbackErrorMessage,
+        ),
       );
     }
   }
@@ -251,6 +301,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       selection: state.selection,
       emit: emit,
       now: now,
+      attemptId: _attemptIdFactory.next(),
     );
     if (!communityFeaturesEnabled) {
       return;
@@ -269,8 +320,28 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       return;
     }
 
-    await _refreshReportAvailability(selection: state.selection, emit: emit);
-    if (!state.report.isActionEnabled) {
+    final attemptId = _attemptIdFactory.next();
+    await _refreshReportAvailability(
+      selection: state.selection,
+      emit: emit,
+      attemptId: attemptId,
+    );
+    if (!state.report.submitEnabled) {
+      if (state.report.visibility == RailReportVisibility.hidden) {
+        await _reportBlocGuard(
+          StateError('report_submit_hidden'),
+          StackTrace.current,
+          event: 'submit_guard_hidden',
+          attemptId: attemptId,
+        );
+        return;
+      }
+      await _reportBlocGuard(
+        StateError('report_submit_blocked'),
+        StackTrace.current,
+        event: 'submit_guard_blocked',
+        attemptId: attemptId,
+      );
       emit(
         state.copyWith(
           report: state.report.copyWith(
@@ -300,6 +371,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       nextService: state.snapshot.nextService,
       selectedStationName: state.snapshot.selectedStationName,
       now: _nowProvider(),
+      attemptId: attemptId,
     );
 
     emit(
@@ -317,16 +389,27 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
             feedbackMessage: submission.feedbackMessage,
             retryAfterSeconds: submission.retryAfterSeconds,
           ),
+          authReadiness: state.report.authReadiness,
           reason: submission.reason,
         ),
       ),
     );
+
+    if (submission.failureReason ==
+        RailReportSubmissionFailureReason.authNotReady) {
+      await _refreshReportAvailability(
+        selection: state.selection,
+        emit: emit,
+        attemptId: attemptId,
+      );
+    }
 
     if (submission.outcome == RailReportSubmissionOutcome.success) {
       await _refreshCommunityInsights(
         selection: state.selection,
         emit: emit,
         forceRefresh: true,
+        attemptId: attemptId,
       );
     }
   }
@@ -335,6 +418,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     required RailSelection selection,
     required Emitter<RailBoardState> emit,
     bool forceRefresh = false,
+    String? attemptId,
   }) async {
     emit(
       state.copyWith(
@@ -349,6 +433,7 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       nextService: state.snapshot.nextService,
       now: _nowProvider(),
       forceRefresh: forceRefresh,
+      attemptId: attemptId ?? _attemptIdFactory.next(),
     );
     final mappedStatus = _mapInsightKind(result.kind);
     emit(
@@ -370,11 +455,14 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     required RailSelection selection,
     required Emitter<RailBoardState> emit,
     DateTime? now,
+    String? attemptId,
   }) async {
     final revision = ++_reportAvailabilityRevision;
+    final resolvedNow = now ?? _nowProvider();
     if (state.status != RailBoardStatus.ready || !communityFeaturesEnabled) {
       final nextReport = _deriveReportActionState(
         state.report.copyWith(clearActionHint: true),
+        authReadiness: const FirebaseAuthReadiness.unknown(),
         reason: RailReportActionReason.noSession,
       );
       if (revision == _reportAvailabilityRevision &&
@@ -384,15 +472,57 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
       return;
     }
 
+    final resolvingReport = state.report.copyWith(
+      authReadiness: const FirebaseAuthReadiness.resolving(),
+      guardOutcome: RailReportGuardOutcome.hiddenAuthPending,
+      visibility: RailReportVisibility.hidden,
+      submitEnabled: false,
+      actionReason: RailReportActionReason.noSession,
+      hasReportedCurrentSession: false,
+      clearActionHint: true,
+    );
+    if (revision == _reportAvailabilityRevision &&
+        resolvingReport != state.report) {
+      emit(state.copyWith(report: resolvingReport));
+    }
+
+    final currentAttemptId = attemptId ?? _attemptIdFactory.next();
+    final authReadiness = await _deviceIdentityRepository.readAuthReadiness(
+      attemptId: currentAttemptId,
+    );
+    if (revision != _reportAvailabilityRevision) {
+      return;
+    }
+    if (!authReadiness.isReady) {
+      final nextReport = state.report.copyWith(
+        authReadiness: authReadiness,
+        guardOutcome: RailReportGuardOutcome.hiddenAuthPending,
+        visibility: RailReportVisibility.hidden,
+        submitEnabled: false,
+        actionReason: RailReportActionReason.noSession,
+        hasReportedCurrentSession: false,
+        clearActionHint: true,
+      );
+      if (nextReport != state.report) {
+        emit(state.copyWith(report: nextReport));
+      }
+      return;
+    }
+
     final availability = await _reportCoordinator.resolveAvailability(
       selection: selection,
       nextService: state.snapshot.nextService,
-      now: now ?? _nowProvider(),
+      now: resolvedNow,
+      attemptId: currentAttemptId,
     );
+    if (revision != _reportAvailabilityRevision) {
+      return;
+    }
     final nextReport = _deriveReportActionState(
       state.report,
+      authReadiness: authReadiness,
       reason: availability.reason,
-      now: now ?? _nowProvider(),
+      now: resolvedNow,
       boardingAt: availability.boardingAt,
     );
     if (revision == _reportAvailabilityRevision && nextReport != state.report) {
@@ -400,26 +530,69 @@ class RailBoardBloc extends Bloc<RailBoardEvent, RailBoardState> {
     }
   }
 
+  Future<void> _reportBlocGuard(
+    Object error,
+    StackTrace stackTrace, {
+    required String event,
+    required String attemptId,
+  }) async {
+    final context = ErrorReportContext(
+      feature: 'rail_board',
+      event: event,
+      attemptId: attemptId,
+    );
+    _logger.log(event, context: context.toMap());
+    await _errorReporter.reportNonFatal(
+      error,
+      stackTrace,
+      reason: 'rail_board_$event',
+      context: context,
+    );
+  }
+
   RailBoardReportState _deriveReportActionState(
     RailBoardReportState base, {
+    required FirebaseAuthReadiness authReadiness,
     required RailReportActionReason reason,
     DateTime? now,
     DateTime? boardingAt,
   }) {
-    final hint = _reportActionHint(
+    final guardOutcome = _deriveGuardOutcome(
+      authReadiness: authReadiness,
       reason: reason,
-      now: now,
-      boardingAt: boardingAt,
     );
+    final hint = guardOutcome == RailReportGuardOutcome.hiddenAuthPending
+        ? null
+        : _reportActionHint(reason: reason, now: now, boardingAt: boardingAt);
     return base.copyWith(
+      authReadiness: authReadiness,
+      guardOutcome: guardOutcome,
+      visibility: guardOutcome == RailReportGuardOutcome.hiddenAuthPending
+          ? RailReportVisibility.hidden
+          : RailReportVisibility.visible,
+      submitEnabled: guardOutcome == RailReportGuardOutcome.visibleEnabled,
       actionReason: reason,
-      isActionEnabled:
-          reason == RailReportActionReason.eligible ||
-          reason == RailReportActionReason.verificationLimitedEligible,
       hasReportedCurrentSession:
           reason == RailReportActionReason.alreadySubmitted,
       actionHint: hint,
     );
+  }
+
+  RailReportGuardOutcome _deriveGuardOutcome({
+    required FirebaseAuthReadiness authReadiness,
+    required RailReportActionReason reason,
+  }) {
+    if (!authReadiness.isReady) {
+      return RailReportGuardOutcome.hiddenAuthPending;
+    }
+    if (reason == RailReportActionReason.alreadySubmitted) {
+      return RailReportGuardOutcome.visibleBlockedAlreadyReported;
+    }
+    if (reason == RailReportActionReason.eligible ||
+        reason == RailReportActionReason.verificationLimitedEligible) {
+      return RailReportGuardOutcome.visibleEnabled;
+    }
+    return RailReportGuardOutcome.visibleBlockedWindow;
   }
 
   String _reportActionHint({

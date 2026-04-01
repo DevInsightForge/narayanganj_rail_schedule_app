@@ -1,5 +1,6 @@
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 
+import '../core/errors/error_reporting.dart';
 import '../core/firebase/firebase_bootstrap.dart';
 import '../features/rail/data/models/rail_schedule_document_parser.dart';
 import '../features/rail/data/repositories/bundled_schedule_source.dart';
@@ -30,11 +31,14 @@ class AppBootstrap {
             : null,
       ),
     );
+    final errorReporter = buildErrorReporter(firebaseRuntime: firebaseRuntime);
+    await errorReporter.initialize();
 
     return AppComposition(
       firebaseRuntime: firebaseRuntime,
       bundledSchedule: bundledSchedule,
       scheduleDataRepository: scheduleDataRepository,
+      errorReporter: errorReporter,
     );
   }
 }

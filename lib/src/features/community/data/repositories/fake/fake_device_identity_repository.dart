@@ -1,13 +1,20 @@
 import 'dart:math';
 
 import '../../../domain/entities/device_identity.dart';
+import '../../../domain/entities/firebase_auth_readiness.dart';
 import '../../../domain/repositories/device_identity_repository.dart';
 
 class FakeDeviceIdentityRepository implements DeviceIdentityRepository {
   DeviceIdentity? _identity;
 
   @override
-  Future<DeviceIdentity> readOrCreateIdentity() async {
+  Future<FirebaseAuthReadiness> readAuthReadiness({String? attemptId}) async {
+    final identity = await readOrCreateIdentity(attemptId: attemptId);
+    return FirebaseAuthReadiness.ready(identity.deviceId);
+  }
+
+  @override
+  Future<DeviceIdentity> readOrCreateIdentity({String? attemptId}) async {
     final existing = _identity;
     if (existing != null) {
       return existing;
@@ -23,8 +30,8 @@ class FakeDeviceIdentityRepository implements DeviceIdentityRepository {
   }
 
   @override
-  Future<void> touchIdentity(DateTime now) async {
-    final identity = await readOrCreateIdentity();
+  Future<void> touchIdentity(DateTime now, {String? attemptId}) async {
+    final identity = await readOrCreateIdentity(attemptId: attemptId);
     _identity = identity.copyWith(lastSeenAt: now);
   }
 

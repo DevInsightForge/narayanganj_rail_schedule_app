@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_ledger_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_repository.dart';
@@ -9,6 +11,7 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/entities
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/data_origin.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/delay_status.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/device_identity.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/firebase_auth_readiness.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/predicted_stop_time.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/rate_limit_policy.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/report_confidence.dart';
@@ -45,7 +48,10 @@ void main() {
         nowProvider: () => DateTime(2026, 3, 28, 4, 25),
       );
 
-      await _waitForState(bloc, (state) => state.status == RailBoardStatus.ready);
+      await _waitForState(
+        bloc,
+        (state) => state.status == RailBoardStatus.ready,
+      );
       bloc.add(const RailBoardArrivalReportRequested());
 
       final reportState = await _waitForState(
@@ -60,7 +66,7 @@ void main() {
       );
       expect(stored, isNotEmpty);
       expect(reportState.report.hasReportedCurrentSession, isTrue);
-      expect(reportState.report.isActionEnabled, isFalse);
+      expect(reportState.report.submitEnabled, isFalse);
       expect(
         await ledger.hasSubmitted(
           sessionId: _seedSessions().first.sessionId,
@@ -89,7 +95,81 @@ void main() {
       await bloc.close();
     });
 
-    test('reports rate-limited when local policy blocks submission', () async {
+    test('hides reporting action while auth readiness is resolving', () async {
+      final readinessCompleter = Completer<FirebaseAuthReadiness>();
+      final deviceIdentityRepository = _ResolvingDeviceIdentityRepository(
+        readiness: readinessCompleter.future,
+        identity: DeviceIdentity(
+          deviceId: 'device-1',
+          createdAt: DateTime(2026, 3, 28, 4),
+          lastSeenAt: DateTime(2026, 3, 28, 4),
+        ),
+      );
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: deviceIdentityRepository,
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+      );
+
+      final resolvingState = await _waitForState(
+        bloc,
+        (state) =>
+            state.status == RailBoardStatus.ready &&
+            state.report.authReadiness.status ==
+                FirebaseAuthReadinessStatus.resolving,
+      );
+      expect(resolvingState.report.visibility, RailReportVisibility.hidden);
+      expect(resolvingState.report.submitEnabled, isFalse);
+
+      readinessCompleter.complete(
+        const FirebaseAuthReadiness.ready('device-1'),
+      );
+      final readyState = await _waitForState(
+        bloc,
+        (state) =>
+            state.status == RailBoardStatus.ready &&
+            state.report.authReadiness.status ==
+                FirebaseAuthReadinessStatus.ready,
+      );
+      expect(readyState.report.visibility, RailReportVisibility.visible);
+      expect(readyState.report.submitEnabled, isTrue);
+      await bloc.close();
+    });
+
+    test('hides reporting action when auth readiness fails', () async {
+      final deviceIdentityRepository = _ResolvingDeviceIdentityRepository(
+        readiness: Future.value(const FirebaseAuthReadiness.failed()),
+        identity: DeviceIdentity(
+          deviceId: 'device-1',
+          createdAt: DateTime(2026, 3, 28, 4),
+          lastSeenAt: DateTime(2026, 3, 28, 4),
+        ),
+      );
+      final bloc = _buildBloc(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: FakeArrivalReportRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: deviceIdentityRepository,
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+      );
+
+      final failedState = await _waitForState(
+        bloc,
+        (state) =>
+            state.status == RailBoardStatus.ready &&
+            state.report.authReadiness.status ==
+                FirebaseAuthReadinessStatus.failed,
+      );
+      expect(failedState.report.visibility, RailReportVisibility.hidden);
+      expect(failedState.report.submitEnabled, isFalse);
+      await bloc.close();
+    });
+
+    test('submits arrival report when local policy is constrained', () async {
       final bloc = _buildBloc(
         bundledSchedule: bundledSchedule,
         arrivalReportRepository: FakeArrivalReportRepository(),
@@ -109,16 +189,18 @@ void main() {
         nowProvider: () => DateTime(2026, 3, 28, 4, 25),
       );
 
-      await _waitForState(bloc, (state) => state.status == RailBoardStatus.ready);
+      await _waitForState(
+        bloc,
+        (state) => state.status == RailBoardStatus.ready,
+      );
       bloc.add(const RailBoardArrivalReportRequested());
 
       final reportState = await _waitForState(
         bloc,
         (state) =>
-            state.reportSubmissionStatus ==
-            RailReportSubmissionStatus.rateLimited,
+            state.reportSubmissionStatus == RailReportSubmissionStatus.success,
       );
-      expect(reportState.reportRetryAfterSeconds, greaterThanOrEqualTo(0));
+      expect(reportState.reportFeedbackMessage, contains('Arrival reported'));
       await bloc.close();
     });
 
@@ -132,7 +214,10 @@ void main() {
         nowProvider: () => DateTime(2026, 3, 28, 2, 0),
       );
 
-      await _waitForState(bloc, (state) => state.status == RailBoardStatus.ready);
+      await _waitForState(
+        bloc,
+        (state) => state.status == RailBoardStatus.ready,
+      );
       bloc.add(const RailBoardArrivalReportRequested());
 
       final reportState = await _waitForState(
@@ -173,103 +258,117 @@ void main() {
       await bloc.close();
     });
 
-    test('does not queue failed reports and retries only on explicit submit', () async {
-      final session = _seedSessions().first;
-      final reports = _FlakyArrivalReportRepository();
-      final ledger = FakeArrivalReportLedgerRepository();
-      final deviceIdentityRepository = _FixedDeviceIdentityRepository();
-      final bloc = _buildBloc(
-        bundledSchedule: bundledSchedule,
-        arrivalReportRepository: reports,
-        arrivalReportLedgerRepository: ledger,
-        communityOverlayRepository: FakeCommunityOverlayRepository(),
-        deviceIdentityRepository: deviceIdentityRepository,
-        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
-      );
+    test(
+      'does not queue failed reports and retries only on explicit submit',
+      () async {
+        final session = _seedSessions().first;
+        final reports = _FlakyArrivalReportRepository();
+        final ledger = FakeArrivalReportLedgerRepository();
+        final deviceIdentityRepository = _FixedDeviceIdentityRepository();
+        final bloc = _buildBloc(
+          bundledSchedule: bundledSchedule,
+          arrivalReportRepository: reports,
+          arrivalReportLedgerRepository: ledger,
+          communityOverlayRepository: FakeCommunityOverlayRepository(),
+          deviceIdentityRepository: deviceIdentityRepository,
+          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+        );
 
-      await _waitForState(bloc, (state) => state.status == RailBoardStatus.ready);
-      bloc.add(const RailBoardArrivalReportRequested());
+        await _waitForState(
+          bloc,
+          (state) => state.status == RailBoardStatus.ready,
+        );
+        bloc.add(const RailBoardArrivalReportRequested());
 
-      await _waitForState(
-        bloc,
-        (state) =>
-            state.reportSubmissionStatus == RailReportSubmissionStatus.error,
-      );
-      expect(reports.submitted.length, equals(0));
-      expect(
-        await ledger.hasSubmitted(
-          sessionId: session.sessionId,
-          stationId: 'dhaka',
-          deviceId: deviceIdentityRepository.identity.deviceId,
-        ),
-        isFalse,
-      );
+        await _waitForState(
+          bloc,
+          (state) =>
+              state.reportSubmissionStatus == RailReportSubmissionStatus.error,
+        );
+        expect(reports.submitted.length, equals(0));
+        expect(
+          await ledger.hasSubmitted(
+            sessionId: session.sessionId,
+            stationId: 'dhaka',
+            deviceId: deviceIdentityRepository.identity.deviceId,
+          ),
+          isFalse,
+        );
 
-      reports.failSubmission = false;
-      bloc.add(const RailBoardArrivalReportRequested());
-      await _waitForState(
-        bloc,
-        (state) =>
-            state.reportSubmissionStatus == RailReportSubmissionStatus.success,
-      );
-      expect(reports.submitted.length, equals(1));
+        reports.failSubmission = false;
+        bloc.add(const RailBoardArrivalReportRequested());
+        await _waitForState(
+          bloc,
+          (state) =>
+              state.reportSubmissionStatus ==
+              RailReportSubmissionStatus.success,
+        );
+        expect(reports.submitted.length, equals(1));
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
 
-    test('marks community insights error when overlay repository fails', () async {
-      final overlayRepository = FakeCommunityOverlayRepository()..failFetch = true;
-      final bloc = _buildBloc(
-        bundledSchedule: bundledSchedule,
-        arrivalReportRepository: FakeArrivalReportRepository(),
-        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
-        communityOverlayRepository: overlayRepository,
-        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
-        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
-      );
+    test(
+      'marks community insights error when overlay repository fails',
+      () async {
+        final overlayRepository = FakeCommunityOverlayRepository()
+          ..failFetch = true;
+        final bloc = _buildBloc(
+          bundledSchedule: bundledSchedule,
+          arrivalReportRepository: FakeArrivalReportRepository(),
+          arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+          communityOverlayRepository: overlayRepository,
+          deviceIdentityRepository: _FixedDeviceIdentityRepository(),
+          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+        );
 
-      final failedInsightState = await _waitForState(
-        bloc,
-        (state) =>
-            state.communityInsightStatus == RailCommunityInsightStatus.error,
-      );
-      expect(failedInsightState.sessionStatusSnapshot, isNull);
-      expect(failedInsightState.predictedStopTimes, isEmpty);
-      expect(
-        failedInsightState.communityMessage,
-        contains('temporarily unavailable'),
-      );
+        final failedInsightState = await _waitForState(
+          bloc,
+          (state) =>
+              state.communityInsightStatus == RailCommunityInsightStatus.error,
+        );
+        expect(failedInsightState.sessionStatusSnapshot, isNull);
+        expect(failedInsightState.predictedStopTimes, isEmpty);
+        expect(
+          failedInsightState.communityMessage,
+          contains('temporarily unavailable'),
+        );
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
 
-    test('marks community insights as stale when overlay freshness is old', () async {
-      final session = _seedSessions().first;
-      final bloc = _buildBloc(
-        bundledSchedule: bundledSchedule,
-        arrivalReportRepository: FakeArrivalReportRepository(),
-        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
-        communityOverlayRepository: FakeCommunityOverlayRepository(
-          seed: {
-            session.sessionId: _overlayResult(
-              sessionId: session.sessionId,
-              fetchedAt: DateTime(2026, 3, 28, 4, 25),
-              freshnessSeconds: 1200,
-            ),
-          },
-        ),
-        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
-        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
-      );
+    test(
+      'marks community insights as stale when overlay freshness is old',
+      () async {
+        final session = _seedSessions().first;
+        final bloc = _buildBloc(
+          bundledSchedule: bundledSchedule,
+          arrivalReportRepository: FakeArrivalReportRepository(),
+          arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+          communityOverlayRepository: FakeCommunityOverlayRepository(
+            seed: {
+              session.sessionId: _overlayResult(
+                sessionId: session.sessionId,
+                fetchedAt: DateTime(2026, 3, 28, 4, 25),
+                freshnessSeconds: 1200,
+              ),
+            },
+          ),
+          deviceIdentityRepository: _FixedDeviceIdentityRepository(),
+          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+        );
 
-      final insightState = await _waitForState(
-        bloc,
-        (state) =>
-            state.communityInsightStatus == RailCommunityInsightStatus.stale,
-      );
-      expect(insightState.sessionStatusSnapshot, isNotNull);
-      await bloc.close();
-    });
+        final insightState = await _waitForState(
+          bloc,
+          (state) =>
+              state.communityInsightStatus == RailCommunityInsightStatus.stale,
+        );
+        expect(insightState.sessionStatusSnapshot, isNotNull);
+        await bloc.close();
+      },
+    );
 
     test('does not refetch community overlay on ticker updates', () async {
       DateTime now = DateTime(2026, 3, 28, 4, 25);
@@ -311,55 +410,63 @@ void main() {
       await bloc.close();
     });
 
-    test('persists successful submission ledger across bloc restarts', () async {
-      final session = _seedSessions().first;
-      final ledger = FakeArrivalReportLedgerRepository();
-      final reports = FakeArrivalReportRepository();
-      final deviceIdentityRepository = _FixedDeviceIdentityRepository();
-      final firstBloc = _buildBloc(
-        bundledSchedule: bundledSchedule,
-        arrivalReportRepository: reports,
-        arrivalReportLedgerRepository: ledger,
-        communityOverlayRepository: FakeCommunityOverlayRepository(),
-        deviceIdentityRepository: deviceIdentityRepository,
-        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
-      );
+    test(
+      'persists successful submission ledger across bloc restarts',
+      () async {
+        final session = _seedSessions().first;
+        final ledger = FakeArrivalReportLedgerRepository();
+        final reports = FakeArrivalReportRepository();
+        final deviceIdentityRepository = _FixedDeviceIdentityRepository();
+        final firstBloc = _buildBloc(
+          bundledSchedule: bundledSchedule,
+          arrivalReportRepository: reports,
+          arrivalReportLedgerRepository: ledger,
+          communityOverlayRepository: FakeCommunityOverlayRepository(),
+          deviceIdentityRepository: deviceIdentityRepository,
+          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+        );
 
-      await _waitForState(firstBloc, (state) => state.status == RailBoardStatus.ready);
-      firstBloc.add(const RailBoardArrivalReportRequested());
-      await _waitForState(
-        firstBloc,
-        (state) =>
-            state.reportSubmissionStatus == RailReportSubmissionStatus.success,
-      );
-      await firstBloc.close();
+        await _waitForState(
+          firstBloc,
+          (state) => state.status == RailBoardStatus.ready,
+        );
+        firstBloc.add(const RailBoardArrivalReportRequested());
+        await _waitForState(
+          firstBloc,
+          (state) =>
+              state.reportSubmissionStatus ==
+              RailReportSubmissionStatus.success,
+        );
+        await firstBloc.close();
 
-      final secondBloc = _buildBloc(
-        bundledSchedule: bundledSchedule,
-        arrivalReportRepository: reports,
-        arrivalReportLedgerRepository: ledger,
-        communityOverlayRepository: FakeCommunityOverlayRepository(),
-        deviceIdentityRepository: deviceIdentityRepository,
-        nowProvider: () => DateTime(2026, 3, 28, 4, 26),
-      );
+        final secondBloc = _buildBloc(
+          bundledSchedule: bundledSchedule,
+          arrivalReportRepository: reports,
+          arrivalReportLedgerRepository: ledger,
+          communityOverlayRepository: FakeCommunityOverlayRepository(),
+          deviceIdentityRepository: deviceIdentityRepository,
+          nowProvider: () => DateTime(2026, 3, 28, 4, 26),
+        );
 
-      final readyState = await _waitForState(
-        secondBloc,
-        (state) =>
-            state.status == RailBoardStatus.ready &&
-            state.report.actionReason == RailReportActionReason.alreadySubmitted,
-      );
-      expect(readyState.report.hasReportedCurrentSession, isTrue);
-      expect(
-        await ledger.hasSubmitted(
-          sessionId: session.sessionId,
-          stationId: 'dhaka',
-          deviceId: deviceIdentityRepository.identity.deviceId,
-        ),
-        isTrue,
-      );
-      await secondBloc.close();
-    });
+        final readyState = await _waitForState(
+          secondBloc,
+          (state) =>
+              state.status == RailBoardStatus.ready &&
+              state.report.actionReason ==
+                  RailReportActionReason.alreadySubmitted,
+        );
+        expect(readyState.report.hasReportedCurrentSession, isTrue);
+        expect(
+          await ledger.hasSubmitted(
+            sessionId: session.sessionId,
+            stationId: 'dhaka',
+            deviceId: deviceIdentityRepository.identity.deviceId,
+          ),
+          isTrue,
+        );
+        await secondBloc.close();
+      },
+    );
 
     test('disables reporting before eligibility window opens', () async {
       final bloc = _buildBloc(
@@ -377,7 +484,8 @@ void main() {
             state.status == RailBoardStatus.ready &&
             state.report.actionReason == RailReportActionReason.beforeWindow,
       );
-      expect(state.report.isActionEnabled, isFalse);
+      expect(state.report.visibility, RailReportVisibility.visible);
+      expect(state.report.submitEnabled, isFalse);
       expect(state.report.actionHint, contains('Reporting opens in'));
       await bloc.close();
     });
@@ -398,29 +506,35 @@ void main() {
             state.status == RailBoardStatus.ready &&
             state.report.actionReason == RailReportActionReason.eligible,
       );
-      expect(state.report.isActionEnabled, isTrue);
+      expect(state.report.visibility, RailReportVisibility.visible);
+      expect(state.report.submitEnabled, isTrue);
       await bloc.close();
     });
 
-    test('marks reporting unavailable when matching train session is no longer next', () async {
-      final bloc = _buildBloc(
-        bundledSchedule: bundledSchedule,
-        arrivalReportRepository: FakeArrivalReportRepository(),
-        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
-        communityOverlayRepository: FakeCommunityOverlayRepository(),
-        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
-        nowProvider: () => DateTime(2026, 3, 28, 5, 31),
-      );
+    test(
+      'marks reporting unavailable when matching train session is no longer next',
+      () async {
+        final bloc = _buildBloc(
+          bundledSchedule: bundledSchedule,
+          arrivalReportRepository: FakeArrivalReportRepository(),
+          arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+          communityOverlayRepository: FakeCommunityOverlayRepository(),
+          deviceIdentityRepository: _FixedDeviceIdentityRepository(),
+          nowProvider: () => DateTime(2026, 3, 28, 5, 31),
+        );
 
-      final state = await _waitForState(
-        bloc,
-        (state) =>
-            state.status == RailBoardStatus.ready &&
-            state.report.actionReason == RailReportActionReason.noSession,
-      );
-      expect(state.report.isActionEnabled, isFalse);
-      await bloc.close();
-    });
+        final state = await _waitForState(
+          bloc,
+          (state) =>
+              state.status == RailBoardStatus.ready &&
+              state.report.actionReason == RailReportActionReason.noSession &&
+              state.report.visibility == RailReportVisibility.visible,
+        );
+        expect(state.report.visibility, RailReportVisibility.visible);
+        expect(state.report.submitEnabled, isFalse);
+        await bloc.close();
+      },
+    );
 
     test('recomputes reporting eligibility on tick transition', () async {
       DateTime now = DateTime(2026, 3, 28, 4, 24);
@@ -445,44 +559,48 @@ void main() {
         bloc,
         (state) =>
             state.report.actionReason == RailReportActionReason.eligible &&
-            state.report.isActionEnabled,
+            state.report.submitEnabled,
       );
-      expect(unlocked.report.isActionEnabled, isTrue);
+      expect(unlocked.report.visibility, RailReportVisibility.visible);
+      expect(unlocked.report.submitEnabled, isTrue);
       await bloc.close();
     });
 
-    test('skips community reporting and insights when community features are disabled', () async {
-      final reports = FakeArrivalReportRepository();
-      final bloc = _buildBloc(
-        bundledSchedule: bundledSchedule,
-        arrivalReportRepository: reports,
-        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
-        communityOverlayRepository: FakeCommunityOverlayRepository(),
-        deviceIdentityRepository: _FixedDeviceIdentityRepository(),
-        communityFeaturesEnabled: false,
-        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
-      );
+    test(
+      'skips community reporting and insights when community features are disabled',
+      () async {
+        final reports = FakeArrivalReportRepository();
+        final bloc = _buildBloc(
+          bundledSchedule: bundledSchedule,
+          arrivalReportRepository: reports,
+          arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+          communityOverlayRepository: FakeCommunityOverlayRepository(),
+          deviceIdentityRepository: _FixedDeviceIdentityRepository(),
+          communityFeaturesEnabled: false,
+          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+        );
 
-      final ready = await _waitForState(
-        bloc,
-        (state) => state.status == RailBoardStatus.ready,
-      );
-      expect(ready.communityFeaturesEnabled, isFalse);
-      expect(ready.communityInsightStatus, RailCommunityInsightStatus.idle);
+        final ready = await _waitForState(
+          bloc,
+          (state) => state.status == RailBoardStatus.ready,
+        );
+        expect(ready.communityFeaturesEnabled, isFalse);
+        expect(ready.communityInsightStatus, RailCommunityInsightStatus.idle);
 
-      bloc.add(const RailBoardArrivalReportRequested());
+        bloc.add(const RailBoardArrivalReportRequested());
 
-      expect(
-        bloc.state.reportSubmissionStatus,
-        RailReportSubmissionStatus.idle,
-      );
-      final stored = await reports.fetchStopReports(
-        sessionId: _seedSessions().first.sessionId,
-        stationId: 'dhaka',
-      );
-      expect(stored, isEmpty);
-      await bloc.close();
-    });
+        expect(
+          bloc.state.reportSubmissionStatus,
+          RailReportSubmissionStatus.idle,
+        );
+        final stored = await reports.fetchStopReports(
+          sessionId: _seedSessions().first.sessionId,
+          stationId: 'dhaka',
+        );
+        expect(stored, isEmpty);
+        await bloc.close();
+      },
+    );
   });
 }
 
@@ -658,8 +776,36 @@ class _FixedDeviceIdentityRepository implements DeviceIdentityRepository {
   final DeviceIdentity identity;
 
   @override
-  Future<DeviceIdentity> readOrCreateIdentity() async => identity;
+  Future<FirebaseAuthReadiness> readAuthReadiness({String? attemptId}) async {
+    return FirebaseAuthReadiness.ready(identity.deviceId);
+  }
 
   @override
-  Future<void> touchIdentity(DateTime now) async {}
+  Future<DeviceIdentity> readOrCreateIdentity({String? attemptId}) async =>
+      identity;
+
+  @override
+  Future<void> touchIdentity(DateTime now, {String? attemptId}) async {}
+}
+
+class _ResolvingDeviceIdentityRepository implements DeviceIdentityRepository {
+  _ResolvingDeviceIdentityRepository({
+    required Future<FirebaseAuthReadiness> readiness,
+    required this.identity,
+  }) : _readiness = readiness;
+
+  final Future<FirebaseAuthReadiness> _readiness;
+  final DeviceIdentity identity;
+
+  @override
+  Future<FirebaseAuthReadiness> readAuthReadiness({String? attemptId}) {
+    return _readiness;
+  }
+
+  @override
+  Future<DeviceIdentity> readOrCreateIdentity({String? attemptId}) async =>
+      identity;
+
+  @override
+  Future<void> touchIdentity(DateTime now, {String? attemptId}) async {}
 }

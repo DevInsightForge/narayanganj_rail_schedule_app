@@ -19,6 +19,9 @@ class FirebaseOptionsFactory {
   bool get isAppCheckEnabled =>
       _readBool('FIREBASE_APPCHECK_ENABLED', defaultValue: false);
 
+  bool get isErrorReportingEnabled =>
+      _readBool('FIREBASE_CRASHLYTICS_ENABLED', defaultValue: false);
+
   FirebaseOptions? create() {
     if (!isEnabled) {
       return null;

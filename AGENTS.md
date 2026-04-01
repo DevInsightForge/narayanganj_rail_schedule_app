@@ -44,6 +44,7 @@
 - No Firebase Admin SDK.
 - No Cloud Functions or custom backend as a requirement for MVP.
 - Use Firebase Anonymous Auth for identity bootstrap.
+- Keep Crashlytics error reporting optional and gated separately from the core Firebase data path.
 - Keep Firestore model and writes security-rules-friendly.
 - Keep repository interfaces clean for future backend migration.
 - Keep offline/degraded operation functional with local fallback behavior.

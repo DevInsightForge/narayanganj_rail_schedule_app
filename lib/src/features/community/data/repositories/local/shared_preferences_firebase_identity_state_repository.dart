@@ -24,8 +24,7 @@ class SharedPreferencesFirebaseIdentityStateRepository
     if (uid.isEmpty) {
       return null;
     }
-    final profileWrittenAtValue =
-        '${decoded['profileWrittenAt'] ?? ''}'.trim();
+    final profileWrittenAtValue = '${decoded['profileWrittenAt'] ?? ''}'.trim();
     return FirebaseIdentityState(
       uid: uid,
       handshakeCompleted: decoded['handshakeCompleted'] == true,

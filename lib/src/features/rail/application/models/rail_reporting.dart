@@ -10,6 +10,21 @@ enum RailReportActionReason {
 
 enum RailReportSubmissionOutcome { success, rateLimited, error }
 
+enum RailReportSubmissionFailureReason {
+  authNotReady,
+  invalidPayload,
+  permissionDenied,
+}
+
+enum RailReportVisibility { hidden, visible }
+
+enum RailReportGuardOutcome {
+  hiddenAuthPending,
+  visibleBlockedWindow,
+  visibleBlockedAlreadyReported,
+  visibleEnabled,
+}
+
 class RailReportAvailabilityResult {
   const RailReportAvailabilityResult({
     required this.reason,
@@ -28,10 +43,12 @@ class RailReportSubmissionResult {
     required this.reason,
     required this.feedbackMessage,
     this.retryAfterSeconds,
+    this.failureReason,
   });
 
   final RailReportSubmissionOutcome outcome;
   final RailReportActionReason reason;
   final String feedbackMessage;
   final int? retryAfterSeconds;
+  final RailReportSubmissionFailureReason? failureReason;
 }

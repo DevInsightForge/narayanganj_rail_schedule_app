@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../core/errors/error_reporter.dart';
 import '../core/firebase/firebase_runtime.dart';
 import '../features/community/data/mappers/rail_schedule_template_mapper.dart';
 import '../features/community/data/repositories/cached/cached_community_overlay_repository.dart';
@@ -38,6 +39,7 @@ class AppComposition {
     required this.firebaseRuntime,
     required this.bundledSchedule,
     required this.scheduleDataRepository,
+    required this.errorReporter,
   }) : selectionRepository = SharedPreferencesSelectionRepository(),
        sessionRepository = GeneratedSessionRepository(
          templates: const RailScheduleTemplateMapper().map(
@@ -54,6 +56,7 @@ class AppComposition {
        predictionRepository = _buildPredictionRepository(firebaseRuntime),
        deviceIdentityRepository = _buildDeviceIdentityRepository(
          firebaseRuntime,
+         errorReporter,
        ),
        rateLimitPolicyRepository = FakeRateLimitPolicyRepository(
          seed: const {
@@ -69,6 +72,7 @@ class AppComposition {
   final FirebaseRuntime firebaseRuntime;
   final RailSchedule bundledSchedule;
   final ScheduleDataRepository scheduleDataRepository;
+  final ErrorReporter errorReporter;
   final SelectionRepository selectionRepository;
   final SessionRepository sessionRepository;
   final ArrivalReportRepository arrivalReportRepository;
@@ -89,6 +93,7 @@ class AppComposition {
       communityOverlayRepository: communityOverlayRepository,
       deviceIdentityRepository: deviceIdentityRepository,
       rateLimitPolicyRepository: rateLimitPolicyRepository,
+      errorReporter: errorReporter,
       communityFeaturesEnabled: firebaseRuntime.initialized,
     );
   }
@@ -136,6 +141,7 @@ class AppComposition {
 
   static DeviceIdentityRepository _buildDeviceIdentityRepository(
     FirebaseRuntime firebaseRuntime,
+    ErrorReporter errorReporter,
   ) {
     if (!firebaseRuntime.initialized) {
       return FakeDeviceIdentityRepository();
@@ -143,7 +149,9 @@ class AppComposition {
     return FirebaseDeviceIdentityRepository(
       auth: FirebaseAuth.instance,
       firestore: FirebaseFirestore.instance,
-      identityStateRepository: SharedPreferencesFirebaseIdentityStateRepository(),
+      identityStateRepository:
+          SharedPreferencesFirebaseIdentityStateRepository(),
+      errorReporter: errorReporter,
     );
   }
 }

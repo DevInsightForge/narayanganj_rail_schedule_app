@@ -20,9 +20,6 @@ class FakeCommunityOverlayRepository implements CommunityOverlayRepository {
     }
     fetchCounts.update(sessionId, (count) => count + 1, ifAbsent: () => 1);
     return _overlays[sessionId] ??
-        CommunityOverlayResult(
-          fetchedAt: DateTime(1970),
-          fromCache: false,
-        );
+        CommunityOverlayResult(fetchedAt: DateTime(1970), fromCache: false);
   }
 }

@@ -196,48 +196,50 @@ class _CommunityPanel extends StatelessWidget {
               ).textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
             ),
           ],
-          SizedBox(height: tokens.sectionGap),
-          Divider(color: tokens.border, height: 1),
-          SizedBox(height: tokens.sectionGap),
-          if (report.actionHint != null &&
-              report.actionHint!.isNotEmpty &&
-              report.actionReason != RailReportActionReason.eligible)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                report.actionHint!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
-              ),
-            ),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed:
-                  report.status == RailReportSubmissionStatus.submitting ||
-                      !report.isActionEnabled
-                  ? null
-                  : onPressed,
-              icon: Icon(
-                report.status == RailReportSubmissionStatus.submitting
-                    ? Icons.sync_rounded
-                    : Icons.flag_rounded,
-              ),
-              label: Text(_buttonLabel(report)),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(36),
-                visualDensity: const VisualDensity(
-                  horizontal: -2,
-                  vertical: -2,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+          if (report.isActionVisible) ...[
+            SizedBox(height: tokens.sectionGap),
+            Divider(color: tokens.border, height: 1),
+            SizedBox(height: tokens.sectionGap),
+            if (report.actionHint != null &&
+                report.actionHint!.isNotEmpty &&
+                report.actionReason != RailReportActionReason.eligible)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  report.actionHint!,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
                 ),
               ),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed:
+                    report.status == RailReportSubmissionStatus.submitting ||
+                        !report.submitEnabled
+                    ? null
+                    : onPressed,
+                icon: Icon(
+                  report.status == RailReportSubmissionStatus.submitting
+                      ? Icons.sync_rounded
+                      : Icons.flag_rounded,
+                ),
+                label: Text(_buttonLabel(report)),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(36),
+                  visualDensity: const VisualDensity(
+                    horizontal: -2,
+                    vertical: -2,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -276,12 +278,12 @@ class _CommunityPanel extends StatelessWidget {
       RailReportSubmissionStatus.submitting => 'Submitting Report...',
       RailReportSubmissionStatus.rateLimited => 'Please Wait',
       RailReportSubmissionStatus.error =>
-        report.isActionEnabled
+        report.submitEnabled
             ? 'Submit Arrival Report'
             : 'Reporting Unavailable',
       RailReportSubmissionStatus.success => 'Report Submitted',
       RailReportSubmissionStatus.idle =>
-        report.isActionEnabled
+        report.submitEnabled
             ? 'Submit Arrival Report'
             : 'Reporting Unavailable',
     };

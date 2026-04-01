@@ -106,7 +106,8 @@ class _FakeOverlayRemoteRepository implements CommunityOverlayRepository {
   }
 }
 
-class _InMemoryOverlayCacheRepository implements CommunityOverlayCacheRepository {
+class _InMemoryOverlayCacheRepository
+    implements CommunityOverlayCacheRepository {
   final Map<String, CommunityOverlayResult> _entries =
       <String, CommunityOverlayResult>{};
 

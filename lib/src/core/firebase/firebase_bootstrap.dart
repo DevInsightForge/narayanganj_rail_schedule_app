@@ -41,6 +41,7 @@ class FirebaseBootstrap {
         enabled: true,
         initialized: true,
         appCheckEnabled: appCheckEnabled,
+        errorReportingEnabled: _optionsFactory.isErrorReportingEnabled,
         status: 'initialized',
       );
     } catch (_) {
@@ -48,6 +49,7 @@ class FirebaseBootstrap {
         enabled: true,
         initialized: false,
         appCheckEnabled: false,
+        errorReportingEnabled: false,
         status: 'failed',
       );
     }

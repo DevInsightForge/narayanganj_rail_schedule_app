@@ -1,20 +1,31 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../community/domain/entities/community_overlay_result.dart';
 import '../../../community/domain/entities/session_status_snapshot.dart';
 import '../../../community/domain/repositories/community_overlay_repository.dart';
+import '../../../../core/errors/error_report_context.dart';
+import '../../../../core/errors/error_reporter.dart';
+import '../../../../core/logging/debug_logger.dart';
 import '../../domain/entities/rail_snapshot.dart';
 import '../models/rail_community_insight_result.dart';
 import 'rail_session_resolver.dart';
 
 class RailCommunityInsightCoordinator {
-  const RailCommunityInsightCoordinator({
+  RailCommunityInsightCoordinator({
     required RailSessionResolver sessionResolver,
     required CommunityOverlayRepository communityOverlayRepository,
+    ErrorReporter? errorReporter,
+    DebugLogger? logger,
     this.staleInsightThresholdSeconds = 10 * 60,
   }) : _sessionResolver = sessionResolver,
-       _communityOverlayRepository = communityOverlayRepository;
+       _communityOverlayRepository = communityOverlayRepository,
+       _errorReporter = errorReporter ?? const NoopErrorReporter(),
+       _logger = logger ?? const DebugLogger('RailCommunityInsightCoordinator');
 
   final RailSessionResolver _sessionResolver;
   final CommunityOverlayRepository _communityOverlayRepository;
+  final ErrorReporter _errorReporter;
+  final DebugLogger _logger;
   final int staleInsightThresholdSeconds;
 
   Future<RailCommunityInsightResult> load({
@@ -22,7 +33,13 @@ class RailCommunityInsightCoordinator {
     required RailServiceSnapshot? nextService,
     required DateTime now,
     bool forceRefresh = false,
+    String? attemptId,
   }) async {
+    _log(
+      'overlay_refresh_start',
+      attemptId: attemptId,
+      context: _context(attemptId: attemptId),
+    );
     try {
       final session = await _sessionResolver.findSessionForTrain(
         direction: direction,
@@ -53,6 +70,11 @@ class RailCommunityInsightCoordinator {
           snapshot != null &&
           snapshot.freshnessSeconds > staleInsightThresholdSeconds;
 
+      _log(
+        'overlay_refresh_success',
+        attemptId: attemptId,
+        context: _context(attemptId: attemptId, sessionId: session.sessionId),
+      );
       return RailCommunityInsightResult(
         kind: isStale
             ? RailCommunityInsightKind.stale
@@ -63,7 +85,18 @@ class RailCommunityInsightCoordinator {
             ? 'Estimate loaded from local Spark-safe community cache.'
             : 'Estimate synchronized from remote community snapshots.',
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      await _errorReporter.reportNonFatal(
+        error,
+        stackTrace,
+        reason: 'overlay_refresh_failed',
+        context: _context(attemptId: attemptId),
+      );
+      _log(
+        'overlay_refresh_fail',
+        attemptId: attemptId,
+        context: _context(attemptId: attemptId),
+      );
       return const RailCommunityInsightResult(
         kind: RailCommunityInsightKind.error,
         message:
@@ -91,6 +124,25 @@ class RailCommunityInsightCoordinator {
       confidence: snapshot.confidence,
       freshnessSeconds: adjustedFreshness,
       lastObservedAt: snapshot.lastObservedAt,
+    );
+  }
+
+  void _log(String message, {String? attemptId, ErrorReportContext? context}) {
+    if (!kDebugMode) {
+      return;
+    }
+    _logger.log(
+      message,
+      context: context?.toMap() ?? <String, Object?>{'attemptId': attemptId},
+    );
+  }
+
+  ErrorReportContext _context({String? attemptId, String? sessionId}) {
+    return ErrorReportContext(
+      feature: 'rail_community_insight_coordinator',
+      event: 'overlay_refresh',
+      attemptId: attemptId,
+      sessionId: sessionId,
     );
   }
 }

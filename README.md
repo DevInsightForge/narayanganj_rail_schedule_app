@@ -32,6 +32,7 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 - Cached schedule data restores quickly when available.
 - Firebase Remote Config can deliver versioned schedule updates after initial render.
 - Firebase Anonymous Auth, Firestore, and App Check are optional at runtime and can be disabled through env configuration.
+- Crashlytics error reporting is optional at runtime and can be enabled separately from the core Firebase data path.
 - Community features are enabled only after Firebase initializes successfully and degrade safely when it does not.
 - Community overlay reads are one-shot and cached locally for 5 minutes per session to keep Firestore usage predictable on Spark.
 
@@ -49,6 +50,7 @@ Optional root `.env`:
 # Optional override: set to false to disable Firebase.
 FIREBASE_ENABLED=true
 FIREBASE_APPCHECK_ENABLED=false
+FIREBASE_CRASHLYTICS_ENABLED=false
 
 # Minimal required Firebase env values.
 FIREBASE_PROJECT_ID=
@@ -70,6 +72,7 @@ FIREBASE_APPCHECK_WEB_KEY=
 - Android release signing requires `android/key.properties`.
 - Android Firebase-backed release behavior may require `android/app/google-services.json` depending on your release setup.
 - If `FIREBASE_APPCHECK_ENABLED=true`, Firebase App Check must already be configured in Firebase Console for the target platform.
+- If `FIREBASE_CRASHLYTICS_ENABLED=true`, Crashlytics collection is enabled only after Firebase initializes successfully for that build.
 
 ## Firebase Security Baseline
 
@@ -81,6 +84,7 @@ FIREBASE_APPCHECK_WEB_KEY=
 - `predicted_stops` is now treated as legacy/administrative Firestore structure and is not read by the app in normal flows.
 - `user_profiles` is owner-write metadata only with no client reads.
 - `user_profiles` writes are capped to the first successful Firebase handshake on a device instead of being treated as a heartbeat channel.
+- Arrival reporting UI stays hidden until anonymous auth readiness resolves, while community overlay insight can still render independently.
 
 ## Firebase Spark Plan Considerations
 
