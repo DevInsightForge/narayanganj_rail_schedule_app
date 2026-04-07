@@ -2,6 +2,13 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v1.2.0
+
+- Reused community session documents across recurring daily runs while keeping `serviceDate` inside the aggregate for clean rollover handling.
+- Added a debug-build bypass for community overlay caching and reporting window gating so feature testing stays practical.
+- Tightened Firestore rules for the reused session aggregate contract and fixed submit-time permission checks after deployment.
+- Moved startup error hooks into bootstrap so app launch wiring stays thinner and easier to maintain.
+
 ## v1.1.0
 
 - Reworked community reporting around a single aggregate Firestore document per train session and service day.
