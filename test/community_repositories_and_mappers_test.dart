@@ -1,8 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/mappers/rail_schedule_template_mapper.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_arrival_report_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_device_identity_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/repositories/fake/fake_session_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report_submission.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/delay_status.dart';
@@ -12,6 +9,7 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/entities
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
 
 import 'support/bundled_schedule_fixture.dart';
+import 'support/community_fakes.dart';
 
 void main() {
   final bundledSchedule = loadBundledScheduleFixture();
