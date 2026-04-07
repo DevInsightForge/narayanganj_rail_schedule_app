@@ -88,29 +88,36 @@ service cloud.firestore {
         && request.resource.data.freshnessSeconds is number
         && request.resource.data.reportCount is number
         && request.resource.data.stationCount is number
-        && request.resource.data.stationBuckets is map
-        && request.resource.data.stationBuckets.values().all(bucket, isValidStationBucket(bucket));
+        && request.resource.data.stationBuckets is map;
+    }
+
+    function isValidSingleStationBucketMap() {
+      return request.resource.data.stationBuckets is map
+        && request.resource.data.stationBuckets.size() == 1
+        && isValidStationBucket(
+          request.resource.data.stationBuckets[
+            request.resource.data.stationBuckets.keys()[0]
+          ]
+        );
     }
 
     function isValidSessionAggregateCreate() {
       return isValidSessionAggregate()
         && request.resource.data.reportCount == 1
         && request.resource.data.stationCount == 1
-        && request.resource.data.stationBuckets.size() == 1;
+        && isValidSingleStationBucketMap();
     }
 
     function isValidSessionAggregateUpdate() {
       let changedStations = request.resource.data.stationBuckets
         .diff(resource.data.stationBuckets)
-        .affectedKeys();
-      let stationId = changedStations[0];
-      let previousBucket = resource.data.stationBuckets[stationId];
-      let nextBucket = request.resource.data.stationBuckets[stationId];
+        .affectedKeys()
+        ;
       let isServiceDayReset =
         request.resource.data.serviceDate != resource.data.serviceDate &&
         request.resource.data.reportCount == 1 &&
         request.resource.data.stationCount == 1 &&
-        request.resource.data.stationBuckets.size() == 1;
+        isValidSingleStationBucketMap();
 
       return isValidSessionAggregate()
         && request.resource.data.sessionId == resource.data.sessionId
@@ -124,14 +131,8 @@ service cloud.firestore {
             && changedStations.size() == 1
             && request.resource.data.reportCount == resource.data.reportCount + 1
             && (
-              previousBucket == null
-                ? request.resource.data.stationCount == resource.data.stationCount + 1
-                : request.resource.data.stationCount == resource.data.stationCount
-            )
-            && (
-              previousBucket == null
-                ? nextBucket.submissionCount == 1
-                : nextBucket.submissionCount == previousBucket.submissionCount + 1
+              request.resource.data.stationCount == resource.data.stationCount ||
+              request.resource.data.stationCount == resource.data.stationCount + 1
             )
           )
         );
