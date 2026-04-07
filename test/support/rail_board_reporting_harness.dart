@@ -18,6 +18,7 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/services
 import 'package:narayanganj_rail_schedule/src/features/rail/data/models/rail_schedule_document_parser.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/schedule_data_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_schedule.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/selection_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_cubit.dart';
@@ -25,7 +26,7 @@ import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/ra
 import 'community_fakes.dart';
 
 RailBoardCubit buildRailBoardReportingCubit({
-  required dynamic bundledSchedule,
+  required RailSchedule bundledSchedule,
   required ArrivalReportRepository arrivalReportRepository,
   required FakeArrivalReportLedgerRepository arrivalReportLedgerRepository,
   required FakeCommunityOverlayRepository communityOverlayRepository,
