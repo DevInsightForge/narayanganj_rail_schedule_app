@@ -76,7 +76,6 @@ class RailBoardControllerReporting {
     emit(
       afterSubmissionState.copyWith(
         report: deriveReportActionState(
-          controller,
           afterSubmissionState.report.copyWith(
             status: switch (submission.outcome) {
               RailReportSubmissionOutcome.success =>
@@ -129,7 +128,6 @@ class RailBoardControllerReporting {
     if (currentState.status != RailBoardStatus.ready ||
         !controller.communityFeaturesEnabled) {
       final nextReport = deriveReportActionState(
-        controller,
         currentState.report,
         authReadiness: const FirebaseAuthReadiness.unknown(),
         reason: RailReportActionReason.noSession,
@@ -185,7 +183,6 @@ class RailBoardControllerReporting {
       return;
     }
     final nextReport = deriveReportActionState(
-      controller,
       readState().report,
       authReadiness: authReadiness,
       reason: availability.reason,
@@ -217,7 +214,6 @@ class RailBoardControllerReporting {
   }
 
   static RailBoardReportState deriveReportActionState(
-    RailBoardController controller,
     RailBoardReportState base, {
     required FirebaseAuthReadiness authReadiness,
     required RailReportActionReason reason,
