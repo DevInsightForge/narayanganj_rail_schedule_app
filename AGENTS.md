@@ -25,6 +25,8 @@
 - Use explicit, intention-revealing names.
 - Avoid oversized files when concepts should be extracted.
 - Prefer a small number of feature-local collaborators over giant classes or file-per-method fragmentation.
+- Keep the rail-board use-case and controller split into a small number of feature-local helpers instead of one giant class or a file-per-method layout.
+- Keep presentation copy and label formatting out of domain services when a small feature-local helper can own it cleanly.
 - New code must be null-safe, testable, and deterministic where possible.
 - No comments in source code.
 

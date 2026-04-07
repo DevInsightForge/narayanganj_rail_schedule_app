@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../community/domain/entities/predicted_stop_time.dart';
 import '../../domain/entities/rail_snapshot.dart';
-import '../../domain/services/rail_board_service.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
+import 'rail_board_copy.dart';
 import 'rail_primitives.dart';
 
 class TimelinePanel extends StatelessWidget {
@@ -20,7 +19,6 @@ class TimelinePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final boardService = context.read<RailBoardService>();
     final tokens = RailBoardTokens.of(context);
     final nextService = snapshot.nextService;
 
@@ -61,7 +59,7 @@ class TimelinePanel extends StatelessWidget {
               for (var i = 0; i < nextService.stops.length; i++) ...[
                 _StopCard(
                   stop: nextService.stops[i],
-                  scheduledLabel: boardService.formatTimeAmPm(
+                  scheduledLabel: RailBoardCopy.formatTimeAmPm(
                     nextService.stops[i].time,
                   ),
                   predicted: predictedByStation[nextService.stops[i].stationId],
@@ -106,7 +104,6 @@ class _StopCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final boardService = context.read<RailBoardService>();
     final tokens = RailBoardTokens.of(context);
     final textTheme = Theme.of(context).textTheme;
 
@@ -161,7 +158,7 @@ class _StopCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   RailPill(
                     label: 'Estimate',
-                    value: boardService.formatTimeAmPm(
+                    value: RailBoardCopy.formatTimeAmPm(
                       '${predicted!.predictedAt.hour.toString().padLeft(2, '0')}:${predicted!.predictedAt.minute.toString().padLeft(2, '0')}',
                     ),
                     accent: true,

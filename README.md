@@ -15,7 +15,8 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 - Rail UI is compact, monochrome, and optimized for phone-first usage.
 - Anonymous Firebase-backed arrival reporting remains optional and secondary to the published schedule.
 - Community delay insight, freshness, and downstream prediction are derived from a single session aggregate document and remain isolated from the official schedule baseline.
-- Rail-board orchestration is split into a thin cubit plus a small set of feature-local helpers to keep the feature navigable without making the codebase a maze.
+- Rail-board orchestration is split into a thin cubit plus bounded feature-local helpers, including a smaller use-case layer, to keep the feature navigable without making the codebase a maze.
+- Rail board copy and time formatting live in a small presentation helper so the domain service stays focused on selection and snapshot logic.
 - Test-only fakes live under `test/support`, while `lib/` stays focused on runtime code.
 - Footer metadata, privacy policy, and terms now live in an in-app drawer with static app-owned content.
 

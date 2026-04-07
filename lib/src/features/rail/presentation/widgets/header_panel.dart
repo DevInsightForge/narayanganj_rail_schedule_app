@@ -5,6 +5,7 @@ import '../../domain/entities/rail_snapshot.dart';
 import '../bloc/rail_board_cubit.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
+import 'rail_board_copy.dart';
 
 class HeaderPanel extends StatelessWidget {
   const HeaderPanel({super.key, required this.view});
@@ -16,7 +17,6 @@ class HeaderPanel extends StatelessWidget {
     final tokens = RailBoardTokens.of(context);
     final textTheme = Theme.of(context).textTheme;
     final nextService = view.snapshot.nextService;
-    final boardService = context.read<RailBoardCubit>().boardService;
 
     return PanelShell(
       surface: RailPanelSurface.accent,
@@ -40,7 +40,7 @@ class HeaderPanel extends StatelessWidget {
                       Text(
                         nextService == null
                             ? 'Your schedule-first rail board is ready. Pick a direction to see the best departure, stop trace, and backup options.'
-                            : 'Next departure leaves ${boardService.getWaitLabel(nextService.waitMinutes).toLowerCase()} and reaches ${view.snapshot.destinationStationName} in ${boardService.getEtaLabel(nextService.etaMinutes).toLowerCase()}.',
+                            : 'Next departure leaves ${RailBoardCopy.getWaitLabel(nextService.waitMinutes).toLowerCase()} and reaches ${view.snapshot.destinationStationName} in ${RailBoardCopy.getEtaLabel(nextService.etaMinutes).toLowerCase()}.',
                         style: textTheme.bodyLarge?.copyWith(
                           color: tokens.textMuted,
                         ),
@@ -52,10 +52,10 @@ class HeaderPanel extends StatelessWidget {
                 _DepartureHero(
                   title: nextService == null
                       ? 'No departure'
-                      : boardService.formatTimeAmPm(nextService.departureTime),
+                      : RailBoardCopy.formatTimeAmPm(nextService.departureTime),
                   detail: nextService == null
                       ? 'Try another route selection'
-                      : 'Train ${nextService.trainNo} - ${boardService.getWaitLabel(nextService.waitMinutes)}',
+                      : 'Train ${nextService.trainNo} - ${RailBoardCopy.getWaitLabel(nextService.waitMinutes)}',
                 ),
               ],
             )
@@ -68,7 +68,7 @@ class HeaderPanel extends StatelessWidget {
                 Text(
                   nextService == null
                       ? 'Choose your route to get the next commuter option and later departures.'
-                      : 'Next departure leaves ${boardService.getWaitLabel(nextService.waitMinutes).toLowerCase()}.',
+                      : 'Next departure leaves ${RailBoardCopy.getWaitLabel(nextService.waitMinutes).toLowerCase()}.',
                   style: textTheme.bodyMedium?.copyWith(
                     color: tokens.textMuted,
                   ),
@@ -77,10 +77,10 @@ class HeaderPanel extends StatelessWidget {
                 _DepartureHero(
                   title: nextService == null
                       ? 'No departure'
-                      : boardService.formatTimeAmPm(nextService.departureTime),
+                      : RailBoardCopy.formatTimeAmPm(nextService.departureTime),
                   detail: nextService == null
                       ? 'No train available right now'
-                      : 'Train ${nextService.trainNo} - ${boardService.getEtaLabel(nextService.etaMinutes)} total',
+                      : 'Train ${nextService.trainNo} - ${RailBoardCopy.getEtaLabel(nextService.etaMinutes)} total',
                 ),
               ],
             ),

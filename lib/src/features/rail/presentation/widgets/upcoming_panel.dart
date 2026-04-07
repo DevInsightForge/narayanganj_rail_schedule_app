@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/rail_snapshot.dart';
-import '../../domain/services/rail_board_service.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
+import 'rail_board_copy.dart';
 import 'rail_primitives.dart';
 
 class UpcomingPanel extends StatelessWidget {
@@ -14,7 +13,6 @@ class UpcomingPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final boardService = context.read<RailBoardService>();
     final tokens = RailBoardTokens.of(context);
     final alternatives = snapshot.upcomingServices
         .skip(1)
@@ -45,19 +43,19 @@ class UpcomingPanel extends StatelessWidget {
                 for (var i = 0; i < alternatives.length; i++) ...[
                   _UpcomingCard(
                     index: i + 1,
-                    departureLabel: boardService.formatTimeAmPm(
+                    departureLabel: RailBoardCopy.formatTimeAmPm(
                       alternatives[i].departureTime,
                     ),
-                    arrivalLabel: boardService.formatTimeAmPm(
+                    arrivalLabel: RailBoardCopy.formatTimeAmPm(
                       alternatives[i].arrivalTime,
                     ),
-                    waitLabel: boardService.getWaitLabel(
+                    waitLabel: RailBoardCopy.getWaitLabel(
                       alternatives[i].waitMinutes,
                     ),
-                    durationLabel: boardService.getDurationLabel(
+                    durationLabel: RailBoardCopy.getDurationLabel(
                       alternatives[i].etaMinutes - alternatives[i].waitMinutes,
                     ),
-                    periodLabel: boardService.getServicePeriodLabel(
+                    periodLabel: RailBoardCopy.getServicePeriodLabel(
                       alternatives[i].servicePeriod,
                     ),
                   ),
@@ -143,7 +141,7 @@ class _UpcomingCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        '$periodLabel • $waitLabel',
+                        '$periodLabel - $waitLabel',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: tokens.textMuted,
                         ),

@@ -3,11 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../community/domain/entities/delay_status.dart';
 import '../../../community/domain/entities/session_status_snapshot.dart';
-import '../../domain/services/rail_board_service.dart';
 import '../bloc/rail_board_cubit.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
 import 'rail_primitives.dart';
+import 'rail_board_copy.dart';
 
 class DecisionPanel extends StatelessWidget {
   const DecisionPanel({
@@ -23,7 +23,6 @@ class DecisionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final boardService = context.read<RailBoardService>();
     final tokens = RailBoardTokens.of(context);
     final nextService = view.snapshot.nextService;
 
@@ -46,9 +45,9 @@ class DecisionPanel extends StatelessWidget {
         children: [
           RailSectionHeader(
             eyebrow: 'Best next option',
-            title: boardService.getDecision(nextService.waitMinutes),
+            title: RailBoardCopy.getDecision(nextService.waitMinutes),
             subtitle:
-                'Board at ${view.snapshot.selectedStationName} and reach ${view.snapshot.destinationStationName} in ${boardService.getEtaLabel(nextService.etaMinutes).toLowerCase()}.',
+                'Board at ${view.snapshot.selectedStationName} and reach ${view.snapshot.destinationStationName} in ${RailBoardCopy.getEtaLabel(nextService.etaMinutes).toLowerCase()}.',
           ),
           SizedBox(height: tokens.sectionGap),
           Wrap(
@@ -61,11 +60,9 @@ class DecisionPanel extends StatelessWidget {
                     '${view.snapshot.selectedStationName} to ${view.snapshot.destinationStationName}',
               ),
               RailPill(label: 'Train', value: '${nextService.trainNo}'),
-              RailPill(
-                label: 'Period',
-                value: boardService.getServicePeriodLabel(
-                  nextService.servicePeriod,
-                ),
+                RailPill(
+                  label: 'Period',
+                value: RailBoardCopy.getServicePeriodLabel(nextService.servicePeriod),
               ),
             ],
           ),
@@ -74,20 +71,20 @@ class DecisionPanel extends StatelessWidget {
             tiles: [
               RailMetricTile(
                 label: 'Boards',
-                value: boardService.formatTimeAmPm(nextService.departureTime),
-                detail: boardService.getWaitLabel(nextService.waitMinutes),
+                value: RailBoardCopy.formatTimeAmPm(nextService.departureTime),
+                detail: RailBoardCopy.getWaitLabel(nextService.waitMinutes),
                 icon: Icons.login_rounded,
               ),
               RailMetricTile(
                 label: 'Travel',
-                value: boardService.getDurationLabel(travelMinutes),
+                value: RailBoardCopy.getDurationLabel(travelMinutes),
                 detail: 'On-train time',
                 icon: Icons.train_rounded,
               ),
               RailMetricTile(
                 label: 'Arrives',
-                value: boardService.formatTimeAmPm(nextService.arrivalTime),
-                detail: boardService.getEtaLabel(nextService.etaMinutes),
+                value: RailBoardCopy.formatTimeAmPm(nextService.arrivalTime),
+                detail: RailBoardCopy.getEtaLabel(nextService.etaMinutes),
                 icon: Icons.flag_rounded,
               ),
             ],
