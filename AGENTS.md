@@ -24,6 +24,7 @@
 - No hidden side effects.
 - Use explicit, intention-revealing names.
 - Avoid oversized files when concepts should be extracted.
+- Prefer a small number of feature-local collaborators over giant classes or file-per-method fragmentation.
 - New code must be null-safe, testable, and deterministic where possible.
 - No comments in source code.
 
@@ -65,6 +66,7 @@
 - Keep `.github/workflows/publish.yml` and `.env.example` synchronized with all environment variables consumed by the app.
 - Document removals and migration tradeoffs in the Decision Log.
 - Prefer incremental, reviewable changes.
+- When splitting oversized files, keep collaborators nearby and bounded so the module stays easy to navigate.
 - When architecture changes, update docs for source of truth, degraded behavior, and Firestore operational assumptions in the same change.
 
 ## Definition of Done
