@@ -15,6 +15,7 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 - Rail UI is compact, monochrome, and optimized for phone-first usage.
 - Anonymous Firebase-backed arrival reporting remains optional and secondary to the published schedule.
 - Community delay insight, freshness, and downstream prediction are derived from a single session aggregate document and remain isolated from the official schedule baseline.
+- Session documents are reused across recurring daily train runs; `serviceDate` remains stored inside the aggregate so the document can reset cleanly when the day changes.
 - Rail-board orchestration is split into a thin cubit plus bounded feature-local helpers, including a smaller use-case layer, to keep the feature navigable without making the codebase a maze.
 - Rail board copy and time formatting live in a small presentation helper so the domain service stays focused on selection and snapshot logic.
 - Test-only fakes live under `test/support`, while `lib/` stays focused on runtime code.
@@ -37,10 +38,11 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 - Firebase Anonymous Auth, Firestore, and App Check are optional at runtime and can be disabled through env configuration.
 - Crashlytics error reporting is optional at runtime and can be enabled separately from the core Firebase data path.
 - Community features are enabled only after Firebase initializes successfully and degrade safely when it does not.
-- Community overlay reads and arrival-report writes are centered on `session_status_snapshots/{sessionId}`, which acts as the canonical aggregate document for a train session/day.
-- The client updates that document transactionally and reads it through a cache-first overlay layer to keep Firestore usage predictable on Spark.
+- Community overlay reads and arrival-report writes are centered on `session_status_snapshots/{sessionId}`, which acts as the canonical aggregate document for a recurring train session.
+- The client updates that document transactionally and reads it through a cache-first overlay layer in release builds to keep Firestore usage predictable on Spark.
 - The aggregate document stores bounded per-station buckets, session-level delay/confidence fields, and no separate raw Firestore report log.
 - Cached aggregate overlays are served when fresh and reused as stale fallback when Firestore is unavailable or temporarily empty.
+- Debug builds bypass the overlay cache and keep community reporting enabled outside the normal schedule window so feature testing stays practical.
 
 ## Local Setup
 
@@ -84,11 +86,13 @@ FIREBASE_APPCHECK_WEB_KEY=
 
 - Firestore config is versioned in [firebase.json](firebase.json), [firestore.rules](firestore.rules), and [firestore.indexes.json](firestore.indexes.json).
 - Train sessions are generated dynamically from bundled schedule templates using deterministic session IDs.
-- `session_status_snapshots/{sessionId}` is the canonical aggregate document for a train session/day.
+- `session_status_snapshots/{sessionId}` is the canonical aggregate document for a recurring train session.
+- `session_status_snapshots/{sessionId}` is reused for the same recurring train run, with `serviceDate` stored inside the aggregate to keep stale day state from leaking forward.
 - Arrival report submission updates that aggregate document transactionally after Firebase Anonymous Auth is ready.
-- Repeated reports from the same device for the same session/station are bounded by a persisted local ledger and do not expand the aggregate beyond one bucket per station.
+- Repeated reports from the same device for the same session/station are bounded by a persisted local ledger that is service-day aware and do not expand the aggregate beyond one bucket per station.
 - The client derives predicted stop times from the aggregate delay and the current session schedule.
 - Arrival reporting UI stays hidden until anonymous auth readiness resolves, while community overlay insight can still render independently.
+- Debug builds can bypass the community overlay cache and schedule-window gating for reporting so feature testing stays available outside the normal active window.
 
 ## Firebase Spark Plan Considerations
 

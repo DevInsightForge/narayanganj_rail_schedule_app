@@ -4,7 +4,7 @@
 - Build production-ready, maintainable Flutter code for Narayanganj Commuter.
 - Preserve the schedule-first baseline while adding Firebase-backed community status features.
 - Keep behavior deterministic, testable, and resilient under degraded connectivity.
-- Keep the community layer aggregate-first: one Firestore document per train session/day is the source of truth for community delay state.
+- Keep the community layer aggregate-first: one Firestore document per recurring train session is the source of truth for community delay state, with `serviceDate` stored in the aggregate and reset when the service day changes.
 
 ## Architecture Rules
 - No spaghetti code.
@@ -57,6 +57,7 @@
 - Keep aggregate documents bounded with per-station buckets and session-level derived fields.
 - Derive predicted stop times locally from the aggregate delay plus the active schedule.
 - Keep overlay reads cache-first and stale-safe.
+- In debug builds, community overlay reads may bypass the cache and reporting may stay enabled outside the normal schedule window to support feature testing.
 
 ## Scope Rules
 - Chat is out of scope for active milestones.
