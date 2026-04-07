@@ -8,6 +8,7 @@ class NoOpArrivalReportRepository implements ArrivalReportRepository {
   @override
   Future<List<ArrivalReport>> fetchStopReports({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
   }) async {
     return const <ArrivalReport>[];
@@ -16,6 +17,7 @@ class NoOpArrivalReportRepository implements ArrivalReportRepository {
   @override
   Future<int> fetchStationSubmissionCount({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
   }) async {
     return 0;

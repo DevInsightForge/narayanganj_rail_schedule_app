@@ -7,6 +7,7 @@ class NoOpCommunityOverlayRepository implements CommunityOverlayRepository {
   @override
   Future<CommunityOverlayResult> fetchSessionOverlay({
     required String sessionId,
+    required DateTime serviceDate,
     bool forceRefresh = false,
   }) async {
     return CommunityOverlayResult(

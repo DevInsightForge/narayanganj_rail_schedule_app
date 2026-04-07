@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../domain/repositories/arrival_report_ledger_repository.dart';
+import '../../../domain/services/service_day_key.dart';
 
 class SharedPreferencesArrivalReportLedgerRepository
     implements ArrivalReportLedgerRepository {
@@ -17,23 +18,27 @@ class SharedPreferencesArrivalReportLedgerRepository
   @override
   Future<bool> hasSubmitted({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
     required String deviceId,
     DateTime? now,
   }) async {
     final entries = await _readEntries(now: now);
-    return entries.containsKey(_key(sessionId, stationId, deviceId));
+    return entries.containsKey(
+      _key(sessionId, serviceDate, stationId, deviceId),
+    );
   }
 
   @override
   Future<void> markSubmitted({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
     required String deviceId,
     required DateTime submittedAt,
   }) async {
     final entries = await _readEntries(now: submittedAt);
-    entries[_key(sessionId, stationId, deviceId)] = submittedAt
+    entries[_key(sessionId, serviceDate, stationId, deviceId)] = submittedAt
         .toUtc()
         .toIso8601String();
     final preferences = await SharedPreferences.getInstance();
@@ -79,7 +84,12 @@ class SharedPreferencesArrivalReportLedgerRepository
     return result;
   }
 
-  String _key(String sessionId, String stationId, String deviceId) {
-    return '$sessionId::$stationId::$deviceId';
+  String _key(
+    String sessionId,
+    DateTime serviceDate,
+    String stationId,
+    String deviceId,
+  ) {
+    return '$sessionId::${serviceDayKey(serviceDate)}::$stationId::$deviceId';
   }
 }

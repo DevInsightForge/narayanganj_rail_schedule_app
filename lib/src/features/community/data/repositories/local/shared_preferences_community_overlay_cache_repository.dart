@@ -9,15 +9,19 @@ import '../../../domain/entities/predicted_stop_time.dart';
 import '../../../domain/entities/report_confidence.dart';
 import '../../../domain/entities/session_status_snapshot.dart';
 import '../../../domain/repositories/community_overlay_cache_repository.dart';
+import '../../../domain/services/service_day_key.dart';
 
 class SharedPreferencesCommunityOverlayCacheRepository
     implements CommunityOverlayCacheRepository {
   static const _keyPrefix = 'nrs:community:overlay:';
 
   @override
-  Future<CommunityOverlayResult?> read({required String sessionId}) async {
+  Future<CommunityOverlayResult?> read({
+    required String sessionId,
+    required DateTime serviceDate,
+  }) async {
     final preferences = await SharedPreferences.getInstance();
-    final raw = preferences.getString('$_keyPrefix$sessionId');
+    final raw = preferences.getString(_key(sessionId, serviceDate));
     if (raw == null || raw.isEmpty) {
       return null;
     }
@@ -51,6 +55,7 @@ class SharedPreferencesCommunityOverlayCacheRepository
   @override
   Future<void> write({
     required String sessionId,
+    required DateTime serviceDate,
     required CommunityOverlayResult overlay,
   }) async {
     final preferences = await SharedPreferences.getInstance();
@@ -63,7 +68,10 @@ class SharedPreferencesCommunityOverlayCacheRepository
           .map(_writePrediction)
           .toList(growable: false),
     };
-    await preferences.setString('$_keyPrefix$sessionId', jsonEncode(payload));
+    await preferences.setString(
+      _key(sessionId, serviceDate),
+      jsonEncode(payload),
+    );
   }
 
   SessionStatusSnapshot _readSnapshot(Map<String, dynamic> map) {
@@ -134,5 +142,9 @@ class SharedPreferencesCommunityOverlayCacheRepository
       'freshnessSeconds': confidence.freshnessSeconds,
       'agreementScore': confidence.agreementScore,
     };
+  }
+
+  String _key(String sessionId, DateTime serviceDate) {
+    return '$_keyPrefix$sessionId::${serviceDayKey(serviceDate)}';
   }
 }

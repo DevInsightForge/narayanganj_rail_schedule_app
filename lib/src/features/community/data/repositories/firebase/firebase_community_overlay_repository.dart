@@ -6,6 +6,7 @@ import '../../../domain/entities/community_overlay_result.dart';
 import '../../../domain/entities/community_session_aggregate.dart';
 import '../../../domain/entities/session_status_snapshot.dart';
 import '../../../domain/repositories/community_overlay_repository.dart';
+import '../../../domain/services/service_day_key.dart';
 import '../../mappers/firestore_community_mapper.dart';
 import '../../models/firestore_models.dart';
 
@@ -30,6 +31,7 @@ class FirebaseCommunityOverlayRepository implements CommunityOverlayRepository {
   @override
   Future<CommunityOverlayResult> fetchSessionOverlay({
     required String sessionId,
+    required DateTime serviceDate,
     bool forceRefresh = false,
   }) async {
     final data = await (_loader?.call(sessionId) ?? _load(sessionId));
@@ -37,8 +39,13 @@ class FirebaseCommunityOverlayRepository implements CommunityOverlayRepository {
     if (data == null || data.isEmpty) {
       return CommunityOverlayResult(fetchedAt: fetchedAt, fromCache: false);
     }
+    final aggregate = _readAggregate(data);
+    if (aggregate == null ||
+        !isSameServiceDay(aggregate.serviceDate, serviceDate)) {
+      return CommunityOverlayResult(fetchedAt: fetchedAt, fromCache: false);
+    }
     return CommunityOverlayResult(
-      sessionStatusSnapshot: _readSnapshot(sessionId, data),
+      sessionStatusSnapshot: _readSnapshot(sessionId, aggregate),
       fetchedAt: fetchedAt,
       fromCache: false,
     );
@@ -66,12 +73,8 @@ class FirebaseCommunityOverlayRepository implements CommunityOverlayRepository {
 
   SessionStatusSnapshot? _readSnapshot(
     String sessionId,
-    Map<String, dynamic> map,
+    CommunitySessionAggregate aggregate,
   ) {
-    final aggregate = _readAggregate(map);
-    if (aggregate == null) {
-      return null;
-    }
     return SessionStatusSnapshot(
       sessionId: aggregate.sessionId.isEmpty ? sessionId : aggregate.sessionId,
       state: SessionLifecycleState.active,

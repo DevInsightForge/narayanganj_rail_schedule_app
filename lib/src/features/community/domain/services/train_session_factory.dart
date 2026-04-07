@@ -38,7 +38,7 @@ class TrainSessionFactory {
 
     final sessionDate = DateTime(baseDate.year, baseDate.month, baseDate.day);
     final sessionId =
-        '${template.routeId}:${template.directionId}:${template.trainNo}:${_dateKey(sessionDate)}';
+        '${template.routeId}:${template.directionId}:${template.trainNo}';
 
     return TrainSession(
       sessionId: sessionId,
@@ -56,12 +56,5 @@ class TrainSessionFactory {
     final hour = int.tryParse(parts.first) ?? 0;
     final minute = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
     return hour * 60 + minute;
-  }
-
-  String _dateKey(DateTime date) {
-    final year = date.year.toString().padLeft(4, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '$year$month$day';
   }
 }

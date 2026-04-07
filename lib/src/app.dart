@@ -26,15 +26,16 @@ class NarayanganjRailScheduleApp extends StatelessWidget {
           SystemChrome.setSystemUIOverlayStyle(
             SystemUiOverlayStyle(
               statusBarColor: Colors.transparent,
-              statusBarIconBrightness:
-                  isDark ? Brightness.light : Brightness.dark,
-              statusBarBrightness:
-                  isDark ? Brightness.dark : Brightness.light,
+              statusBarIconBrightness: isDark
+                  ? Brightness.light
+                  : Brightness.dark,
+              statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
               systemStatusBarContrastEnforced: false,
               systemNavigationBarColor: Colors.transparent,
               systemNavigationBarDividerColor: Colors.transparent,
-              systemNavigationBarIconBrightness:
-                  isDark ? Brightness.light : Brightness.dark,
+              systemNavigationBarIconBrightness: isDark
+                  ? Brightness.light
+                  : Brightness.dark,
               systemNavigationBarContrastEnforced: false,
             ),
           );

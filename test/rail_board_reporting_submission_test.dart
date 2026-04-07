@@ -18,6 +18,7 @@ void main() {
       final reports = FlakyArrivalReportRepository()..failSubmission = false;
       final ledger = FakeArrivalReportLedgerRepository();
       final deviceIdentityRepository = FixedDeviceIdentityRepository();
+      final session = seedRailBoardReportingSessions().first;
       final cubit = buildRailBoardReportingCubit(
         bundledSchedule: bundledSchedule,
         arrivalReportRepository: reports,
@@ -44,13 +45,15 @@ void main() {
       expect(reportState.report.submitEnabled, isFalse);
 
       final stored = await reports.fetchStopReports(
-        sessionId: seedRailBoardReportingSessions().first.sessionId,
+        sessionId: session.sessionId,
+        serviceDate: session.serviceDate,
         stationId: 'dhaka',
       );
       expect(stored, isNotEmpty);
       expect(
         await ledger.hasSubmitted(
-          sessionId: seedRailBoardReportingSessions().first.sessionId,
+          sessionId: session.sessionId,
+          serviceDate: session.serviceDate,
           stationId: 'dhaka',
           deviceId: deviceIdentityRepository.identity.deviceId,
         ),
@@ -70,7 +73,8 @@ void main() {
       expect(duplicateState.report.hasReportedCurrentSession, isTrue);
       expect(
         await reports.fetchStopReports(
-          sessionId: seedRailBoardReportingSessions().first.sessionId,
+          sessionId: session.sessionId,
+          serviceDate: session.serviceDate,
           stationId: 'dhaka',
         ),
         hasLength(1),
@@ -159,6 +163,7 @@ void main() {
         final reports = FlakyArrivalReportRepository();
         final ledger = FakeArrivalReportLedgerRepository();
         final deviceIdentityRepository = FixedDeviceIdentityRepository();
+        final session = seedRailBoardReportingSessions().first;
         final cubit = buildRailBoardReportingCubit(
           bundledSchedule: bundledSchedule,
           arrivalReportRepository: reports,
@@ -182,7 +187,8 @@ void main() {
         expect(reports.submitted, isEmpty);
         expect(
           await ledger.hasSubmitted(
-            sessionId: seedRailBoardReportingSessions().first.sessionId,
+            sessionId: session.sessionId,
+            serviceDate: session.serviceDate,
             stationId: 'dhaka',
             deviceId: deviceIdentityRepository.identity.deviceId,
           ),

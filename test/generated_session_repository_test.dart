@@ -14,7 +14,7 @@ void main() {
     expect(sessions.length, equals(1));
     expect(
       sessions.first.sessionId,
-      equals('narayanganj_line:dhaka_to_narayanganj:7:20260328'),
+      equals('narayanganj_line:dhaka_to_narayanganj:7'),
     );
   });
 
@@ -31,7 +31,10 @@ void main() {
     );
 
     expect(session, isNotNull);
-    expect(session!.sessionId, contains('20260328'));
+    expect(
+      session!.sessionId,
+      equals('narayanganj_line:narayanganj_to_dhaka:15'),
+    );
   });
 }
 

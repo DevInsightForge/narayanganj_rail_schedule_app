@@ -59,9 +59,7 @@ class HeaderPanelHero extends StatelessWidget {
                 nextService == null
                     ? 'Choose your route to get the next commuter option and later departures.'
                     : 'Next departure leaves ${RailBoardCopy.getWaitLabel(nextService.waitMinutes).toLowerCase()}.',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: tokens.textMuted,
-                ),
+                style: textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
               ),
               SizedBox(height: tokens.itemGap),
               _DepartureHero(

@@ -169,6 +169,7 @@ void main() {
         );
         final stored = await reports.fetchStopReports(
           sessionId: seedRailBoardReportingSessions().first.sessionId,
+          serviceDate: seedRailBoardReportingSessions().first.serviceDate,
           stationId: 'dhaka',
         );
         expect(stored, isEmpty);

@@ -8,6 +8,7 @@ import '../../../domain/repositories/arrival_report_repository.dart';
 import '../../../domain/services/community_session_aggregate_reducer.dart';
 import '../../mappers/firestore_community_mapper.dart';
 import '../../models/firestore_models.dart';
+import '../../../domain/services/service_day_key.dart';
 
 class FirebaseArrivalReportRepository implements ArrivalReportRepository {
   FirebaseArrivalReportRepository({
@@ -32,10 +33,12 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
   @override
   Future<List<ArrivalReport>> fetchStopReports({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
   }) async {
     final aggregate = await _readAggregate(sessionId);
-    if (aggregate == null) {
+    if (aggregate == null ||
+        !isSameServiceDay(aggregate.serviceDate, serviceDate)) {
       return const <ArrivalReport>[];
     }
     final bucket = aggregate.bucketForStation(stationId);
@@ -58,10 +61,15 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
   @override
   Future<int> fetchStationSubmissionCount({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
   }) async {
     final aggregate = await _readAggregate(sessionId);
-    return aggregate?.bucketForStation(stationId)?.submissionCount ?? 0;
+    if (aggregate == null ||
+        !isSameServiceDay(aggregate.serviceDate, serviceDate)) {
+      return 0;
+    }
+    return aggregate.bucketForStation(stationId)?.submissionCount ?? 0;
   }
 
   @override

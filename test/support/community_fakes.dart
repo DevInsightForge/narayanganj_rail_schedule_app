@@ -10,6 +10,7 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/reposito
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/device_identity_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/session_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/community_session_aggregate_reducer.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/services/service_day_key.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_overlay_result.dart';
 import 'dart:math';
 
@@ -21,6 +22,7 @@ class FakeArrivalReportLedgerRepository
   @override
   Future<bool> hasSubmitted({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
     required String deviceId,
     DateTime? now,
@@ -28,18 +30,21 @@ class FakeArrivalReportLedgerRepository
     if (now != null) {
       _pruneExpiredEntries(now);
     }
-    return _entries.containsKey(_key(sessionId, stationId, deviceId));
+    return _entries.containsKey(
+      _key(sessionId, serviceDate, stationId, deviceId),
+    );
   }
 
   @override
   Future<void> markSubmitted({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
     required String deviceId,
     required DateTime submittedAt,
   }) async {
     _pruneExpiredEntries(submittedAt);
-    _entries[_key(sessionId, stationId, deviceId)] = submittedAt;
+    _entries[_key(sessionId, serviceDate, stationId, deviceId)] = submittedAt;
   }
 
   void _pruneExpiredEntries(DateTime now) {
@@ -47,8 +52,13 @@ class FakeArrivalReportLedgerRepository
     _entries.removeWhere((_, submittedAt) => submittedAt.isBefore(cutoff));
   }
 
-  String _key(String sessionId, String stationId, String deviceId) {
-    return '$sessionId::$stationId::$deviceId';
+  String _key(
+    String sessionId,
+    DateTime serviceDate,
+    String stationId,
+    String deviceId,
+  ) {
+    return '$sessionId::${serviceDayKey(serviceDate)}::$stationId::$deviceId';
   }
 }
 
@@ -65,9 +75,10 @@ class FakeArrivalReportRepository implements ArrivalReportRepository {
   @override
   Future<List<ArrivalReport>> fetchStopReports({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
   }) async {
-    final aggregate = _aggregates[sessionId];
+    final aggregate = _aggregates[_key(sessionId, serviceDate)];
     if (aggregate == null) {
       return _reports
           .where(
@@ -95,9 +106,10 @@ class FakeArrivalReportRepository implements ArrivalReportRepository {
   @override
   Future<int> fetchStationSubmissionCount({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
   }) async {
-    return _aggregates[sessionId]
+    return _aggregates[_key(sessionId, serviceDate)]
             ?.bucketForStation(stationId)
             ?.submissionCount ??
         0;
@@ -107,8 +119,12 @@ class FakeArrivalReportRepository implements ArrivalReportRepository {
   Future<void> submitArrivalReport(ArrivalReportSubmission submission) async {
     _reports.add(submission.report);
     try {
-      _aggregates[submission.session.sessionId] = _reducer.reduce(
-        current: _aggregates[submission.session.sessionId],
+      final key = _key(
+        submission.session.sessionId,
+        submission.session.serviceDate,
+      );
+      _aggregates[key] = _reducer.reduce(
+        current: _aggregates[key],
         submission: submission,
         now: submission.report.submittedAt,
       );
@@ -123,8 +139,23 @@ class FakeArrivalReportRepository implements ArrivalReportRepository {
     }
   }
 
-  CommunitySessionAggregate? aggregateForSession(String sessionId) {
-    return _aggregates[sessionId];
+  CommunitySessionAggregate? aggregateForSession(
+    String sessionId, [
+    DateTime? serviceDate,
+  ]) {
+    if (serviceDate != null) {
+      return _aggregates[_key(sessionId, serviceDate)];
+    }
+    for (final aggregate in _aggregates.values) {
+      if (aggregate.sessionId == sessionId) {
+        return aggregate;
+      }
+    }
+    return null;
+  }
+
+  String _key(String sessionId, DateTime serviceDate) {
+    return '$sessionId::${serviceDayKey(serviceDate)}';
   }
 }
 
@@ -140,14 +171,27 @@ class FakeCommunityOverlayRepository implements CommunityOverlayRepository {
   @override
   Future<CommunityOverlayResult> fetchSessionOverlay({
     required String sessionId,
+    required DateTime serviceDate,
     bool forceRefresh = false,
   }) async {
     if (failFetch) {
       throw StateError('overlay_fetch_failed');
     }
+    final key = _key(sessionId, serviceDate);
+    fetchCounts.update(key, (count) => count + 1, ifAbsent: () => 1);
     fetchCounts.update(sessionId, (count) => count + 1, ifAbsent: () => 1);
-    return _overlays[sessionId] ??
-        CommunityOverlayResult(fetchedAt: DateTime(1970), fromCache: false);
+    return _overlays[key] ??
+        _overlays.values.firstWhere(
+          (overlay) => overlay.sessionStatusSnapshot?.sessionId == sessionId,
+          orElse: () => CommunityOverlayResult(
+            fetchedAt: DateTime(1970),
+            fromCache: false,
+          ),
+        );
+  }
+
+  String _key(String sessionId, DateTime serviceDate) {
+    return '$sessionId::${serviceDayKey(serviceDate)}';
   }
 }
 
@@ -236,8 +280,7 @@ class FakeSessionRepository implements SessionRepository {
         return false;
       }
       return session.departureAt.isAfter(now) || session.arrivalAt.isAfter(now);
-    }).toList()
-      ..sort((a, b) => a.departureAt.compareTo(b.departureAt));
+    }).toList()..sort((a, b) => a.departureAt.compareTo(b.departureAt));
 
     return candidates.isEmpty ? null : candidates.first;
   }

@@ -106,24 +106,34 @@ service cloud.firestore {
       let stationId = changedStations[0];
       let previousBucket = resource.data.stationBuckets[stationId];
       let nextBucket = request.resource.data.stationBuckets[stationId];
+      let isServiceDayReset =
+        request.resource.data.serviceDate != resource.data.serviceDate &&
+        request.resource.data.reportCount == 1 &&
+        request.resource.data.stationCount == 1 &&
+        request.resource.data.stationBuckets.size() == 1;
 
       return isValidSessionAggregate()
         && request.resource.data.sessionId == resource.data.sessionId
         && request.resource.data.routeId == resource.data.routeId
         && request.resource.data.directionId == resource.data.directionId
         && request.resource.data.trainNo == resource.data.trainNo
-        && request.resource.data.serviceDate == resource.data.serviceDate
-        && changedStations.size() == 1
-        && request.resource.data.reportCount == resource.data.reportCount + 1
         && (
-          previousBucket == null
-            ? request.resource.data.stationCount == resource.data.stationCount + 1
-            : request.resource.data.stationCount == resource.data.stationCount
-        )
-        && (
-          previousBucket == null
-            ? nextBucket.submissionCount == 1
-            : nextBucket.submissionCount == previousBucket.submissionCount + 1
+          isServiceDayReset
+          || (
+            request.resource.data.serviceDate == resource.data.serviceDate
+            && changedStations.size() == 1
+            && request.resource.data.reportCount == resource.data.reportCount + 1
+            && (
+              previousBucket == null
+                ? request.resource.data.stationCount == resource.data.stationCount + 1
+                : request.resource.data.stationCount == resource.data.stationCount
+            )
+            && (
+              previousBucket == null
+                ? nextBucket.submissionCount == 1
+                : nextBucket.submissionCount == previousBucket.submissionCount + 1
+            )
+          )
         );
     }
 

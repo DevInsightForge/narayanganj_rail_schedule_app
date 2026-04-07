@@ -14,14 +14,21 @@ void main() {
     final remote = _FakeOverlayRemoteRepository();
     final cache = _InMemoryOverlayCacheRepository();
     DateTime now = DateTime(2026, 3, 30, 9, 0);
+    final serviceDate = DateTime(2026, 3, 30);
     final repository = CachedCommunityOverlayRepository(
       primary: remote,
       cache: cache,
       nowProvider: () => now,
     );
 
-    final first = await repository.fetchSessionOverlay(sessionId: 's1');
-    final second = await repository.fetchSessionOverlay(sessionId: 's1');
+    final first = await repository.fetchSessionOverlay(
+      sessionId: 's1',
+      serviceDate: serviceDate,
+    );
+    final second = await repository.fetchSessionOverlay(
+      sessionId: 's1',
+      serviceDate: serviceDate,
+    );
 
     expect(remote.fetchCount, equals(1));
     expect(first.fromCache, isFalse);
@@ -32,15 +39,22 @@ void main() {
     final remote = _FakeOverlayRemoteRepository();
     final cache = _InMemoryOverlayCacheRepository();
     DateTime now = DateTime(2026, 3, 30, 9, 0);
+    final serviceDate = DateTime(2026, 3, 30);
     final repository = CachedCommunityOverlayRepository(
       primary: remote,
       cache: cache,
       nowProvider: () => now,
     );
 
-    await repository.fetchSessionOverlay(sessionId: 's1');
+    await repository.fetchSessionOverlay(
+      sessionId: 's1',
+      serviceDate: serviceDate,
+    );
     now = now.add(const Duration(minutes: 6));
-    await repository.fetchSessionOverlay(sessionId: 's1');
+    await repository.fetchSessionOverlay(
+      sessionId: 's1',
+      serviceDate: serviceDate,
+    );
 
     expect(remote.fetchCount, equals(2));
   });
@@ -48,14 +62,22 @@ void main() {
   test('forces refresh after explicit bypass', () async {
     final remote = _FakeOverlayRemoteRepository();
     final cache = _InMemoryOverlayCacheRepository();
+    final serviceDate = DateTime(2026, 3, 30);
     final repository = CachedCommunityOverlayRepository(
       primary: remote,
       cache: cache,
       nowProvider: () => DateTime(2026, 3, 30, 9, 0),
     );
 
-    await repository.fetchSessionOverlay(sessionId: 's1');
-    await repository.fetchSessionOverlay(sessionId: 's1', forceRefresh: true);
+    await repository.fetchSessionOverlay(
+      sessionId: 's1',
+      serviceDate: serviceDate,
+    );
+    await repository.fetchSessionOverlay(
+      sessionId: 's1',
+      serviceDate: serviceDate,
+      forceRefresh: true,
+    );
 
     expect(remote.fetchCount, equals(2));
   });
@@ -64,17 +86,24 @@ void main() {
     final remote = _FakeOverlayRemoteRepository();
     final cache = _InMemoryOverlayCacheRepository();
     DateTime now = DateTime(2026, 3, 30, 9, 0);
+    final serviceDate = DateTime(2026, 3, 30);
     final repository = CachedCommunityOverlayRepository(
       primary: remote,
       cache: cache,
       nowProvider: () => now,
     );
 
-    await repository.fetchSessionOverlay(sessionId: 's1');
+    await repository.fetchSessionOverlay(
+      sessionId: 's1',
+      serviceDate: serviceDate,
+    );
     remote.shouldThrow = true;
     now = now.add(const Duration(minutes: 6));
 
-    final overlay = await repository.fetchSessionOverlay(sessionId: 's1');
+    final overlay = await repository.fetchSessionOverlay(
+      sessionId: 's1',
+      serviceDate: serviceDate,
+    );
 
     expect(remote.fetchCount, equals(2));
     expect(overlay.fromCache, isTrue);
@@ -85,20 +114,27 @@ void main() {
     final remote = _FakeOverlayRemoteRepository();
     final cache = _InMemoryOverlayCacheRepository();
     DateTime now = DateTime(2026, 3, 30, 9, 0);
+    final serviceDate = DateTime(2026, 3, 30);
     final repository = CachedCommunityOverlayRepository(
       primary: remote,
       cache: cache,
       nowProvider: () => now,
     );
 
-    await repository.fetchSessionOverlay(sessionId: 's1');
+    await repository.fetchSessionOverlay(
+      sessionId: 's1',
+      serviceDate: serviceDate,
+    );
     remote.nextResult = CommunityOverlayResult(
       fetchedAt: DateTime(2026, 3, 30, 9, 6),
       fromCache: false,
     );
     now = now.add(const Duration(minutes: 6));
 
-    final overlay = await repository.fetchSessionOverlay(sessionId: 's1');
+    final overlay = await repository.fetchSessionOverlay(
+      sessionId: 's1',
+      serviceDate: serviceDate,
+    );
 
     expect(overlay.fromCache, isTrue);
     expect(overlay.sessionStatusSnapshot, isNotNull);
@@ -112,13 +148,17 @@ void main() {
       ),
     );
     final cache = _InMemoryOverlayCacheRepository();
+    final serviceDate = DateTime(2026, 3, 30);
     final repository = CachedCommunityOverlayRepository(
       primary: remote,
       cache: cache,
       nowProvider: () => DateTime(2026, 3, 30, 9, 0),
     );
 
-    final overlay = await repository.fetchSessionOverlay(sessionId: 's1');
+    final overlay = await repository.fetchSessionOverlay(
+      sessionId: 's1',
+      serviceDate: serviceDate,
+    );
 
     expect(overlay.fromCache, isFalse);
     expect(overlay.sessionStatusSnapshot, isNull);
@@ -136,6 +176,7 @@ class _FakeOverlayRemoteRepository implements CommunityOverlayRepository {
   @override
   Future<CommunityOverlayResult> fetchSessionOverlay({
     required String sessionId,
+    required DateTime serviceDate,
     bool forceRefresh = false,
   }) async {
     fetchCount += 1;
@@ -188,15 +229,26 @@ class _InMemoryOverlayCacheRepository
       <String, CommunityOverlayResult>{};
 
   @override
-  Future<CommunityOverlayResult?> read({required String sessionId}) async {
-    return _entries[sessionId];
+  Future<CommunityOverlayResult?> read({
+    required String sessionId,
+    required DateTime serviceDate,
+  }) async {
+    return _entries[_key(sessionId, serviceDate)];
   }
 
   @override
   Future<void> write({
     required String sessionId,
+    required DateTime serviceDate,
     required CommunityOverlayResult overlay,
   }) async {
-    _entries[sessionId] = overlay;
+    _entries[_key(sessionId, serviceDate)] = overlay;
+  }
+
+  String _key(String sessionId, DateTime serviceDate) {
+    final year = serviceDate.year.toString().padLeft(4, '0');
+    final month = serviceDate.month.toString().padLeft(2, '0');
+    final day = serviceDate.day.toString().padLeft(2, '0');
+    return '$sessionId::$year$month$day';
   }
 }

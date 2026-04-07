@@ -23,6 +23,7 @@ extension RailBoardUseCaseCommunity on RailBoardUseCase {
 
       final overlay = await _communityOverlayRepository.fetchSessionOverlay(
         sessionId: session.sessionId,
+        serviceDate: session.serviceDate,
         forceRefresh: forceRefresh,
       );
       final snapshot = _applyOverlayAge(overlay, now);

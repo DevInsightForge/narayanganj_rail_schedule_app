@@ -85,6 +85,7 @@ void main() {
       );
       final reports = await repository.fetchStopReports(
         sessionId: session.sessionId,
+        serviceDate: session.serviceDate,
         stationId: 'dhaka',
       );
 
@@ -280,21 +281,37 @@ void main() {
           ),
         );
 
-        expect(firstSession.sessionId, isNot(equals(secondSession.sessionId)));
+        expect(firstSession.sessionId, equals(secondSession.sessionId));
         expect(
-          repository.aggregateForSession(firstSession.sessionId),
+          repository.aggregateForSession(
+            firstSession.sessionId,
+            firstSession.serviceDate,
+          ),
           isNotNull,
         );
         expect(
-          repository.aggregateForSession(secondSession.sessionId),
+          repository.aggregateForSession(
+            secondSession.sessionId,
+            secondSession.serviceDate,
+          ),
           isNotNull,
         );
         expect(
-          repository.aggregateForSession(firstSession.sessionId)!.serviceDate,
+          repository
+              .aggregateForSession(
+                firstSession.sessionId,
+                firstSession.serviceDate,
+              )!
+              .serviceDate,
           equals(DateTime(2026, 3, 28)),
         );
         expect(
-          repository.aggregateForSession(secondSession.sessionId)!.serviceDate,
+          repository
+              .aggregateForSession(
+                secondSession.sessionId,
+                secondSession.serviceDate,
+              )!
+              .serviceDate,
           equals(DateTime(2026, 3, 29)),
         );
       },

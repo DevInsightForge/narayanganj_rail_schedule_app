@@ -45,6 +45,7 @@ extension RailBoardUseCaseAvailability on RailBoardUseCase {
       try {
         final hasSubmitted = await _hasSubmittedForSession(
           sessionId: session.sessionId,
+          serviceDate: session.serviceDate,
           stationId: selection.boardingStationId,
           deviceId: identity.deviceId,
           now: now,
@@ -74,6 +75,7 @@ extension RailBoardUseCaseAvailability on RailBoardUseCase {
         final submissionCount = await _arrivalReportRepository
             .fetchStationSubmissionCount(
               sessionId: session.sessionId,
+              serviceDate: session.serviceDate,
               stationId: selection.boardingStationId,
             );
         if (submissionCount >= 10) {

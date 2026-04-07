@@ -167,6 +167,7 @@ class FlakyArrivalReportRepository implements ArrivalReportRepository {
   @override
   Future<List<ArrivalReport>> fetchStopReports({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
   }) async {
     return submitted
@@ -180,6 +181,7 @@ class FlakyArrivalReportRepository implements ArrivalReportRepository {
   @override
   Future<int> fetchStationSubmissionCount({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
   }) async {
     return submitted

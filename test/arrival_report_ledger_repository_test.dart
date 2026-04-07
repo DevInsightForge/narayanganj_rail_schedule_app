@@ -6,9 +6,10 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('prunes ledger entries older than eighteen hours', () async {
+    final serviceDate = DateTime.utc(2026, 3, 28);
     SharedPreferences.setMockInitialValues(<String, Object>{
       'nrs:community:arrival-report-ledger':
-          '{"old::station::device":"2026-03-27T05:59:00.000Z"}',
+          '{"old::20260327::station::device":"2026-03-27T05:59:00.000Z"}',
     });
     final repository = SharedPreferencesArrivalReportLedgerRepository(
       nowProvider: () => DateTime.utc(2026, 3, 28, 0),
@@ -16,6 +17,7 @@ void main() {
 
     final hasSubmitted = await repository.hasSubmitted(
       sessionId: 'old',
+      serviceDate: serviceDate,
       stationId: 'station',
       deviceId: 'device',
       now: DateTime.utc(2026, 3, 28, 0),
@@ -30,9 +32,10 @@ void main() {
   });
 
   test('keeps ledger entries within eighteen hours', () async {
+    final serviceDate = DateTime.utc(2026, 3, 28);
     SharedPreferences.setMockInitialValues(<String, Object>{
       'nrs:community:arrival-report-ledger':
-          '{"recent::station::device":"2026-03-27T06:30:00.000Z"}',
+          '{"recent::20260328::station::device":"2026-03-27T06:30:00.000Z"}',
     });
     final repository = SharedPreferencesArrivalReportLedgerRepository(
       nowProvider: () => DateTime.utc(2026, 3, 28, 0),
@@ -40,6 +43,7 @@ void main() {
 
     final hasSubmitted = await repository.hasSubmitted(
       sessionId: 'recent',
+      serviceDate: serviceDate,
       stationId: 'station',
       deviceId: 'device',
       now: DateTime.utc(2026, 3, 28, 0),

@@ -72,12 +72,14 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
 
       final dedupeKey = _buildReportDedupeKey(
         sessionId: session.sessionId,
+        serviceDate: session.serviceDate,
         stationId: selection.boardingStationId,
         deviceId: identity.deviceId,
         now: now,
       );
       final submissionKey = _buildSubmissionKey(
         sessionId: session.sessionId,
+        serviceDate: session.serviceDate,
         stationId: selection.boardingStationId,
         deviceId: identity.deviceId,
       );
@@ -86,6 +88,7 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
         try {
           alreadySubmitted = await _arrivalReportLedgerRepository.hasSubmitted(
             sessionId: session.sessionId,
+            serviceDate: session.serviceDate,
             stationId: selection.boardingStationId,
             deviceId: identity.deviceId,
             now: now,
@@ -136,6 +139,7 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
         try {
           await _arrivalReportLedgerRepository.markSubmitted(
             sessionId: session.sessionId,
+            serviceDate: session.serviceDate,
             stationId: selection.boardingStationId,
             deviceId: identity.deviceId,
             submittedAt: now,
@@ -178,7 +182,8 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
         final failureReason =
             error.code == ArrivalReportRepositoryErrorCode.permissionDenied
             ? RailReportSubmissionFailureReason.permissionDenied
-            : error.code == ArrivalReportRepositoryErrorCode.stationCapacityReached
+            : error.code ==
+                  ArrivalReportRepositoryErrorCode.stationCapacityReached
             ? RailReportSubmissionFailureReason.stationCapacityReached
             : RailReportSubmissionFailureReason.invalidPayload;
         await _reportNonFatal(
@@ -334,12 +339,14 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
 
   Future<bool> _hasSubmittedForSession({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
     required String deviceId,
     required DateTime now,
   }) async {
     final submissionKey = _buildSubmissionKey(
       sessionId: sessionId,
+      serviceDate: serviceDate,
       stationId: stationId,
       deviceId: deviceId,
     );
@@ -347,7 +354,8 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
       return true;
     }
     _pruneRecentReportKeys(now);
-    final dedupePrefix = '$sessionId:$stationId:$deviceId:';
+    final dedupePrefix =
+        '$sessionId:${serviceDayKey(serviceDate)}:$stationId:$deviceId:';
     final hasRecent = _recentReportKeys.keys.any(
       (key) => key.startsWith(dedupePrefix),
     );
@@ -356,6 +364,7 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
     }
     return _arrivalReportLedgerRepository.hasSubmitted(
       sessionId: sessionId,
+      serviceDate: serviceDate,
       stationId: stationId,
       deviceId: deviceId,
       now: now,
@@ -364,6 +373,7 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
 
   String _buildReportDedupeKey({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
     required String deviceId,
     required DateTime now,
@@ -371,15 +381,16 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
     final bucket =
         now.millisecondsSinceEpoch ~/
         Duration(minutes: reportDedupeBucketMinutes).inMilliseconds;
-    return '$sessionId:$stationId:$deviceId:$bucket';
+    return '$sessionId:${serviceDayKey(serviceDate)}:$stationId:$deviceId:$bucket';
   }
 
   String _buildSubmissionKey({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
     required String deviceId,
   }) {
-    return '$sessionId:$stationId:$deviceId';
+    return '$sessionId:${serviceDayKey(serviceDate)}:$stationId:$deviceId';
   }
 
   bool _isDuplicateReport({required String dedupeKey, required DateTime now}) {

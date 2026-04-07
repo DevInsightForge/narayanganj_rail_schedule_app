@@ -13,6 +13,7 @@ import '../../../community/domain/repositories/community_overlay_repository.dart
 import '../../../community/domain/repositories/device_identity_repository.dart';
 import '../../../community/domain/repositories/session_repository.dart';
 import '../../../community/domain/services/session_lifecycle_service.dart';
+import '../../../community/domain/services/service_day_key.dart';
 import '../../../../core/errors/error_report_context.dart';
 import '../../../../core/errors/error_reporter.dart';
 import '../models/rail_community_insight_result.dart';

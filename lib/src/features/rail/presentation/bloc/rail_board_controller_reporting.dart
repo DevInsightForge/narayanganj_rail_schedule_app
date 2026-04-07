@@ -153,9 +153,7 @@ class RailBoardControllerReporting {
 
     final currentAttemptId = attemptId ?? controller._attemptIdFactory.next();
     final authReadiness = await controller._deviceIdentityRepository
-        .readAuthReadiness(
-      attemptId: currentAttemptId,
-    );
+        .readAuthReadiness(attemptId: currentAttemptId);
     if (revision != controller._reportAvailabilityRevision) {
       return;
     }

@@ -3,6 +3,7 @@ import '../entities/community_session_aggregate.dart';
 import '../entities/delay_status.dart';
 import '../entities/report_confidence.dart';
 import '../entities/train_session.dart';
+import 'service_day_key.dart';
 
 class CommunitySessionAggregateReducer {
   const CommunitySessionAggregateReducer({this.maxSubmissionsPerStation = 10});
@@ -16,13 +17,16 @@ class CommunitySessionAggregateReducer {
   }) {
     final session = submission.session;
     final stationStop = submission.stationStop;
+    final previous = isSameServiceDay(current?.serviceDate, session.serviceDate)
+        ? current
+        : null;
     final observedAt = submission.report.observedArrivalAt;
     final submittedAt = submission.report.submittedAt;
     final delayMinutes = observedAt
         .difference(stationStop.scheduledAt)
         .inMinutes;
     final nextBucket = _updateBucket(
-      current?.bucketForStation(stationStop.stationId),
+      previous?.bucketForStation(stationStop.stationId),
       reportId: submission.report.reportId,
       deviceId: submission.report.deviceId,
       stationStop: stationStop,
@@ -31,7 +35,7 @@ class CommunitySessionAggregateReducer {
       delayMinutes: delayMinutes,
     );
     final stationBuckets = _mergeBuckets(
-      current?.stationBuckets ?? const <StationAggregateBucket>[],
+      previous?.stationBuckets ?? const <StationAggregateBucket>[],
       nextBucket,
     );
     final latestBucket = _latestBucket(stationBuckets);

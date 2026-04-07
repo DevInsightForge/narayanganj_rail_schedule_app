@@ -41,7 +41,9 @@ class RailBoardControllerCommunity {
     );
   }
 
-  static RailCommunityInsightStatus mapInsightKind(RailCommunityInsightKind kind) {
+  static RailCommunityInsightStatus mapInsightKind(
+    RailCommunityInsightKind kind,
+  ) {
     return switch (kind) {
       RailCommunityInsightKind.idle => RailCommunityInsightStatus.idle,
       RailCommunityInsightKind.loading => RailCommunityInsightStatus.loading,

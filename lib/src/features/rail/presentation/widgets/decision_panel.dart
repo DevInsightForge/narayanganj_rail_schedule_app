@@ -60,9 +60,11 @@ class DecisionPanel extends StatelessWidget {
                     '${view.snapshot.selectedStationName} to ${view.snapshot.destinationStationName}',
               ),
               RailPill(label: 'Train', value: '${nextService.trainNo}'),
-                RailPill(
-                  label: 'Period',
-                value: RailBoardCopy.getServicePeriodLabel(nextService.servicePeriod),
+              RailPill(
+                label: 'Period',
+                value: RailBoardCopy.getServicePeriodLabel(
+                  nextService.servicePeriod,
+                ),
               ),
             ],
           ),

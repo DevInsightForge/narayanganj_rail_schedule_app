@@ -163,14 +163,15 @@ void main() {
     test(
       'keeps already-submitted state ahead of station-capacity state',
       () async {
-      final reports = FlakyArrivalReportRepository();
-      reports.failSubmission = false;
-      final ledger = FakeArrivalReportLedgerRepository();
+        final reports = FlakyArrivalReportRepository();
+        reports.failSubmission = false;
+        final ledger = FakeArrivalReportLedgerRepository();
         final deviceIdentityRepository = FixedDeviceIdentityRepository();
         final session = seedRailBoardReportingSessions().first;
 
         await ledger.markSubmitted(
           sessionId: session.sessionId,
+          serviceDate: session.serviceDate,
           stationId: 'dhaka',
           deviceId: deviceIdentityRepository.identity.deviceId,
           submittedAt: DateTime(2026, 3, 28, 4, 25),

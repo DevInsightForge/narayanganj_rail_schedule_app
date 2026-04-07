@@ -10,13 +10,15 @@ class RailBoardControllerLoading {
   }) async {
     final attemptId = controller._attemptIdFactory.next();
     if (showLoading) {
-      emit(readState().copyWith(status: RailBoardStatus.loading, clearError: true));
+      emit(
+        readState().copyWith(status: RailBoardStatus.loading, clearError: true),
+      );
     }
 
     try {
       final storedSelection = await controller._selectionRepository.read();
-      final storedSchedule =
-          await controller._scheduleDataRepository.readStoredSchedule();
+      final storedSchedule = await controller._scheduleDataRepository
+          .readStoredSchedule();
 
       if (storedSchedule != null) {
         controller._boardService = RailBoardService(
@@ -43,8 +45,8 @@ class RailBoardControllerLoading {
         forceCommunityRefresh: forceCommunityRefresh,
       );
 
-      final remoteSchedule =
-          await controller._scheduleDataRepository.fetchRemoteSchedule();
+      final remoteSchedule = await controller._scheduleDataRepository
+          .fetchRemoteSchedule();
       if (remoteSchedule == null) {
         return;
       }
@@ -96,7 +98,13 @@ class RailBoardControllerLoading {
     final previousTrainNo = previousState.snapshot.nextService?.trainNo;
     try {
       await controller._selectionRepository.write(selection);
-      emit(RailBoardControllerLoading.buildState(controller, selection, readState()));
+      emit(
+        RailBoardControllerLoading.buildState(
+          controller,
+          selection,
+          readState(),
+        ),
+      );
       await RailBoardControllerReporting.refreshReportAvailability(
         controller,
         readState,

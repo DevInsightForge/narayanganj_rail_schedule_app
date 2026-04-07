@@ -18,11 +18,13 @@ abstract class ArrivalReportRepository {
 
   Future<List<ArrivalReport>> fetchStopReports({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
   });
 
   Future<int> fetchStationSubmissionCount({
     required String sessionId,
+    required DateTime serviceDate,
     required String stationId,
   });
 }

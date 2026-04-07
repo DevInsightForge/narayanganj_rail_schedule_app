@@ -1,6 +1,7 @@
 import '../../../domain/entities/community_overlay_result.dart';
 import '../../../domain/repositories/community_overlay_cache_repository.dart';
 import '../../../domain/repositories/community_overlay_repository.dart';
+import '../../../domain/services/service_day_key.dart';
 
 class CachedCommunityOverlayRepository implements CommunityOverlayRepository {
   CachedCommunityOverlayRepository({
@@ -23,27 +24,33 @@ class CachedCommunityOverlayRepository implements CommunityOverlayRepository {
   @override
   Future<CommunityOverlayResult> fetchSessionOverlay({
     required String sessionId,
+    required DateTime serviceDate,
     bool forceRefresh = false,
   }) async {
     final now = _nowProvider();
-    final cached = await _cache.read(sessionId: sessionId);
+    final cached = await _cache.read(
+      sessionId: sessionId,
+      serviceDate: serviceDate,
+    );
     if (!forceRefresh) {
       if (cached != null && now.difference(cached.fetchedAt) <= _cacheTtl) {
         return cached.copyWith(fromCache: true);
       }
     }
 
-    final existing = _inFlight[sessionId];
+    final cacheKey = _key(sessionId, serviceDate);
+    final existing = _inFlight[cacheKey];
     if (existing != null) {
       return existing;
     }
 
     final future = _fetchAndCache(
       sessionId: sessionId,
+      serviceDate: serviceDate,
       cached: cached,
       forceRefresh: true,
     );
-    _inFlight[sessionId] = future;
+    _inFlight[cacheKey] = future;
     try {
       return await future;
     } catch (_) {
@@ -52,17 +59,19 @@ class CachedCommunityOverlayRepository implements CommunityOverlayRepository {
       }
       rethrow;
     } finally {
-      _inFlight.remove(sessionId);
+      _inFlight.remove(cacheKey);
     }
   }
 
   Future<CommunityOverlayResult> _fetchAndCache({
     required String sessionId,
+    required DateTime serviceDate,
     required CommunityOverlayResult? cached,
     required bool forceRefresh,
   }) async {
     final remote = await _primary.fetchSessionOverlay(
       sessionId: sessionId,
+      serviceDate: serviceDate,
       forceRefresh: forceRefresh,
     );
     if (_isEmpty(remote)) {
@@ -72,12 +81,20 @@ class CachedCommunityOverlayRepository implements CommunityOverlayRepository {
       return remote.copyWith(fromCache: false);
     }
     final normalized = remote.copyWith(fromCache: false);
-    await _cache.write(sessionId: sessionId, overlay: normalized);
+    await _cache.write(
+      sessionId: sessionId,
+      serviceDate: serviceDate,
+      overlay: normalized,
+    );
     return normalized;
   }
 
   bool _isEmpty(CommunityOverlayResult overlay) {
     return overlay.sessionStatusSnapshot == null &&
         overlay.predictedStopTimes.isEmpty;
+  }
+
+  String _key(String sessionId, DateTime serviceDate) {
+    return '$sessionId::${serviceDayKey(serviceDate)}';
   }
 }

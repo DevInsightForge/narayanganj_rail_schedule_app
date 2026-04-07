@@ -6,6 +6,7 @@ import '../../domain/entities/delay_status.dart';
 import '../../domain/entities/predicted_stop_time.dart';
 import '../../domain/entities/report_confidence.dart';
 import '../../domain/entities/train_session.dart';
+import '../../domain/services/service_day_key.dart';
 import '../models/firestore_models.dart';
 
 class FirestoreCommunityMapper {
@@ -62,7 +63,7 @@ class FirestoreCommunityMapper {
       routeId: aggregate.routeId,
       directionId: aggregate.directionId,
       trainNo: aggregate.trainNo,
-      serviceDate: _dateKey(aggregate.serviceDate),
+      serviceDate: serviceDateKey(aggregate.serviceDate),
       updatedAt: _toTimestamp(aggregate.updatedAt),
       lastObservedAt: aggregate.lastObservedAt == null
           ? null
@@ -172,12 +173,5 @@ class FirestoreCommunityMapper {
       'late' => DelayStatus.late,
       _ => DelayStatus.onTime,
     };
-  }
-
-  String _dateKey(DateTime date) {
-    final year = date.year.toString().padLeft(4, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '$year-$month-$day';
   }
 }
