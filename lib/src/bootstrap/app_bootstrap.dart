@@ -1,5 +1,10 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 
+import '../core/errors/error_report_context.dart';
+import '../core/errors/error_reporter.dart';
 import '../core/errors/error_reporting.dart';
 import '../core/firebase/firebase_bootstrap.dart';
 import '../features/rail/data/models/rail_schedule_document_parser.dart';
@@ -33,6 +38,7 @@ class AppBootstrap {
     );
     final errorReporter = buildErrorReporter(firebaseRuntime: firebaseRuntime);
     await errorReporter.initialize();
+    _configureFatalErrorHandlers(errorReporter);
 
     return AppComposition(
       firebaseRuntime: firebaseRuntime,
@@ -40,5 +46,32 @@ class AppBootstrap {
       scheduleDataRepository: scheduleDataRepository,
       errorReporter: errorReporter,
     );
+  }
+
+  void _configureFatalErrorHandlers(ErrorReporter errorReporter) {
+    if (!errorReporter.isEnabled) {
+      return;
+    }
+
+    FlutterError.onError = (details) {
+      unawaited(
+        errorReporter.reportFatal(
+          details.exception,
+          details.stack ?? StackTrace.current,
+          context: ErrorReportContext(feature: 'app', event: 'flutter_error'),
+        ),
+      );
+      FlutterError.presentError(details);
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      unawaited(
+        errorReporter.reportFatal(
+          error,
+          stack,
+          context: ErrorReportContext(feature: 'app', event: 'platform_error'),
+        ),
+      );
+      return true;
+    };
   }
 }
