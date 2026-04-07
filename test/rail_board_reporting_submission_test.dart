@@ -83,6 +83,45 @@ void main() {
       await cubit.close();
     });
 
+    test('debug bypass submits outside the schedule window', () async {
+      final reports = FlakyArrivalReportRepository()..failSubmission = false;
+      final ledger = FakeArrivalReportLedgerRepository();
+      final deviceIdentityRepository = FixedDeviceIdentityRepository();
+      final session = seedRailBoardReportingSessions().first;
+      final cubit = buildRailBoardReportingCubit(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: reports,
+        arrivalReportLedgerRepository: ledger,
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: deviceIdentityRepository,
+        communityDebugBypassEnabled: true,
+        nowProvider: () => DateTime(2026, 3, 28, 2, 0),
+      );
+
+      await waitForRailBoardState(
+        cubit,
+        (state) => state.status == RailBoardStatus.ready,
+      );
+
+      await cubit.submitArrivalReport();
+
+      final success = await waitForRailBoardState(
+        cubit,
+        (state) =>
+            state.reportSubmissionStatus == RailReportSubmissionStatus.success,
+      );
+      expect(success.reportFeedbackMessage, contains('Arrival reported'));
+      expect(
+        await reports.fetchStopReports(
+          sessionId: session.sessionId,
+          serviceDate: session.serviceDate,
+          stationId: 'dhaka',
+        ),
+        hasLength(1),
+      );
+      await cubit.close();
+    });
+
     test('hides reporting action while auth readiness is resolving', () async {
       final readinessCompleter = Completer<FirebaseAuthReadiness>();
       final deviceIdentityRepository = ResolvingDeviceIdentityRepository(

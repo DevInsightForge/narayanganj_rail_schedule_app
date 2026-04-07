@@ -25,6 +25,15 @@ extension RailBoardUseCaseAvailability on RailBoardUseCase {
         );
       }
 
+      final identity = await _deviceIdentityRepository.readOrCreateIdentity(
+        attemptId: attemptId,
+      );
+      if (communityDebugBypassEnabled) {
+        return const RailReportAvailabilityResult(
+          reason: RailReportActionReason.eligible,
+        );
+      }
+
       final boardingWindowState = _getBoardingWindowState(
         boardingAt: boardingStop.scheduledAt,
         now: now,
@@ -39,9 +48,6 @@ extension RailBoardUseCaseAvailability on RailBoardUseCase {
           reason: RailReportActionReason.afterWindow,
         );
       }
-      final identity = await _deviceIdentityRepository.readOrCreateIdentity(
-        attemptId: attemptId,
-      );
       try {
         final hasSubmitted = await _hasSubmittedForSession(
           sessionId: session.sessionId,

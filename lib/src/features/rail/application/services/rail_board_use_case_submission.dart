@@ -38,19 +38,21 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
         );
       }
 
-      final boardingWindowState = _getBoardingWindowState(
-        boardingAt: boardingStop.scheduledAt,
-        now: now,
-      );
-      if (boardingWindowState != SessionLifecycleState.active) {
-        return RailReportSubmissionResult(
-          outcome: RailReportSubmissionOutcome.error,
-          reason: boardingWindowState == SessionLifecycleState.upcoming
-              ? RailReportActionReason.beforeWindow
-              : RailReportActionReason.afterWindow,
-          feedbackMessage:
-              'Arrival reporting is not open for this station at this time.',
+      if (!communityDebugBypassEnabled) {
+        final boardingWindowState = _getBoardingWindowState(
+          boardingAt: boardingStop.scheduledAt,
+          now: now,
         );
+        if (boardingWindowState != SessionLifecycleState.active) {
+          return RailReportSubmissionResult(
+            outcome: RailReportSubmissionOutcome.error,
+            reason: boardingWindowState == SessionLifecycleState.upcoming
+                ? RailReportActionReason.beforeWindow
+                : RailReportActionReason.afterWindow,
+            feedbackMessage:
+                'Arrival reporting is not open for this station at this time.',
+          );
+        }
       }
 
       final authReadiness = await _deviceIdentityRepository.readAuthReadiness(

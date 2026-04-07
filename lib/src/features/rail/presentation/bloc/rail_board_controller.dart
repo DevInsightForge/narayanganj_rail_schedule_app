@@ -36,6 +36,7 @@ class RailBoardController {
     ErrorReporter? errorReporter,
     AttemptIdFactory? attemptIdFactory,
     this.communityFeaturesEnabled = true,
+    this.communityDebugBypassEnabled = false,
     DateTime Function()? nowProvider,
   }) : _boardService = boardService,
        _scheduleDataRepository = scheduleDataRepository,
@@ -52,6 +53,7 @@ class RailBoardController {
          deviceIdentityRepository: deviceIdentityRepository,
          routeId: _routeId,
          errorReporter: errorReporter,
+         communityDebugBypassEnabled: communityDebugBypassEnabled,
        ),
        _initialScheduleVersion = boardService.schedule.version,
        _activeSource = ScheduleDataSource.bundled,
@@ -68,6 +70,7 @@ class RailBoardController {
   final ErrorReporter _errorReporter;
   final AttemptIdFactory _attemptIdFactory;
   final bool communityFeaturesEnabled;
+  final bool communityDebugBypassEnabled;
   final RailBoardUseCase _useCase;
   final String _initialScheduleVersion;
   int _reportAvailabilityRevision = 0;

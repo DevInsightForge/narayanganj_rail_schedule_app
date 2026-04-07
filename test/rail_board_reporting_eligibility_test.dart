@@ -83,6 +83,28 @@ void main() {
       await cubit.close();
     });
 
+    test('debug bypass keeps reporting enabled outside the window', () async {
+      final cubit = buildRailBoardReportingCubit(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: FlakyArrivalReportRepository(),
+        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: FixedDeviceIdentityRepository(),
+        communityDebugBypassEnabled: true,
+        nowProvider: () => DateTime(2026, 3, 28, 2, 0),
+      );
+
+      final state = await waitForRailBoardState(
+        cubit,
+        (state) =>
+            state.status == RailBoardStatus.ready &&
+            state.report.actionReason == RailReportActionReason.eligible,
+      );
+      expect(state.report.visibility, RailReportVisibility.visible);
+      expect(state.report.submitEnabled, isTrue);
+      await cubit.close();
+    });
+
     test(
       'marks reporting unavailable when matching train session is no longer next',
       () async {

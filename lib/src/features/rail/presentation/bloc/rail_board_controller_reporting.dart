@@ -183,7 +183,10 @@ class RailBoardControllerReporting {
     final nextReport = deriveReportActionState(
       readState().report,
       authReadiness: authReadiness,
-      reason: availability.reason,
+      reason: controller.communityDebugBypassEnabled
+          ? RailReportActionReason.eligible
+          : availability.reason,
+      forceEnabled: controller.communityDebugBypassEnabled,
     );
     if (revision == controller._reportAvailabilityRevision &&
         nextReport != readState().report) {
@@ -215,6 +218,7 @@ class RailBoardControllerReporting {
     RailBoardReportState base, {
     required FirebaseAuthReadiness authReadiness,
     required RailReportActionReason reason,
+    bool forceEnabled = false,
   }) {
     return base.copyWith(
       authReadiness: authReadiness,
@@ -223,7 +227,8 @@ class RailBoardControllerReporting {
           : RailReportVisibility.hidden,
       submitEnabled:
           authReadiness.isReady &&
-          (reason == RailReportActionReason.eligible ||
+          (forceEnabled ||
+              reason == RailReportActionReason.eligible ||
               reason == RailReportActionReason.verificationLimitedEligible),
       actionReason: reason,
       hasReportedCurrentSession:

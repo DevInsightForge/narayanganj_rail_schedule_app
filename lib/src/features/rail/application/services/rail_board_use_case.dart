@@ -36,6 +36,7 @@ class RailBoardUseCase {
     required this.routeId,
     ErrorReporter? errorReporter,
     SessionLifecycleService? sessionLifecycleService,
+    this.communityDebugBypassEnabled = false,
     this.reportDedupeBucketMinutes = 2,
     this.reportDedupeRetentionMinutes = 10,
     this.staleInsightThresholdSeconds = 10 * 60,
@@ -56,6 +57,7 @@ class RailBoardUseCase {
   final ErrorReporter _errorReporter;
   final SessionLifecycleService _sessionLifecycleService;
   final String routeId;
+  final bool communityDebugBypassEnabled;
   final int reportDedupeBucketMinutes;
   final int reportDedupeRetentionMinutes;
   final int staleInsightThresholdSeconds;

@@ -32,6 +32,7 @@ RailBoardCubit buildRailBoardReportingCubit({
   required FakeCommunityOverlayRepository communityOverlayRepository,
   required DeviceIdentityRepository deviceIdentityRepository,
   bool communityFeaturesEnabled = true,
+  bool communityDebugBypassEnabled = false,
   required DateTime Function() nowProvider,
 }) {
   return RailBoardCubit(
@@ -52,6 +53,7 @@ RailBoardCubit buildRailBoardReportingCubit({
     communityOverlayRepository: communityOverlayRepository,
     deviceIdentityRepository: deviceIdentityRepository,
     communityFeaturesEnabled: communityFeaturesEnabled,
+    communityDebugBypassEnabled: communityDebugBypassEnabled,
     nowProvider: nowProvider,
     enableTicker: false,
   );

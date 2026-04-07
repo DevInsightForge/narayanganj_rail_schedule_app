@@ -27,6 +27,7 @@ void main() {
         composition.deviceIdentityRepository,
         isA<NoOpDeviceIdentityRepository>(),
       );
+      expect(composition.communityDebugBypassEnabled, isTrue);
       expect(composition.bundledSchedule.stations, isNotEmpty);
       expect(composition.bundledSchedule.trips, isNotEmpty);
     },

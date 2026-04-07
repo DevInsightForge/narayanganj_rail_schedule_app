@@ -28,6 +28,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
     required DeviceIdentityRepository deviceIdentityRepository,
     ErrorReporter? errorReporter,
     this.communityFeaturesEnabled = true,
+    this.communityDebugBypassEnabled = false,
     bool enableTicker = true,
     DateTime Function()? nowProvider,
   }) : _controller = RailBoardController(
@@ -41,6 +42,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
          deviceIdentityRepository: deviceIdentityRepository,
          errorReporter: errorReporter,
          communityFeaturesEnabled: communityFeaturesEnabled,
+         communityDebugBypassEnabled: communityDebugBypassEnabled,
          nowProvider: nowProvider,
        ),
        super(const RailBoardState()) {
@@ -54,6 +56,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
 
   final RailBoardController _controller;
   final bool communityFeaturesEnabled;
+  final bool communityDebugBypassEnabled;
   Timer? _timer;
 
   RailBoardService get boardService => _controller.boardService;

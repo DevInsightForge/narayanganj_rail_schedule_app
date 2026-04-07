@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -33,6 +34,7 @@ class AppComposition {
     required this.bundledSchedule,
     required this.scheduleDataRepository,
     required this.errorReporter,
+    this.communityDebugBypassEnabled = kDebugMode,
   }) : selectionRepository = SharedPreferencesSelectionRepository(),
        sessionRepository = GeneratedSessionRepository(
          templates: const RailScheduleTemplateMapper().map(
@@ -45,6 +47,7 @@ class AppComposition {
            SharedPreferencesArrivalReportLedgerRepository(),
        communityOverlayRepository = _buildCommunityOverlayRepository(
          firebaseRuntime,
+         communityDebugBypassEnabled,
        ),
        deviceIdentityRepository = _buildDeviceIdentityRepository(
          firebaseRuntime,
@@ -55,6 +58,7 @@ class AppComposition {
   final RailSchedule bundledSchedule;
   final ScheduleDataRepository scheduleDataRepository;
   final ErrorReporter errorReporter;
+  final bool communityDebugBypassEnabled;
   final SelectionRepository selectionRepository;
   final SessionRepository sessionRepository;
   final ArrivalReportRepository arrivalReportRepository;
@@ -74,6 +78,7 @@ class AppComposition {
       deviceIdentityRepository: deviceIdentityRepository,
       errorReporter: errorReporter,
       communityFeaturesEnabled: firebaseRuntime.initialized,
+      communityDebugBypassEnabled: communityDebugBypassEnabled,
     );
   }
 
@@ -91,9 +96,15 @@ class AppComposition {
 
   static CommunityOverlayRepository _buildCommunityOverlayRepository(
     FirebaseRuntime firebaseRuntime,
+    bool communityDebugBypassEnabled,
   ) {
     if (!firebaseRuntime.initialized) {
       return const NoOpCommunityOverlayRepository();
+    }
+    if (communityDebugBypassEnabled) {
+      return FirebaseCommunityOverlayRepository(
+        firestore: FirebaseFirestore.instance,
+      );
     }
     return CachedCommunityOverlayRepository(
       primary: FirebaseCommunityOverlayRepository(
