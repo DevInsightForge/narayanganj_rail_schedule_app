@@ -153,16 +153,6 @@ class _StopCard extends StatelessWidget {
                     color: tokens.textMuted,
                   ),
                 ),
-                if (predicted != null) ...[
-                  const SizedBox(height: 4),
-                  RailPill(
-                    label: RailBoardTexts.liveEstimateLabel,
-                    value: RailBoardCopy.formatTimeAmPm(
-                      '${predicted!.predictedAt.hour.toString().padLeft(2, '0')}:${predicted!.predictedAt.minute.toString().padLeft(2, '0')}',
-                    ),
-                    accent: true,
-                  ),
-                ],
               ],
             ),
           ),
@@ -171,12 +161,38 @@ class _StopCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(scheduledLabel, style: textTheme.labelLarge),
-              const SizedBox(height: 1),
-              Text(
-                RailBoardTexts.plannedLabel,
-                style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),
+              Text.rich(
+                TextSpan(
+                  style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),
+                  children: [
+                    const TextSpan(text: '${RailBoardTexts.plannedLabel} '),
+                    TextSpan(text: scheduledLabel, style: textTheme.labelLarge),
+                  ],
+                ),
+                textAlign: TextAlign.end,
               ),
+              if (predicted != null) ...[
+                const SizedBox(height: 4),
+                Text.rich(
+                  TextSpan(
+                    style: textTheme.bodySmall?.copyWith(color: tokens.accent),
+                    children: [
+                      const TextSpan(
+                        text: '${RailBoardTexts.liveEstimateLabel} ',
+                      ),
+                      TextSpan(
+                        text: RailBoardCopy.formatTimeAmPm(
+                          '${predicted!.predictedAt.hour.toString().padLeft(2, '0')}:${predicted!.predictedAt.minute.toString().padLeft(2, '0')}',
+                        ),
+                        style: textTheme.labelLarge?.copyWith(
+                          color: tokens.accent,
+                        ),
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.end,
+                ),
+              ],
             ],
           ),
         ],

@@ -64,6 +64,8 @@ void main() {
     expect(find.text(RailBoardTexts.routeStopsEyebrow), findsOneWidget);
     expect(find.text(RailBoardTexts.scheduledStopsTitle), findsOneWidget);
     expect(find.text(RailBoardTexts.boardHere), findsOneWidget);
+    expect(find.textContaining(RailBoardTexts.plannedLabel), findsWidgets);
+    expect(find.textContaining(RailBoardTexts.liveEstimateLabel), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -186,10 +188,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(
-      find.text(RailBoardTexts.liveRiderUpdatesReady),
-      findsOneWidget,
-    );
+    expect(find.text(RailBoardTexts.liveRiderUpdatesReady), findsOneWidget);
     expect(find.textContaining('Reporting opens in'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -220,12 +219,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(RailBoardTexts.aboutSheetEyebrow), findsOneWidget);
-      expect(
-        find.text(
-          RailBoardTexts.footerAboutParagraphOne,
-        ),
-        findsOneWidget,
-      );
+      expect(find.text(RailBoardTexts.footerAboutParagraphOne), findsOneWidget);
       expect(find.text('${RailBoardTexts.privacyLabel}: '), findsOneWidget);
       expect(find.text('${RailBoardTexts.termsLabel}: '), findsOneWidget);
       expect(find.text(RailBoardTexts.privacyPolicyValue), findsOneWidget);
