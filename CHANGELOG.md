@@ -2,6 +2,14 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v1.3.0
+
+- Added a Hive-backed local persistence foundation for community overlay cache, arrival dedupe, pending report queue, and device identity state.
+- Hardened startup recovery so corrupted Hive boxes are rebuilt cleanly instead of crashing app launch.
+- Tightened report availability so the community button respects the 5 minutes before and 15 minutes after boarding window, already-reported lockout, and syncing state.
+- Refined the departure hero layout so train and ETA details render as separate aligned lines.
+- Updated community button wording so closed report windows read clearly instead of looking broken.
+
 ## v1.2.0
 
 - Reused community session documents across recurring daily runs while keeping `serviceDate` inside the aggregate for clean rollover handling.
