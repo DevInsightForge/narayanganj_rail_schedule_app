@@ -190,6 +190,7 @@ void main() {
 
     expect(find.text(RailBoardTexts.liveRiderUpdatesReady), findsOneWidget);
     expect(find.textContaining('Reporting opens in'), findsNothing);
+    expect(find.textContaining('Live update'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

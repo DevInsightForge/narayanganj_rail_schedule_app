@@ -30,8 +30,7 @@ extension RailBoardUseCaseCommunity on RailBoardUseCase {
       if (snapshot == null && overlay.predictedStopTimes.isEmpty) {
         return const RailCommunityInsightResult(
           kind: RailCommunityInsightKind.empty,
-          message:
-              'No rider updates are available for this train yet.',
+          message: 'No rider updates are available for this train yet.',
         );
       }
 
@@ -46,9 +45,6 @@ extension RailBoardUseCaseCommunity on RailBoardUseCase {
         predictedStopTimes: snapshot == null
             ? overlay.predictedStopTimes
             : _buildPredictedStopTimes(session: session, snapshot: snapshot),
-        message: overlay.fromCache
-            ? 'Live update loaded from saved data.'
-            : 'Live update refreshed.',
       );
     } catch (error, stackTrace) {
       await _errorReporter.reportNonFatal(

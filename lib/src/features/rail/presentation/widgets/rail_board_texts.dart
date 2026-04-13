@@ -69,9 +69,6 @@ class RailBoardTexts {
   static const noRiderUpdatesAvailable =
       'No rider updates are available for this train yet.';
 
-  static const liveUpdateLoadedFromSavedData =
-      'Live update loaded from previously saved data.';
-  static const liveUpdateRefreshed = 'Live update has been refreshed.';
   static const liveUpdatesTemporarilyUnavailable =
       'Live rider updates are temporarily unavailable. The official timetable is still available for you.';
 
