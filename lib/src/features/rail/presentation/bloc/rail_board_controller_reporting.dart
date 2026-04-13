@@ -24,7 +24,7 @@ class RailBoardControllerReporting {
       attemptId: attemptId,
     );
     final refreshedState = readState();
-    if (!refreshedState.report.submitEnabled) {
+    if (refreshedState.report.isSubmissionLocked) {
       if (refreshedState.report.visibility == RailReportVisibility.hidden) {
         await reportCubitGuard(
           controller,

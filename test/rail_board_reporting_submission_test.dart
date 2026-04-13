@@ -1,8 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report_submission.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/device_identity.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/firebase_auth_readiness.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/arrival_report_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/application/models/rail_reporting.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_cubit.dart';
 
@@ -246,5 +249,94 @@ void main() {
         await cubit.close();
       },
     );
+
+    test('locks the report button while submission is syncing', () async {
+      final reports = BlockingArrivalReportRepository();
+      final ledger = FakeArrivalReportLedgerRepository();
+      final deviceIdentityRepository = FixedDeviceIdentityRepository();
+      final cubit = buildRailBoardReportingCubit(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: reports,
+        arrivalReportLedgerRepository: ledger,
+        communityOverlayRepository: FakeCommunityOverlayRepository(),
+        deviceIdentityRepository: deviceIdentityRepository,
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+      );
+
+      await waitForRailBoardState(
+        cubit,
+        (state) => state.status == RailBoardStatus.ready,
+      );
+
+      final submitFuture = cubit.submitArrivalReport();
+      await reports.started.future;
+
+      final syncingState = await waitForRailBoardState(
+        cubit,
+        (state) =>
+            state.reportSubmissionStatus == RailReportSubmissionStatus.submitting,
+      );
+      expect(syncingState.report.isSubmissionLocked, isTrue);
+
+      reports.release.complete();
+      await submitFuture;
+
+      final successState = await waitForRailBoardState(
+        cubit,
+        (state) =>
+            state.reportSubmissionStatus == RailReportSubmissionStatus.success,
+      );
+      expect(successState.report.hasReportedCurrentSession, isTrue);
+      expect(successState.report.submitEnabled, isFalse);
+
+      await cubit.close();
+    });
   });
+}
+
+class BlockingArrivalReportRepository implements ArrivalReportRepository {
+  BlockingArrivalReportRepository()
+    : started = Completer<void>(),
+      release = Completer<void>();
+
+  final Completer<void> started;
+  final Completer<void> release;
+  final List<ArrivalReport> submitted = [];
+
+  @override
+  Future<List<ArrivalReport>> fetchStopReports({
+    required String sessionId,
+    required DateTime serviceDate,
+    required String stationId,
+  }) async {
+    return submitted
+        .where(
+          (report) =>
+              report.sessionId == sessionId && report.stationId == stationId,
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Future<int> fetchStationSubmissionCount({
+    required String sessionId,
+    required DateTime serviceDate,
+    required String stationId,
+  }) async {
+    return submitted
+        .where(
+          (report) =>
+              report.sessionId == sessionId && report.stationId == stationId,
+        )
+        .length;
+  }
+
+  @override
+  Future<void> submitArrivalReport(ArrivalReportSubmission submission) async {
+    if (!started.isCompleted) {
+      started.complete();
+    }
+    await release.future;
+    submitted.add(submission.report);
+  }
 }

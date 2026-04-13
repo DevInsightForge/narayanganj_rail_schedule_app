@@ -27,17 +27,17 @@ void main() {
     ],
   );
 
-  test('marks session active until fifteen minutes after departure', () {
+  test('marks scheduled time active until fifteen minutes after it starts', () {
     expect(
-      service.isReportEligible(
-        session: session,
+      service.isReportEligibleForScheduledAt(
+        scheduledAt: session.stops.first.scheduledAt,
         now: DateTime(2026, 3, 28, 4, 45),
       ),
       isTrue,
     );
     expect(
-      service.isReportEligible(
-        session: session,
+      service.isReportEligibleForScheduledAt(
+        scheduledAt: session.stops.first.scheduledAt,
         now: DateTime(2026, 3, 28, 4, 46),
       ),
       isFalse,

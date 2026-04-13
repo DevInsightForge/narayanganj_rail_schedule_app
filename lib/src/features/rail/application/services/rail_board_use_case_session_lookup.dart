@@ -51,19 +51,10 @@ extension RailBoardUseCaseSessionLookup on RailBoardUseCase {
     required DateTime boardingAt,
     required DateTime now,
   }) {
-    final eligibilityStart = boardingAt.subtract(
-      Duration(minutes: _sessionLifecycleService.preDepartureMinutes),
+    return _sessionLifecycleService.getStateForScheduledAt(
+      scheduledAt: boardingAt,
+      now: now,
     );
-    final eligibilityEnd = boardingAt.add(
-      Duration(minutes: _sessionLifecycleService.postDepartureMinutes),
-    );
-    if (now.isBefore(eligibilityStart)) {
-      return SessionLifecycleState.upcoming;
-    }
-    if (now.isAfter(eligibilityEnd)) {
-      return SessionLifecycleState.expired;
-    }
-    return SessionLifecycleState.active;
   }
 
   Future<List<TrainSession>> _fetchRouteSessions(DateTime now) async {

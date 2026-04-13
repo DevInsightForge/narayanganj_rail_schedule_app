@@ -7,6 +7,7 @@ import '../core/errors/error_report_context.dart';
 import '../core/errors/error_reporter.dart';
 import '../core/errors/error_reporting.dart';
 import '../core/firebase/firebase_bootstrap.dart';
+import '../features/community/data/local/hive/community_hive_box.dart';
 import '../features/rail/data/models/rail_schedule_document_parser.dart';
 import '../features/rail/data/repositories/bundled_schedule_source.dart';
 import '../features/rail/data/repositories/firebase_remote_schedule_source.dart';
@@ -38,6 +39,20 @@ class AppBootstrap {
     );
     final errorReporter = buildErrorReporter(firebaseRuntime: firebaseRuntime);
     await errorReporter.initialize();
+    try {
+      await CommunityHiveBox.initialize();
+      await CommunityHiveBox.migrateLegacySharedPreferences();
+    } catch (error, stackTrace) {
+      await errorReporter.reportNonFatal(
+        error,
+        stackTrace,
+        reason: 'community_hive_bootstrap_failed',
+        context: ErrorReportContext(
+          feature: 'community_hive',
+          event: 'bootstrap',
+        ),
+      );
+    }
     _configureFatalErrorHandlers(errorReporter);
 
     return AppComposition(

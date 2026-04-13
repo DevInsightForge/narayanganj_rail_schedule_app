@@ -15,6 +15,7 @@ import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/rail_board_texts.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/notice_panel.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/footer_panel.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/header_panel_hero.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/rail_primitives.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/timeline_panel.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/upcoming_panel.dart';
@@ -193,6 +194,92 @@ void main() {
     expect(find.textContaining('Live update'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('departure hero splits journey detail into two lines', (
+    tester,
+  ) async {
+    final service = RailBoardService(schedule: loadBundledScheduleFixture());
+    final snapshot = service.getSnapshot(
+      selection: const RailSelection(
+        direction: 'dhaka_to_narayanganj',
+        boardingStationId: 'dhaka',
+        destinationStationId: 'narayanganj',
+      ),
+      now: DateTime(2026, 3, 28, 4, 25),
+    );
+
+    await tester.pumpWidget(
+      _PanelHarness(
+        size: const Size(390, 844),
+        service: service,
+        child: HeaderPanelHero(
+          view: RailBoardViewState(
+            selection: const RailSelection(
+              direction: 'dhaka_to_narayanganj',
+              boardingStationId: 'dhaka',
+              destinationStationId: 'narayanganj',
+            ),
+            snapshot: snapshot,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.textContaining('Train 2'), findsWidgets);
+    expect(find.textContaining('ETA'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'community report button stays disabled outside the boarding window',
+    (tester) async {
+      final service = RailBoardService(schedule: loadBundledScheduleFixture());
+      final snapshot = service.getSnapshot(
+        selection: const RailSelection(
+          direction: 'dhaka_to_narayanganj',
+          boardingStationId: 'dhaka',
+          destinationStationId: 'narayanganj',
+        ),
+        now: DateTime(2026, 3, 28, 4, 25),
+      );
+
+      await tester.pumpWidget(
+        _PanelHarness(
+          size: const Size(1100, 900),
+          service: service,
+          child: DecisionPanel(
+            nowProvider: () => DateTime(2026, 3, 28, 4, 46),
+            view: RailBoardViewState(
+              selection: const RailSelection(
+                direction: 'dhaka_to_narayanganj',
+                boardingStationId: 'dhaka',
+                destinationStationId: 'narayanganj',
+              ),
+              snapshot: snapshot,
+            ),
+            report: const RailBoardReportState(
+              status: RailReportSubmissionStatus.idle,
+              authReadiness: FirebaseAuthReadiness.ready('device-1'),
+              visibility: RailReportVisibility.visible,
+              submitEnabled: true,
+              actionReason: RailReportActionReason.eligible,
+            ),
+            community: RailBoardCommunityState(
+              featuresEnabled: true,
+              insightStatus: RailCommunityInsightStatus.ready,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNull);
+      expect(find.text(RailBoardTexts.reportingClosedNow), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'footer panel opens drawer with about content first and policy hyperlinks',

@@ -88,6 +88,10 @@ class RailBoardReportState extends Equatable {
   final bool hasReportedCurrentSession;
 
   bool get isActionVisible => visibility == RailReportVisibility.visible;
+  bool get isSubmissionLocked =>
+      status == RailReportSubmissionStatus.submitting ||
+      hasReportedCurrentSession ||
+      !submitEnabled;
 
   RailBoardReportState copyWith({
     RailReportSubmissionStatus? status,

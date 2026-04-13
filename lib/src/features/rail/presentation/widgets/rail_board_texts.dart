@@ -1,4 +1,5 @@
 import '../../../community/domain/entities/delay_status.dart';
+import '../../application/models/rail_reporting.dart';
 import '../bloc/rail_board_state.dart';
 
 class RailBoardTexts {
@@ -54,6 +55,7 @@ class RailBoardTexts {
   static const shareArrivalUpdate = 'Share your arrival update';
   static const updatesUnavailable = 'Rider updates are currently unavailable';
   static const updateSent = 'Update sent successfully';
+  static const reportingClosedNow = 'Reporting closed now';
 
   static const liveRiderUpdatesLoading = 'Checking for live rider updates...';
   static const liveRiderUpdatesReady = 'Live rider updates are now available';
@@ -109,12 +111,12 @@ class RailBoardTexts {
 
   static const noTrainAvailableMessage = 'No train is available right now';
 
-  static String departureHeroDetail(int trainNo, String waitLabel) {
-    return 'Train $trainNo — departs in $waitLabel';
+  static String departureHeroDetail(int trainNo) {
+    return 'Train $trainNo';
   }
 
-  static String departureHeroEtaDetail(int trainNo, String etaLabel) {
-    return 'Train $trainNo — total journey time approximately $etaLabel';
+  static String departureHeroEtaDetail(String etaLabel) {
+    return 'ETA $etaLabel';
   }
 
   // Later departures
@@ -177,6 +179,8 @@ class RailBoardTexts {
     required bool hasReportedCurrentSession,
     required RailReportSubmissionStatus status,
     required bool submitEnabled,
+    required bool reportWindowOpen,
+    required RailReportActionReason actionReason,
   }) {
     if (hasReportedCurrentSession) {
       return communityUpdateShared;
@@ -184,11 +188,22 @@ class RailBoardTexts {
 
     return switch (status) {
       RailReportSubmissionStatus.submitting => sendingUpdate,
-      RailReportSubmissionStatus.error =>
-        submitEnabled ? shareArrivalUpdate : updatesUnavailable,
+      RailReportSubmissionStatus.error => switch (actionReason) {
+        RailReportActionReason.beforeWindow ||
+        RailReportActionReason.afterWindow => reportingClosedNow,
+        RailReportActionReason.stationCapacityReached => updatesUnavailable,
+        _ => submitEnabled ? shareArrivalUpdate : updatesUnavailable,
+      },
       RailReportSubmissionStatus.success => updateSent,
-      RailReportSubmissionStatus.idle =>
-        submitEnabled ? shareArrivalUpdate : updatesUnavailable,
+      RailReportSubmissionStatus.idle => switch (actionReason) {
+        RailReportActionReason.beforeWindow ||
+        RailReportActionReason.afterWindow => reportingClosedNow,
+        RailReportActionReason.stationCapacityReached => updatesUnavailable,
+        _ =>
+          reportWindowOpen && submitEnabled
+              ? shareArrivalUpdate
+              : reportingClosedNow,
+      },
     };
   }
 

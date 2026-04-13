@@ -14,10 +14,20 @@ class SessionLifecycleService {
     required TrainSession session,
     required DateTime now,
   }) {
-    final eligibilityStart = session.departureAt.subtract(
+    return getStateForScheduledAt(
+      scheduledAt: session.departureAt,
+      now: now,
+    );
+  }
+
+  SessionLifecycleState getStateForScheduledAt({
+    required DateTime scheduledAt,
+    required DateTime now,
+  }) {
+    final eligibilityStart = scheduledAt.subtract(
       Duration(minutes: preDepartureMinutes),
     );
-    final eligibilityEnd = session.departureAt.add(
+    final eligibilityEnd = scheduledAt.add(
       Duration(minutes: postDepartureMinutes),
     );
 
@@ -35,6 +45,14 @@ class SessionLifecycleService {
     required DateTime now,
   }) {
     final state = getState(session: session, now: now);
+    return state == SessionLifecycleState.active;
+  }
+
+  bool isReportEligibleForScheduledAt({
+    required DateTime scheduledAt,
+    required DateTime now,
+  }) {
+    final state = getStateForScheduledAt(scheduledAt: scheduledAt, now: now);
     return state == SessionLifecycleState.active;
   }
 }

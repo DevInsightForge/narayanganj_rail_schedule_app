@@ -51,11 +51,13 @@ class HeaderPanelHero extends StatelessWidget {
                 title: nextService == null
                     ? RailBoardTexts.noDepartureLabel
                     : RailBoardCopy.formatTimeAmPm(nextService.departureTime),
-                detail: nextService == null
+                detailLineOne: nextService == null
                     ? RailBoardTexts.timetableChooseRouteMessage
-                    : RailBoardTexts.departureHeroDetail(
-                        nextService.trainNo,
-                        RailBoardCopy.getWaitLabel(nextService.waitMinutes),
+                    : RailBoardTexts.departureHeroDetail(nextService.trainNo),
+                detailLineTwo: nextService == null
+                    ? null
+                    : RailBoardTexts.departureHeroEtaDetail(
+                        RailBoardCopy.getEtaLabel(nextService.etaMinutes),
                       ),
               ),
             ],
@@ -79,10 +81,12 @@ class HeaderPanelHero extends StatelessWidget {
                 title: nextService == null
                     ? RailBoardTexts.noDepartureLabel
                     : RailBoardCopy.formatTimeAmPm(nextService.departureTime),
-                detail: nextService == null
+                detailLineOne: nextService == null
                     ? RailBoardTexts.noTrainAvailableMessage
+                    : RailBoardTexts.departureHeroDetail(nextService.trainNo),
+                detailLineTwo: nextService == null
+                    ? null
                     : RailBoardTexts.departureHeroEtaDetail(
-                        nextService.trainNo,
                         RailBoardCopy.getEtaLabel(nextService.etaMinutes),
                       ),
               ),
@@ -92,10 +96,15 @@ class HeaderPanelHero extends StatelessWidget {
 }
 
 class _DepartureHero extends StatelessWidget {
-  const _DepartureHero({required this.title, required this.detail});
+  const _DepartureHero({
+    required this.title,
+    required this.detailLineOne,
+    required this.detailLineTwo,
+  });
 
   final String title;
-  final String detail;
+  final String detailLineOne;
+  final String? detailLineTwo;
 
   @override
   Widget build(BuildContext context) {
@@ -125,6 +134,7 @@ class _DepartureHero extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
+            flex: 2,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -140,11 +150,33 @@ class _DepartureHero extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              detail,
-              textAlign: TextAlign.end,
-              style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),
+          Expanded(
+            flex: 1,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    detailLineOne,
+                    textAlign: TextAlign.end,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: tokens.textMuted,
+                    ),
+                  ),
+                  if (detailLineTwo != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      detailLineTwo!,
+                      textAlign: TextAlign.end,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: tokens.textMuted,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         ],
