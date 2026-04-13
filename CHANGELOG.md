@@ -2,6 +2,11 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v1.4.0
+
+- Upgraded all Firebase and other dependencies to their latest versions.
+- Removed unused packages (cupertino_icons, timelines_plus, web) to reduce app bundle size.
+
 ## v1.3.0
 
 - Added a Hive-backed local persistence foundation for community overlay cache, arrival dedupe, pending report queue, and device identity state.
