@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../bloc/rail_board_state.dart';
 import 'panel_palette.dart';
 import 'rail_board_copy.dart';
+import 'rail_board_texts.dart';
 
 class HeaderPanelHero extends StatelessWidget {
   const HeaderPanelHero({super.key, required this.view});
@@ -24,14 +25,20 @@ class HeaderPanelHero extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Narayanganj Commuter',
+                      RailBoardTexts.appName,
                       style: textTheme.headlineMedium,
                     ),
                     SizedBox(height: tokens.compactGap),
                     Text(
                       nextService == null
-                          ? 'Your schedule-first rail board is ready. Pick a direction to see the best departure, stop trace, and backup options.'
-                          : 'Next departure leaves ${RailBoardCopy.getWaitLabel(nextService.waitMinutes).toLowerCase()} and reaches ${view.snapshot.destinationStationName} in ${RailBoardCopy.getEtaLabel(nextService.etaMinutes).toLowerCase()}.',
+                          ? RailBoardTexts.timetableReadyMessage
+                          : RailBoardTexts.bestNextTrainSubtitle(
+                              from: view.snapshot.selectedStationName,
+                              destination: view.snapshot.destinationStationName,
+                              etaLabel: RailBoardCopy.getEtaLabel(
+                                nextService.etaMinutes,
+                              ).toLowerCase(),
+                            ),
                       style: textTheme.bodyLarge?.copyWith(
                         color: tokens.textMuted,
                       ),
@@ -42,33 +49,42 @@ class HeaderPanelHero extends StatelessWidget {
               SizedBox(width: tokens.panelGap),
               _DepartureHero(
                 title: nextService == null
-                    ? 'No departure'
+                    ? RailBoardTexts.noDepartureLabel
                     : RailBoardCopy.formatTimeAmPm(nextService.departureTime),
                 detail: nextService == null
-                    ? 'Try another route selection'
-                    : 'Train ${nextService.trainNo} - ${RailBoardCopy.getWaitLabel(nextService.waitMinutes)}',
+                    ? RailBoardTexts.timetableChooseRouteMessage
+                    : RailBoardTexts.departureHeroDetail(
+                        nextService.trainNo,
+                        RailBoardCopy.getWaitLabel(nextService.waitMinutes),
+                      ),
               ),
             ],
           )
         : Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Narayanganj Commuter', style: textTheme.headlineMedium),
+              Text(RailBoardTexts.appName, style: textTheme.headlineMedium),
               SizedBox(height: tokens.compactGap),
               Text(
                 nextService == null
-                    ? 'Choose your route to get the next commuter option and later departures.'
-                    : 'Next departure leaves ${RailBoardCopy.getWaitLabel(nextService.waitMinutes).toLowerCase()}.',
+                    ? RailBoardTexts.timetableChooseRouteMessage
+                    : RailBoardTexts.nextDepartureNarrowMessage(
+                        RailBoardCopy.getWaitLabel(nextService.waitMinutes)
+                            .toLowerCase(),
+                      ),
                 style: textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
               ),
               SizedBox(height: tokens.itemGap),
               _DepartureHero(
                 title: nextService == null
-                    ? 'No departure'
+                    ? RailBoardTexts.noDepartureLabel
                     : RailBoardCopy.formatTimeAmPm(nextService.departureTime),
                 detail: nextService == null
-                    ? 'No train available right now'
-                    : 'Train ${nextService.trainNo} - ${RailBoardCopy.getEtaLabel(nextService.etaMinutes)} total',
+                    ? RailBoardTexts.noTrainAvailableMessage
+                    : RailBoardTexts.departureHeroEtaDetail(
+                        nextService.trainNo,
+                        RailBoardCopy.getEtaLabel(nextService.etaMinutes),
+                      ),
               ),
             ],
           );
@@ -113,7 +129,7 @@ class _DepartureHero extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Next departure',
+                  RailBoardTexts.nextDepartureLabel,
                   style: textTheme.labelMedium?.copyWith(
                     color: tokens.textMuted,
                   ),

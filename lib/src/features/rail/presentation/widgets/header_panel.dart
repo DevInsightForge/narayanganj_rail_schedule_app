@@ -6,6 +6,7 @@ import 'header_panel_hero.dart';
 import 'header_panel_selection_strip.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
+import 'rail_board_texts.dart';
 
 class HeaderPanel extends StatelessWidget {
   const HeaderPanel({super.key, required this.view});
@@ -25,7 +26,7 @@ class HeaderPanel extends StatelessWidget {
           HeaderPanelHero(view: view),
           SizedBox(height: tokens.sectionGap),
           HeaderSelectionStrip(
-            label: 'Direction',
+            label: RailBoardTexts.routeDirectionLabel,
             options: view.directionOptions,
             value: view.selection.direction,
             scrollable: false,
@@ -34,7 +35,7 @@ class HeaderPanel extends StatelessWidget {
           ),
           SizedBox(height: tokens.itemGap),
           HeaderSelectionStrip(
-            label: 'Boarding',
+            label: RailBoardTexts.boardFromLabel,
             options: view.boardingStations,
             value: view.selection.boardingStationId,
             scrollable: true,
@@ -43,7 +44,7 @@ class HeaderPanel extends StatelessWidget {
           ),
           SizedBox(height: tokens.itemGap),
           HeaderSelectionStrip(
-            label: 'Destination',
+            label: RailBoardTexts.goToLabel,
             options: view.destinationStations,
             value: view.selection.destinationStationId,
             scrollable: true,

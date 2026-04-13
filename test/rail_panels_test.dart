@@ -12,6 +12,7 @@ import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_cubit.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/decision_panel.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/rail_board_texts.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/notice_panel.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/footer_panel.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/rail_primitives.dart';
@@ -60,9 +61,9 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Journey trace'), findsOneWidget);
-    expect(find.text('Scheduled and estimated stops'), findsOneWidget);
-    expect(find.text('Board here'), findsOneWidget);
+    expect(find.text(RailBoardTexts.routeStopsEyebrow), findsOneWidget);
+    expect(find.text(RailBoardTexts.scheduledStopsTitle), findsOneWidget);
+    expect(find.text(RailBoardTexts.boardHere), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -89,7 +90,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('No later departure'), findsOneWidget);
+    expect(find.text(RailBoardTexts.noMoreDeparturesTitle), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -111,8 +112,8 @@ void main() {
                   NoticePanel(),
                   SizedBox(height: 12),
                   RailStateMessage(
-                    title: 'Rail board unavailable',
-                    message: 'Retry once your connection is back.',
+                    title: RailBoardTexts.boardUnavailableTitle,
+                    message: RailBoardTexts.boardUnavailableMessage,
                     icon: Icons.warning_rounded,
                   ),
                 ],
@@ -124,8 +125,8 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Travel note'), findsOneWidget);
-    expect(find.text('Rail board unavailable'), findsOneWidget);
+    expect(find.text(RailBoardTexts.noticeTitle), findsOneWidget);
+    expect(find.text(RailBoardTexts.boardUnavailableTitle), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -186,7 +187,7 @@ void main() {
     await tester.pump();
 
     expect(
-      find.text('Rider reports merged into one delay signal'),
+      find.text(RailBoardTexts.liveRiderUpdatesReady),
       findsOneWidget,
     );
     expect(find.textContaining('Reporting opens in'), findsNothing);
@@ -215,22 +216,21 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.text('Details'));
+      await tester.tap(find.text(RailBoardTexts.aboutButton));
       await tester.pumpAndSettle();
 
-      expect(find.text('App details'), findsOneWidget);
-      expect(find.text('About'), findsOneWidget);
+      expect(find.text(RailBoardTexts.aboutSheetEyebrow), findsOneWidget);
       expect(
         find.text(
-          'Narayanganj Commuter helps riders check the Dhaka-Narayanganj commuter schedule quickly, with official timetable data kept as the baseline view.',
+          RailBoardTexts.footerAboutParagraphOne,
         ),
         findsOneWidget,
       );
-      expect(find.text('Privacy: '), findsOneWidget);
-      expect(find.text('Terms: '), findsOneWidget);
-      expect(find.text('Privacy policy'), findsOneWidget);
-      expect(find.text('Terms of service'), findsOneWidget);
-      expect(find.text('Open link'), findsNWidgets(2));
+      expect(find.text('${RailBoardTexts.privacyLabel}: '), findsOneWidget);
+      expect(find.text('${RailBoardTexts.termsLabel}: '), findsOneWidget);
+      expect(find.text(RailBoardTexts.privacyPolicyValue), findsOneWidget);
+      expect(find.text(RailBoardTexts.termsOfServiceValue), findsOneWidget);
+      expect(find.text(RailBoardTexts.openAction), findsNWidgets(2));
       expect(tester.takeException(), isNull);
     },
   );

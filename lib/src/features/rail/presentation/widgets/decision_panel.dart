@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../community/domain/entities/delay_status.dart';
-import '../../../community/domain/entities/session_status_snapshot.dart';
 import '../bloc/rail_board_cubit.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
 import 'rail_primitives.dart';
+import 'rail_board_texts.dart';
 import 'rail_board_copy.dart';
 
 class DecisionPanel extends StatelessWidget {
@@ -29,9 +28,8 @@ class DecisionPanel extends StatelessWidget {
     if (nextService == null) {
       return const PanelShell(
         child: RailStateMessage(
-          title: 'No departure for this route',
-          message:
-              'Try switching direction or adjusting the boarding station to see the next commuter option.',
+          title: RailBoardTexts.noTrainsMatchRouteTitle,
+          message: RailBoardTexts.noTrainsMatchRouteMessage,
           icon: Icons.route_rounded,
         ),
       );
@@ -44,10 +42,14 @@ class DecisionPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           RailSectionHeader(
-            eyebrow: 'Best next option',
+            eyebrow: RailBoardTexts.bestNextTrainEyebrow,
             title: RailBoardCopy.getDecision(nextService.waitMinutes),
             subtitle:
-                'Board at ${view.snapshot.selectedStationName} and reach ${view.snapshot.destinationStationName} in ${RailBoardCopy.getEtaLabel(nextService.etaMinutes).toLowerCase()}.',
+                RailBoardTexts.bestNextTrainSubtitle(
+                  from: view.snapshot.selectedStationName,
+                  destination: view.snapshot.destinationStationName,
+                  etaLabel: RailBoardCopy.getEtaLabel(nextService.etaMinutes),
+                ),
           ),
           SizedBox(height: tokens.sectionGap),
           Wrap(
@@ -55,13 +57,16 @@ class DecisionPanel extends StatelessWidget {
             runSpacing: tokens.compactGap,
             children: [
               RailPill(
-                label: 'Route',
+                label: RailBoardTexts.tripLabel,
                 value:
                     '${view.snapshot.selectedStationName} to ${view.snapshot.destinationStationName}',
               ),
-              RailPill(label: 'Train', value: '${nextService.trainNo}'),
               RailPill(
-                label: 'Period',
+                label: RailBoardTexts.trainLabel,
+                value: '${nextService.trainNo}',
+              ),
+              RailPill(
+                label: RailBoardTexts.serviceLabel,
                 value: RailBoardCopy.getServicePeriodLabel(
                   nextService.servicePeriod,
                 ),
@@ -72,19 +77,19 @@ class DecisionPanel extends StatelessWidget {
           _MetricGrid(
             tiles: [
               RailMetricTile(
-                label: 'Boards',
+                label: RailBoardTexts.departsLabel,
                 value: RailBoardCopy.formatTimeAmPm(nextService.departureTime),
                 detail: RailBoardCopy.getWaitLabel(nextService.waitMinutes),
                 icon: Icons.login_rounded,
               ),
               RailMetricTile(
-                label: 'Travel',
+                label: RailBoardTexts.rideLabel,
                 value: RailBoardCopy.getDurationLabel(travelMinutes),
-                detail: 'On-train time',
+                detail: RailBoardTexts.rideTimeDetail,
                 icon: Icons.train_rounded,
               ),
               RailMetricTile(
-                label: 'Arrives',
+                label: RailBoardTexts.arrivesLabel,
                 value: RailBoardCopy.formatTimeAmPm(nextService.arrivalTime),
                 detail: RailBoardCopy.getEtaLabel(nextService.etaMinutes),
                 icon: Icons.flag_rounded,
@@ -158,8 +163,8 @@ class _CommunityPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           RailSectionHeader(
-            eyebrow: 'Community signal',
-            title: _headline(community.insightStatus),
+            eyebrow: RailBoardTexts.liveRiderUpdatesEyebrow,
+            title: RailBoardTexts.communityHeadline(community.insightStatus),
           ),
           if (status != null) ...[
             SizedBox(height: tokens.sectionGap),
@@ -168,17 +173,20 @@ class _CommunityPanel extends StatelessWidget {
               runSpacing: tokens.compactGap,
               children: [
                 RailPill(
-                  label: 'Delay',
-                  value: _delayLabel(status),
+                  label: RailBoardTexts.delayStatusLabel,
+                  value: RailBoardTexts.delayValue(
+                    status.delayStatus,
+                    status.delayMinutes,
+                  ),
                   accent: true,
                 ),
                 RailPill(
-                  label: 'Confidence',
+                  label: RailBoardTexts.confidenceLabel,
                   value: '${(status.confidence.score * 100).round()}%',
                 ),
                 RailPill(
-                  label: 'Freshness',
-                  value: _freshness(status.freshnessSeconds),
+                  label: RailBoardTexts.lastUpdatedLabel,
+                  value: RailBoardTexts.freshnessLabel(status.freshnessSeconds),
                 ),
               ],
             ),
@@ -209,7 +217,13 @@ class _CommunityPanel extends StatelessWidget {
                       ? Icons.sync_rounded
                       : Icons.flag_rounded,
                 ),
-                label: Text(_buttonLabel(report)),
+                label: Text(
+                  RailBoardTexts.communityButtonLabel(
+                    hasReportedCurrentSession: report.hasReportedCurrentSession,
+                    status: report.status,
+                    submitEnabled: report.submitEnabled,
+                  ),
+                ),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(36),
                   visualDensity: const VisualDensity(
@@ -229,48 +243,4 @@ class _CommunityPanel extends StatelessWidget {
     );
   }
 
-  String _headline(RailCommunityInsightStatus status) {
-    return switch (status) {
-      RailCommunityInsightStatus.loading => 'Refreshing rider reports',
-      RailCommunityInsightStatus.ready =>
-        'Rider reports merged into one delay signal',
-      RailCommunityInsightStatus.stale => 'Reported delay is stale',
-      RailCommunityInsightStatus.empty => 'No rider reports yet',
-      RailCommunityInsightStatus.error => 'Live rider signal unavailable',
-      RailCommunityInsightStatus.idle => 'Community status appears when active',
-    };
-  }
-
-  String _buttonLabel(RailBoardReportState report) {
-    if (report.hasReportedCurrentSession) {
-      return 'Arrival Reported';
-    }
-    return switch (report.status) {
-      RailReportSubmissionStatus.submitting => 'Submitting Report...',
-      RailReportSubmissionStatus.error =>
-        report.submitEnabled
-            ? 'Submit Arrival Report'
-            : 'Reporting Unavailable',
-      RailReportSubmissionStatus.success => 'Report Submitted',
-      RailReportSubmissionStatus.idle =>
-        report.submitEnabled
-            ? 'Submit Arrival Report'
-            : 'Reporting Unavailable',
-    };
-  }
-
-  String _delayLabel(SessionStatusSnapshot snapshot) {
-    return switch (snapshot.delayStatus) {
-      DelayStatus.early => '${snapshot.delayMinutes.abs()} min early',
-      DelayStatus.onTime => 'On time',
-      DelayStatus.late => '${snapshot.delayMinutes} min late',
-    };
-  }
-
-  String _freshness(int seconds) {
-    if (seconds < 60) {
-      return '${seconds}s';
-    }
-    return '${seconds ~/ 60}m';
-  }
 }

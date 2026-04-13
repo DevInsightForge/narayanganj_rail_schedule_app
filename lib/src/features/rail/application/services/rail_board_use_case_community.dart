@@ -17,7 +17,7 @@ extension RailBoardUseCaseCommunity on RailBoardUseCase {
       if (session == null) {
         return const RailCommunityInsightResult(
           kind: RailCommunityInsightKind.empty,
-          message: 'No active train estimate is available right now.',
+          message: 'No matching train is active right now.',
         );
       }
 
@@ -31,7 +31,7 @@ extension RailBoardUseCaseCommunity on RailBoardUseCase {
         return const RailCommunityInsightResult(
           kind: RailCommunityInsightKind.empty,
           message:
-              'No community reports are available for this train session yet.',
+              'No rider updates are available for this train yet.',
         );
       }
 
@@ -47,8 +47,8 @@ extension RailBoardUseCaseCommunity on RailBoardUseCase {
             ? overlay.predictedStopTimes
             : _buildPredictedStopTimes(session: session, snapshot: snapshot),
         message: overlay.fromCache
-            ? 'Estimate loaded from local community cache.'
-            : 'Estimate synchronized from the latest community aggregate.',
+            ? 'Live update loaded from saved data.'
+            : 'Live update refreshed.',
       );
     } catch (error, stackTrace) {
       await _errorReporter.reportNonFatal(
@@ -64,7 +64,7 @@ extension RailBoardUseCaseCommunity on RailBoardUseCase {
       return const RailCommunityInsightResult(
         kind: RailCommunityInsightKind.error,
         message:
-            'Community estimate is temporarily unavailable. Official schedule remains available.',
+            'Live rider updates are temporarily unavailable. The timetable is still available.',
       );
     }
   }

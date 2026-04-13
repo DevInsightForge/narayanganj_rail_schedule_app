@@ -4,6 +4,7 @@ import '../../domain/entities/rail_snapshot.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
 import 'rail_board_copy.dart';
+import 'rail_board_texts.dart';
 import 'rail_primitives.dart';
 
 class UpcomingPanel extends StatelessWidget {
@@ -23,18 +24,15 @@ class UpcomingPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           RailSectionHeader(
-            eyebrow: 'Backup options',
-            title: 'Later departures',
-            subtitle: alternatives.isEmpty
-                ? 'No later departure matches the current selection.'
-                : '${alternatives.length} more departures are available if you miss the next train.',
+            eyebrow: RailBoardTexts.moreOptionsEyebrow,
+            title: RailBoardTexts.laterDeparturesTitle,
+            subtitle: RailBoardTexts.laterDeparturesSubtitle(alternatives.length),
           ),
           SizedBox(height: tokens.sectionGap),
           if (alternatives.isEmpty)
             const RailStateMessage(
-              title: 'No later departure',
-              message:
-                  'Change direction or route selection to see more departures.',
+              title: RailBoardTexts.noMoreDeparturesTitle,
+              message: RailBoardTexts.noMoreDeparturesMessage,
               icon: Icons.event_busy_rounded,
             )
           else

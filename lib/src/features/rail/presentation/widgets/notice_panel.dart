@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'panel_shell.dart';
+import 'rail_board_texts.dart';
 import 'rail_primitives.dart';
 
 class NoticePanel extends StatelessWidget {
@@ -10,9 +11,8 @@ class NoticePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return const PanelShell(
       child: RailStateMessage(
-        title: 'Travel note',
-        message:
-            'Timetable values are approximate and transcribed from source images. Confirm official Bangladesh Railway updates before leaving.',
+        title: RailBoardTexts.noticeTitle,
+        message: RailBoardTexts.noticeMessage,
         icon: Icons.info_outline_rounded,
         compact: true,
       ),

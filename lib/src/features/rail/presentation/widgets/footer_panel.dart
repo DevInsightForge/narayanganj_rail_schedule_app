@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'footer_content.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
+import 'rail_board_texts.dart';
 import 'rail_primitives.dart';
 
 class FooterPanel extends StatelessWidget {
@@ -33,7 +34,7 @@ class FooterPanel extends StatelessWidget {
                 Text(railFooterContent.appName, style: textTheme.titleMedium),
                 SizedBox(height: tokens.compactGap),
                 Text(
-                  'Metadata, privacy, and terms',
+                  RailBoardTexts.aboutIntro,
                   style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),
                 ),
               ],
@@ -48,7 +49,7 @@ class FooterPanel extends StatelessWidget {
               visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
             ),
             icon: const Icon(Icons.keyboard_arrow_up_rounded),
-            label: const Text('Details'),
+            label: const Text(RailBoardTexts.aboutButton),
           ),
         ],
       ),
@@ -57,7 +58,7 @@ class FooterPanel extends StatelessWidget {
 
   String _lastUpdatedLabel(DateTime? value) {
     if (value == null) {
-      return 'Bundled';
+      return RailBoardTexts.bundledLabel;
     }
     final local = value.toLocal();
     final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
@@ -95,7 +96,7 @@ class FooterPanel extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   RailSectionHeader(
-                    eyebrow: 'App details',
+                    eyebrow: RailBoardTexts.aboutSheetEyebrow,
                     title: railFooterContent.appName,
                     subtitle: railFooterContent.tagline,
                   ),
@@ -104,45 +105,51 @@ class FooterPanel extends StatelessWidget {
                   SizedBox(height: tokens.sectionGap),
                   Divider(color: tokens.border, height: 1),
                   SizedBox(height: tokens.sectionGap),
-                  _FooterMetaRow(label: 'Version', value: scheduleVersion),
-                  SizedBox(height: tokens.compactGap),
-                  _FooterMetaRow(label: 'Source', value: dataSourceLabel),
+                  _FooterMetaRow(
+                    label: RailBoardTexts.versionLabel,
+                    value: scheduleVersion,
+                  ),
                   SizedBox(height: tokens.compactGap),
                   _FooterMetaRow(
-                    label: 'Updated',
+                    label: RailBoardTexts.scheduleSourceLabel,
+                    value: dataSourceLabel,
+                  ),
+                  SizedBox(height: tokens.compactGap),
+                  _FooterMetaRow(
+                    label: RailBoardTexts.updatedLabel,
                     value: _lastUpdatedLabel(lastUpdatedAt),
                   ),
                   SizedBox(height: tokens.compactGap),
                   _FooterMetaRow(
-                    label: 'Author',
+                    label: RailBoardTexts.createdByLabel,
                     value: railFooterContent.author,
-                    linkLabel: 'View details',
+                    linkLabel: RailBoardTexts.learnMoreAction,
                     onTap: () => _openUri(railFooterContent.authorUrl),
                   ),
                   SizedBox(height: tokens.compactGap),
                   _FooterMetaRow(
-                    label: 'Publisher',
+                    label: RailBoardTexts.publishedByLabel,
                     value: railFooterContent.publisher,
-                    linkLabel: 'View details',
+                    linkLabel: RailBoardTexts.learnMoreAction,
                     onTap: () => _openUri(railFooterContent.publisherUrl),
                   ),
                   SizedBox(height: tokens.compactGap),
                   _FooterMetaRow(
-                    label: 'Privacy',
-                    value: 'Privacy policy',
-                    linkLabel: 'Open link',
+                    label: RailBoardTexts.privacyLabel,
+                    value: RailBoardTexts.privacyPolicyValue,
+                    linkLabel: RailBoardTexts.openAction,
                     onTap: () => _openUri(railFooterContent.privacyUrl),
                   ),
                   SizedBox(height: tokens.compactGap),
                   _FooterMetaRow(
-                    label: 'Terms',
-                    value: 'Terms of service',
-                    linkLabel: 'Open link',
+                    label: RailBoardTexts.termsLabel,
+                    value: RailBoardTexts.termsOfServiceValue,
+                    linkLabel: RailBoardTexts.openAction,
                     onTap: () => _openUri(railFooterContent.termsUrl),
                   ),
                   SizedBox(height: tokens.sectionGap),
                   Text(
-                    'Always verify final travel decisions against official Bangladesh Railway notices.',
+                    RailBoardTexts.footerReminder,
                     style: textTheme.bodySmall?.copyWith(
                       color: tokens.textMuted,
                     ),

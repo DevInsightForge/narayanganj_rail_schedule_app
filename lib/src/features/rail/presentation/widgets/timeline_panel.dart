@@ -5,6 +5,7 @@ import '../../domain/entities/rail_snapshot.dart';
 import 'panel_palette.dart';
 import 'panel_shell.dart';
 import 'rail_board_copy.dart';
+import 'rail_board_texts.dart';
 import 'rail_primitives.dart';
 
 class TimelinePanel extends StatelessWidget {
@@ -25,9 +26,8 @@ class TimelinePanel extends StatelessWidget {
     if (nextService == null) {
       return const PanelShell(
         child: RailStateMessage(
-          title: 'Journey trace unavailable',
-          message:
-              'A stop-by-stop trace appears when a matching train is found.',
+          title: RailBoardTexts.stopByStopUnavailableTitle,
+          message: RailBoardTexts.stopByStopUnavailableMessage,
           icon: Icons.timeline_rounded,
         ),
       );
@@ -43,12 +43,11 @@ class TimelinePanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           RailSectionHeader(
-            eyebrow: 'Journey trace',
-            title: 'Scheduled and estimated stops',
-            subtitle:
-                'Track the stop sequence for train ${nextService.trainNo} from boarding to destination.',
+            eyebrow: RailBoardTexts.routeStopsEyebrow,
+            title: RailBoardTexts.scheduledStopsTitle,
+            subtitle: RailBoardTexts.routeStopsSubtitle(nextService.trainNo),
             trailing: RailPill(
-              label: 'Train',
+              label: RailBoardTexts.trainLabel,
               value: '${nextService.trainNo}',
               accent: true,
             ),
@@ -146,10 +145,10 @@ class _StopCard extends StatelessWidget {
                 const SizedBox(height: 1),
                 Text(
                   isFirst
-                      ? 'Board here'
+                      ? RailBoardTexts.boardHere
                       : isLast
-                      ? 'Arrive here'
-                      : 'Intermediate stop',
+                      ? RailBoardTexts.arriveHere
+                      : RailBoardTexts.alongRoute,
                   style: textTheme.bodyMedium?.copyWith(
                     color: tokens.textMuted,
                   ),
@@ -157,7 +156,7 @@ class _StopCard extends StatelessWidget {
                 if (predicted != null) ...[
                   const SizedBox(height: 4),
                   RailPill(
-                    label: 'Estimate',
+                    label: RailBoardTexts.liveEstimateLabel,
                     value: RailBoardCopy.formatTimeAmPm(
                       '${predicted!.predictedAt.hour.toString().padLeft(2, '0')}:${predicted!.predictedAt.minute.toString().padLeft(2, '0')}',
                     ),
@@ -175,7 +174,7 @@ class _StopCard extends StatelessWidget {
               Text(scheduledLabel, style: textTheme.labelLarge),
               const SizedBox(height: 1),
               Text(
-                'Scheduled',
+                RailBoardTexts.plannedLabel,
                 style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),
               ),
             ],

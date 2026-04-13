@@ -1,3 +1,5 @@
+import 'rail_board_texts.dart';
+
 class FooterContentSection {
   const FooterContentSection({required this.title, required this.paragraphs});
 
@@ -30,9 +32,8 @@ class FooterContent {
 }
 
 const railFooterContent = FooterContent(
-  appName: 'Narayanganj Commuter',
-  tagline:
-      'Schedule-first commuter board with optional anonymous community status.',
+  appName: RailBoardTexts.footerAppName,
+  tagline: RailBoardTexts.footerTagline,
   author: 'Zed',
   authorUrl: 'https://imzihad21.github.io/about/',
   publisher: 'DevInsightForge',
@@ -43,10 +44,10 @@ const railFooterContent = FooterContent(
       'https://devinsightforge.github.io/terms#narayanganj-rail-schedule-app',
   sections: [
     FooterContentSection(
-      title: 'About',
+      title: RailBoardTexts.aboutSectionTitle,
       paragraphs: [
-        'Narayanganj Commuter helps riders check the Dhaka-Narayanganj commuter schedule quickly, with official timetable data kept as the baseline view.',
-        'Community arrival reporting is optional and is shown as a secondary signal so riders can understand likely delay conditions without replacing the published timetable.',
+        RailBoardTexts.footerAboutParagraphOne,
+        RailBoardTexts.footerAboutParagraphTwo,
       ],
     ),
   ],

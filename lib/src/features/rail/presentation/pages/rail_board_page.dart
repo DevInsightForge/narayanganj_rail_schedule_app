@@ -10,6 +10,7 @@ import '../widgets/header_panel.dart';
 import '../widgets/notice_panel.dart';
 import '../widgets/panel_palette.dart';
 import '../widgets/rail_primitives.dart';
+import '../widgets/rail_board_texts.dart';
 import '../widgets/timeline_panel.dart';
 import '../widgets/upcoming_panel.dart';
 
@@ -55,9 +56,8 @@ class RailBoardPage extends StatelessWidget {
                 if (state.isLoading) {
                   return _BoardScaffold(
                     child: const RailStateMessage(
-                      title: 'Preparing your commuter board',
-                      message:
-                          'Loading your saved route, schedule source, and live community status.',
+                      title: RailBoardTexts.loadingBoardTitle,
+                      message: RailBoardTexts.loadingBoardMessage,
                       icon: Icons.train_rounded,
                     ),
                   );
@@ -66,16 +66,16 @@ class RailBoardPage extends StatelessWidget {
                 if (state.hasFailed) {
                   return _BoardScaffold(
                     child: RailStateMessage(
-                      title: 'Rail board unavailable',
+                      title: RailBoardTexts.boardUnavailableTitle,
                       message:
                           state.errorMessage ??
-                          'Please check your connection and try again.',
+                          RailBoardTexts.boardUnavailableMessage,
                       icon: Icons
                           .signal_wifi_statusbar_connected_no_internet_4_rounded,
                       action: FilledButton.icon(
                         onPressed: () => context.read<RailBoardCubit>().retry(),
                         icon: const Icon(Icons.refresh_rounded),
-                        label: const Text('Retry'),
+                        label: const Text(RailBoardTexts.retryAction),
                       ),
                     ),
                   );
