@@ -14,13 +14,11 @@ class DecisionPanel extends StatelessWidget {
     required this.view,
     required this.report,
     required this.community,
-    this.nowProvider = DateTime.now,
   });
 
   final RailBoardViewState view;
   final RailBoardReportState report;
   final RailBoardCommunityState community;
-  final DateTime Function() nowProvider;
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +102,6 @@ class DecisionPanel extends StatelessWidget {
               view: view,
               report: report,
               community: community,
-              nowProvider: nowProvider,
               onPressed: () =>
                   context.read<RailBoardCubit>().submitArrivalReport(),
             ),
@@ -149,21 +146,18 @@ class _CommunityPanel extends StatelessWidget {
     required this.view,
     required this.report,
     required this.community,
-    required this.nowProvider,
     required this.onPressed,
   });
 
   final RailBoardViewState view;
   final RailBoardReportState report;
   final RailBoardCommunityState community;
-  final DateTime Function() nowProvider;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final tokens = RailBoardTokens.of(context);
     final status = community.sessionStatusSnapshot;
-    final reportWindowOpen = _isReportWindowOpen();
 
     return PanelShell(
       surface: RailPanelSurface.secondary,
@@ -227,7 +221,6 @@ class _CommunityPanel extends StatelessWidget {
                     hasReportedCurrentSession: report.hasReportedCurrentSession,
                     status: report.status,
                     submitEnabled: report.submitEnabled,
-                    reportWindowOpen: reportWindowOpen,
                     actionReason: report.actionReason,
                   ),
                 ),
@@ -251,45 +244,6 @@ class _CommunityPanel extends StatelessWidget {
   }
 
   bool _isSubmitDisabled() {
-    return report.isSubmissionLocked || !_isReportWindowOpen();
-  }
-
-  bool _isReportWindowOpen() {
-    final service = view.snapshot.nextService;
-    if (service == null) {
-      return false;
-    }
-
-    final stop = service.stops.where(
-      (stop) => stop.stationId == view.selection.boardingStationId,
-    );
-    final boardingStop = stop.isEmpty ? null : stop.first;
-    if (boardingStop == null) {
-      return false;
-    }
-
-    final scheduledMinutes = _parseMinutes(boardingStop.time);
-    if (scheduledMinutes == null) {
-      return false;
-    }
-
-    final current = nowProvider();
-    final currentMinutes = current.hour * 60 + current.minute;
-    final openAt = scheduledMinutes - 5;
-    final closeAt = scheduledMinutes + 15;
-    return currentMinutes >= openAt && currentMinutes <= closeAt;
-  }
-
-  int? _parseMinutes(String time) {
-    final parts = time.split(':');
-    if (parts.length < 2) {
-      return null;
-    }
-    final hour = int.tryParse(parts[0].trim());
-    final minute = int.tryParse(parts[1].trim());
-    if (hour == null || minute == null) {
-      return null;
-    }
-    return hour * 60 + minute;
+    return report.isSubmissionLocked;
   }
 }

@@ -249,7 +249,6 @@ void main() {
           size: const Size(1100, 900),
           service: service,
           child: DecisionPanel(
-            nowProvider: () => DateTime(2026, 3, 28, 4, 46),
             view: RailBoardViewState(
               selection: const RailSelection(
                 direction: 'dhaka_to_narayanganj',
@@ -262,8 +261,8 @@ void main() {
               status: RailReportSubmissionStatus.idle,
               authReadiness: FirebaseAuthReadiness.ready('device-1'),
               visibility: RailReportVisibility.visible,
-              submitEnabled: true,
-              actionReason: RailReportActionReason.eligible,
+              submitEnabled: false,
+              actionReason: RailReportActionReason.afterWindow,
             ),
             community: RailBoardCommunityState(
               featuresEnabled: true,

@@ -14,10 +14,20 @@ class SessionLifecycleService {
     required TrainSession session,
     required DateTime now,
   }) {
-    return getStateForScheduledAt(
-      scheduledAt: session.departureAt,
-      now: now,
+    final eligibilityStart = session.departureAt.subtract(
+      Duration(minutes: preDepartureMinutes),
     );
+    final eligibilityEnd = session.arrivalAt.add(
+      Duration(minutes: postDepartureMinutes),
+    );
+
+    if (now.isBefore(eligibilityStart)) {
+      return SessionLifecycleState.upcoming;
+    }
+    if (now.isAfter(eligibilityEnd)) {
+      return SessionLifecycleState.expired;
+    }
+    return SessionLifecycleState.active;
   }
 
   SessionLifecycleState getStateForScheduledAt({

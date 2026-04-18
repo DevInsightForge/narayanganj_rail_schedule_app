@@ -179,7 +179,6 @@ class RailBoardTexts {
     required bool hasReportedCurrentSession,
     required RailReportSubmissionStatus status,
     required bool submitEnabled,
-    required bool reportWindowOpen,
     required RailReportActionReason actionReason,
   }) {
     if (hasReportedCurrentSession) {
@@ -199,10 +198,7 @@ class RailBoardTexts {
         RailReportActionReason.beforeWindow ||
         RailReportActionReason.afterWindow => reportingClosedNow,
         RailReportActionReason.stationCapacityReached => updatesUnavailable,
-        _ =>
-          reportWindowOpen && submitEnabled
-              ? shareArrivalUpdate
-              : reportingClosedNow,
+        _ => submitEnabled ? shareArrivalUpdate : updatesUnavailable,
       },
     };
   }
