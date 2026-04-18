@@ -2,6 +2,12 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v1.5.0
+
+- Fixed a bug where the community report button stayed disabled during active train sessions.
+- Corrected session lifecycle evaluation to track the active window across the entire train journey instead of expiring prematurely after origin departure.
+- Replaced fragile UI-based time parsing for the report button with reliable BLoC-driven state.
+
 ## v1.4.0
 
 - Upgraded all Firebase and other dependencies to their latest versions.
