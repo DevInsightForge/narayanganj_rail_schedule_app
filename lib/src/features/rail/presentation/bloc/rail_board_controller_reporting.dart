@@ -140,6 +140,7 @@ class RailBoardControllerReporting {
     }
 
     final resolvingReport = currentState.report.copyWith(
+      status: RailReportSubmissionStatus.idle,
       authReadiness: const FirebaseAuthReadiness.resolving(),
       visibility: RailReportVisibility.hidden,
       submitEnabled: false,
