@@ -2,6 +2,12 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v1.5.3
+
+- Added CI and publish workflow notifications so release and failure events can notify through the shared notification script hook.
+- Removed the README screenshot showcase and deleted the bundled image assets from the repository.
+- Documented the release rule that version bumps must pair with a changelog update and a matching tag.
+
 ## v1.5.2
 
 - Rebalanced the rail hero presentation to tighten the header layout and keep the decision panel cleaner.
