@@ -2,6 +2,14 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v1.5.2
+
+- Rebalanced the rail hero presentation to tighten the header layout and keep the decision panel cleaner.
+
+## v1.5.1
+
+- Reset the community report button to idle when switching stations or directions.
+
 ## v1.5.0
 
 - Fixed a bug where the community report button stayed disabled during active train sessions.
