@@ -32,12 +32,9 @@ class HeaderPanelHero extends StatelessWidget {
                     Text(
                       nextService == null
                           ? RailBoardTexts.timetableReadyMessage
-                          : RailBoardTexts.bestNextTrainSubtitle(
+                          : _routeSubtitle(
                               from: view.snapshot.selectedStationName,
                               destination: view.snapshot.destinationStationName,
-                              etaLabel: RailBoardCopy.getEtaLabel(
-                                nextService.etaMinutes,
-                              ).toLowerCase(),
                             ),
                       style: textTheme.bodyLarge?.copyWith(
                         color: tokens.textMuted,
@@ -56,8 +53,9 @@ class HeaderPanelHero extends StatelessWidget {
                     : RailBoardTexts.departureHeroDetail(nextService.trainNo),
                 detailLineTwo: nextService == null
                     ? null
-                    : RailBoardTexts.departureHeroEtaDetail(
-                        RailBoardCopy.getEtaLabel(nextService.etaMinutes),
+                    : _routeSummary(
+                        from: view.snapshot.selectedStationName,
+                        destination: view.snapshot.destinationStationName,
                       ),
               ),
             ],
@@ -71,8 +69,9 @@ class HeaderPanelHero extends StatelessWidget {
                 nextService == null
                     ? RailBoardTexts.timetableChooseRouteMessage
                     : RailBoardTexts.nextDepartureNarrowMessage(
-                        RailBoardCopy.getWaitLabel(nextService.waitMinutes)
-                            .toLowerCase(),
+                        RailBoardCopy.getWaitLabel(
+                          nextService.waitMinutes,
+                        ).toLowerCase(),
                       ),
                 style: textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
               ),
@@ -86,12 +85,27 @@ class HeaderPanelHero extends StatelessWidget {
                     : RailBoardTexts.departureHeroDetail(nextService.trainNo),
                 detailLineTwo: nextService == null
                     ? null
-                    : RailBoardTexts.departureHeroEtaDetail(
-                        RailBoardCopy.getEtaLabel(nextService.etaMinutes),
+                    : _routeSummary(
+                        from: view.snapshot.selectedStationName,
+                        destination: view.snapshot.destinationStationName,
                       ),
               ),
             ],
           );
+  }
+
+  static String _routeSubtitle({
+    required String from,
+    required String destination,
+  }) {
+    return 'Board at $from and travel to $destination.';
+  }
+
+  static String _routeSummary({
+    required String from,
+    required String destination,
+  }) {
+    return '$from to $destination';
   }
 }
 
@@ -119,6 +133,7 @@ class _DepartureHero extends StatelessWidget {
         borderRadius: BorderRadius.circular(tokens.heroRadius),
         border: Border.all(color: tokens.border),
       ),
+      clipBehavior: Clip.none,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -151,7 +166,6 @@ class _DepartureHero extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            flex: 1,
             child: Align(
               alignment: Alignment.centerRight,
               child: Column(
@@ -161,6 +175,7 @@ class _DepartureHero extends StatelessWidget {
                   Text(
                     detailLineOne,
                     textAlign: TextAlign.end,
+                    softWrap: false,
                     style: textTheme.bodySmall?.copyWith(
                       color: tokens.textMuted,
                     ),
@@ -170,6 +185,7 @@ class _DepartureHero extends StatelessWidget {
                     Text(
                       detailLineTwo!,
                       textAlign: TextAlign.end,
+                      softWrap: false,
                       style: textTheme.bodySmall?.copyWith(
                         color: tokens.textMuted,
                       ),

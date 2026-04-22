@@ -195,7 +195,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('departure hero splits journey detail into two lines', (
+  testWidgets('departure hero keeps the route header free of ETA text', (
     tester,
   ) async {
     final service = RailBoardService(schedule: loadBundledScheduleFixture());
@@ -227,7 +227,7 @@ void main() {
     await tester.pump();
 
     expect(find.textContaining('Train 2'), findsWidgets);
-    expect(find.textContaining('ETA'), findsWidgets);
+    expect(find.textContaining('ETA'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

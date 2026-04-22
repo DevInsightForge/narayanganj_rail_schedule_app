@@ -115,10 +115,6 @@ class RailBoardTexts {
     return 'Train $trainNo';
   }
 
-  static String departureHeroEtaDetail(String etaLabel) {
-    return 'ETA $etaLabel';
-  }
-
   // Later departures
   static const laterDeparturesTitle = 'Later departures';
 

@@ -128,30 +128,15 @@ class _ReadyBoardContent extends StatelessWidget {
           padding: tokens.pagePadding,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: tokens.maxContentWidth),
-            child: Container(
-              padding: tokens.panelPadding,
-              decoration: BoxDecoration(
-                color: tokens.shellSurface,
-                borderRadius: BorderRadius.circular(tokens.heroRadius),
-                border: Border.all(color: tokens.border),
-                boxShadow: [
-                  BoxShadow(
-                    color: tokens.shadow,
-                    blurRadius: 48,
-                    offset: const Offset(0, 24),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _HeaderSelector(),
-                  SizedBox(height: tokens.panelGap),
-                  _BoardPanels(tokens: tokens),
-                  SizedBox(height: tokens.panelGap),
-                  const _FooterSelector(),
-                ],
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _HeaderSelector(),
+                SizedBox(height: tokens.panelGap),
+                _BoardPanels(tokens: tokens),
+                SizedBox(height: tokens.panelGap),
+                const _FooterSelector(),
+              ],
             ),
           ),
         ),
