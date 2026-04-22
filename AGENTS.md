@@ -67,6 +67,8 @@
 ## Workflow Rules
 - Keep README.md and AGENTS.md aligned with the current shipped architecture and product scope.
 - Keep `.github/workflows/publish.yml` and `.env.example` synchronized with all environment variables consumed by the app.
+- Any version bump must be treated as a release change, not a routine edit: update `pubspec.yaml`, update `CHANGELOG.md` with the user-facing changes since the previous version by comparing the previous release tag to the new version commit, and create a matching `vX.Y.Z` tag for the release commit.
+- Do not consider a version change complete until the changelog entry and the release tag both exist.
 - Document removals and migration tradeoffs in the Decision Log.
 - Prefer incremental, reviewable changes.
 - When splitting oversized files, keep collaborators nearby and bounded so the module stays easy to navigate.
