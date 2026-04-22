@@ -121,13 +121,3 @@ FIREBASE_APPCHECK_WEB_KEY=
   - depending on Firestore cleanup features that require Blaze billing
 - The app remains fully usable with Firebase disabled or degraded because the official bundled/cached timetable stays offline-first.
 
-## Showcase
-
-### Header and Decision Panel
-![Header and decision panel](docs/screenshots/01-header-decision-panel.jpg)
-
-### Community Report and Journey Timeline Panel
-![Community report and journey timeline panel](docs/screenshots/02-community-report-journey-timeline-panel.jpg)
-
-### Backup Schedules Panel
-![Backup schedules panel](docs/screenshots/03-backup-schedules-panel.jpg)
