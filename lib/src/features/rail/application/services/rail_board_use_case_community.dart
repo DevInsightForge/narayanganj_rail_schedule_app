@@ -26,26 +26,18 @@ extension RailBoardUseCaseCommunity on RailBoardUseCase {
         serviceDate: session.serviceDate,
         forceRefresh: forceRefresh,
       );
-      final snapshot = _applyOverlayAge(overlay, now);
-      if (snapshot == null && overlay.predictedStopTimes.isEmpty) {
+      final insight = _buildCommunityInsightFromOverlay(
+        session: session,
+        overlay: overlay,
+        now: now,
+      );
+      if (insight.kind == RailCommunityInsightKind.empty) {
         return const RailCommunityInsightResult(
           kind: RailCommunityInsightKind.empty,
           message: 'No rider updates are available for this train yet.',
         );
       }
-
-      final isStale =
-          snapshot != null &&
-          snapshot.freshnessSeconds > staleInsightThresholdSeconds;
-      return RailCommunityInsightResult(
-        kind: isStale
-            ? RailCommunityInsightKind.stale
-            : RailCommunityInsightKind.ready,
-        sessionStatusSnapshot: snapshot,
-        predictedStopTimes: snapshot == null
-            ? overlay.predictedStopTimes
-            : _buildPredictedStopTimes(session: session, snapshot: snapshot),
-      );
+      return insight;
     } catch (error, stackTrace) {
       await _errorReporter.reportNonFatal(
         error,
@@ -63,6 +55,43 @@ extension RailBoardUseCaseCommunity on RailBoardUseCase {
             'Live rider updates are temporarily unavailable. The timetable is still available.',
       );
     }
+  }
+
+  RailCommunityInsightResult _buildCommunityInsightFromOverlay({
+    required TrainSession session,
+    required CommunityOverlayResult overlay,
+    required DateTime now,
+  }) {
+    final snapshot = _applyOverlayAge(overlay, now);
+    if (snapshot == null && overlay.predictedStopTimes.isEmpty) {
+      return const RailCommunityInsightResult(kind: RailCommunityInsightKind.empty);
+    }
+    if (snapshot == null) {
+      return RailCommunityInsightResult(
+        kind: RailCommunityInsightKind.ready,
+        predictedStopTimes: overlay.predictedStopTimes,
+      );
+    }
+
+    final freshness = snapshot.freshnessState;
+    final kind = switch (freshness) {
+      CommunityOverlayFreshness.fresh => RailCommunityInsightKind.ready,
+      CommunityOverlayFreshness.staleButUsable =>
+        RailCommunityInsightKind.stale,
+      CommunityOverlayFreshness.expired => RailCommunityInsightKind.expired,
+    };
+    if (kind == RailCommunityInsightKind.expired) {
+      return const RailCommunityInsightResult(
+        kind: RailCommunityInsightKind.expired,
+        message:
+            'Live rider updates are a bit old right now. Showing timetable-only guidance until new updates arrive.',
+      );
+    }
+    return RailCommunityInsightResult(
+      kind: kind,
+      sessionStatusSnapshot: snapshot,
+      predictedStopTimes: _buildPredictedStopTimes(session: session, snapshot: snapshot),
+    );
   }
 
   SessionStatusSnapshot? _applyOverlayAge(

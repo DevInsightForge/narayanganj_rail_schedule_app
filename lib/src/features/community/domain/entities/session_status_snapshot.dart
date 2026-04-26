@@ -6,6 +6,8 @@ import 'report_confidence.dart';
 
 enum SessionLifecycleState { upcoming, active, expired }
 
+enum CommunityOverlayFreshness { fresh, staleButUsable, expired }
+
 class StationObservationConsensus extends Equatable {
   const StationObservationConsensus({
     required this.sessionId,
@@ -52,6 +54,36 @@ class SessionStatusSnapshot extends Equatable {
   final ReportConfidence confidence;
   final int freshnessSeconds;
   final DateTime? lastObservedAt;
+
+  SessionStatusSnapshot copyWith({
+    String? sessionId,
+    SessionLifecycleState? state,
+    int? delayMinutes,
+    DelayStatus? delayStatus,
+    ReportConfidence? confidence,
+    int? freshnessSeconds,
+    DateTime? lastObservedAt,
+  }) {
+    return SessionStatusSnapshot(
+      sessionId: sessionId ?? this.sessionId,
+      state: state ?? this.state,
+      delayMinutes: delayMinutes ?? this.delayMinutes,
+      delayStatus: delayStatus ?? this.delayStatus,
+      confidence: confidence ?? this.confidence,
+      freshnessSeconds: freshnessSeconds ?? this.freshnessSeconds,
+      lastObservedAt: lastObservedAt ?? this.lastObservedAt,
+    );
+  }
+
+  CommunityOverlayFreshness get freshnessState {
+    if (freshnessSeconds <= 90) {
+      return CommunityOverlayFreshness.fresh;
+    }
+    if (freshnessSeconds <= 300) {
+      return CommunityOverlayFreshness.staleButUsable;
+    }
+    return CommunityOverlayFreshness.expired;
+  }
 
   @override
   List<Object?> get props => [

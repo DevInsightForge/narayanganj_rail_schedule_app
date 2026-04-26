@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report_submission.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_overlay_result.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_session_aggregate.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/data_origin.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/delay_status.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/device_identity.dart';
@@ -14,6 +15,7 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/entities
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/train_session.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/arrival_report_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/device_identity_repository.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/services/community_session_aggregate_reducer.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/models/rail_schedule_document_parser.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/schedule_data_repository.dart';
@@ -165,6 +167,10 @@ class _InMemorySelectionRepository implements SelectionRepository {
 class FlakyArrivalReportRepository implements ArrivalReportRepository {
   bool failSubmission = true;
   final List<ArrivalReport> submitted = [];
+  final Map<String, CommunitySessionAggregate> _aggregates =
+      <String, CommunitySessionAggregate>{};
+  final CommunitySessionAggregateReducer _reducer =
+      const CommunitySessionAggregateReducer();
 
   @override
   Future<List<ArrivalReport>> fetchStopReports({
@@ -195,11 +201,28 @@ class FlakyArrivalReportRepository implements ArrivalReportRepository {
   }
 
   @override
-  Future<void> submitArrivalReport(ArrivalReportSubmission submission) async {
+  Future<CommunitySessionAggregate> submitArrivalReport(
+    ArrivalReportSubmission submission,
+  ) async {
     if (failSubmission) {
       throw StateError('offline');
     }
     submitted.add(submission.report);
+    final key = _key(submission.session.sessionId, submission.session.serviceDate);
+    final next = _reducer.reduce(
+      current: _aggregates[key],
+      submission: submission,
+      now: submission.report.submittedAt,
+    );
+    _aggregates[key] = next;
+    return next;
+  }
+
+  String _key(String sessionId, DateTime serviceDate) {
+    final year = serviceDate.year.toString().padLeft(4, '0');
+    final month = serviceDate.month.toString().padLeft(2, '0');
+    final day = serviceDate.day.toString().padLeft(2, '0');
+    return '$sessionId::$year$month$day';
   }
 }
 

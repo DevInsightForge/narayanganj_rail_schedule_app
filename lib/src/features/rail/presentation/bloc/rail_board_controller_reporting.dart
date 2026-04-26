@@ -91,6 +91,14 @@ class RailBoardControllerReporting {
       ),
     );
 
+    if (submission.communityInsightResult != null) {
+      RailBoardControllerCommunity.applyCommunityInsightResult(
+        readState,
+        emit,
+        submission.communityInsightResult!,
+      );
+    }
+
     if (submission.failureReason ==
         RailReportSubmissionFailureReason.authNotReady) {
       await refreshReportAvailability(
@@ -102,16 +110,6 @@ class RailBoardControllerReporting {
       );
     }
 
-    if (submission.outcome == RailReportSubmissionOutcome.success) {
-      await RailBoardControllerCommunity.refreshCommunityInsights(
-        controller,
-        readState,
-        emit,
-        selection: readState().selection,
-        forceRefresh: true,
-        attemptId: attemptId,
-      );
-    }
   }
 
   static Future<void> refreshReportAvailability(

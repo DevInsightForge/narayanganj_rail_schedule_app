@@ -116,7 +116,9 @@ class FakeArrivalReportRepository implements ArrivalReportRepository {
   }
 
   @override
-  Future<void> submitArrivalReport(ArrivalReportSubmission submission) async {
+  Future<CommunitySessionAggregate> submitArrivalReport(
+    ArrivalReportSubmission submission,
+  ) async {
     _reports.add(submission.report);
     try {
       final key = _key(
@@ -137,6 +139,10 @@ class FakeArrivalReportRepository implements ArrivalReportRepository {
       }
       rethrow;
     }
+    return _aggregates[_key(
+      submission.session.sessionId,
+      submission.session.serviceDate,
+    )]!;
   }
 
   CommunitySessionAggregate? aggregateForSession(

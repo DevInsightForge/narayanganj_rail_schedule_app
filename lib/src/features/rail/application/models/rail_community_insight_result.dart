@@ -1,7 +1,15 @@
 import '../../../community/domain/entities/predicted_stop_time.dart';
 import '../../../community/domain/entities/session_status_snapshot.dart';
 
-enum RailCommunityInsightKind { idle, loading, ready, stale, empty, error }
+enum RailCommunityInsightKind {
+  idle,
+  loading,
+  ready,
+  stale,
+  expired,
+  empty,
+  error,
+}
 
 class RailCommunityInsightResult {
   const RailCommunityInsightResult({

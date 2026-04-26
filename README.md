@@ -16,6 +16,7 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 - Anonymous Firebase-backed arrival reporting remains optional and secondary to the published schedule.
 - Community delay insight, freshness, and downstream prediction are derived from a single session aggregate document and remain isolated from the official schedule baseline.
 - Session documents are reused across recurring daily train runs; `serviceDate` remains stored inside the aggregate so the document can reset cleanly when the day changes.
+- Community freshness is aged locally on the board timer; Firestore refreshes happen on board open, route/session changes, explicit retry, and successful submissions instead of on every tick.
 - Rail-board orchestration is split into a thin cubit plus bounded feature-local helpers, including a smaller use-case layer, to keep the feature navigable without making the codebase a maze.
 - Rail board copy and time formatting live in a small presentation helper so the domain service stays focused on selection and snapshot logic.
 - Test-only fakes live under `test/support`, while `lib/` stays focused on runtime code.
@@ -41,7 +42,7 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 - Community overlay reads and arrival-report writes are centered on `session_status_snapshots/{sessionId}`, which acts as the canonical aggregate document for a recurring train session.
 - The client updates that document transactionally and reads it through a cache-first overlay layer in release builds to keep Firestore usage predictable on Spark.
 - The aggregate document stores bounded per-station buckets, session-level delay/confidence fields, and no separate raw Firestore report log.
-- Cached aggregate overlays are served when fresh and reused as stale fallback when Firestore is unavailable or temporarily empty.
+- Cached aggregate overlays are served when fresh, kept usable for a short stale window, and then fall back to timetable-first messaging if they age out.
 - Debug builds bypass the overlay cache and keep community reporting enabled outside the normal schedule window so feature testing stays practical.
 
 ## Local Setup
@@ -91,6 +92,10 @@ FIREBASE_APPCHECK_WEB_KEY=
 - Arrival report submission updates that aggregate document transactionally after Firebase Anonymous Auth is ready.
 - Repeated reports from the same device for the same session/station are bounded by a persisted local ledger that is service-day aware and do not expand the aggregate beyond one bucket per station.
 - The client derives predicted stop times from the aggregate delay and the current session schedule.
+- Freshness policy is intentionally short-horizon:
+  - fresh for about 90 seconds
+  - stale-but-usable until about 5 minutes
+  - expired after that, with timetable-first fallback until a new refresh arrives
 - Arrival reporting UI stays hidden until anonymous auth readiness resolves, while community overlay insight can still render independently.
 - Debug builds can bypass the community overlay cache and schedule-window gating for reporting so feature testing stays available outside the normal active window.
 
@@ -108,7 +113,7 @@ FIREBASE_APPCHECK_WEB_KEY=
 - The app does not rely on Firestore TTL, PITR, backups, restore, or clone. Those are not assumed available for this app's operating model.
 - Retention strategy is Spark-safe:
   - Firestore is treated as a short-horizon community signal store, not long-term truth
-  - the client only reads and writes one narrow session aggregate doc and caches it locally for 5 minutes
+  - the client only reads and writes one narrow session aggregate doc and caches it locally for about 90 seconds, while allowing stale fallback for up to 5 minutes
   - report submission uses client-side cooldown, dedupe, and a persisted submission ledger to avoid read-before-write verification
 - Recommended operational guidance:
   - keep `session_status_snapshots/{sessionId}` compact and aggregate-oriented
@@ -120,4 +125,3 @@ FIREBASE_APPCHECK_WEB_KEY=
   - depending on separate predicted-stop subcollections
   - depending on Firestore cleanup features that require Blaze billing
 - The app remains fully usable with Firebase disabled or degraded because the official bundled/cached timetable stays offline-first.
-

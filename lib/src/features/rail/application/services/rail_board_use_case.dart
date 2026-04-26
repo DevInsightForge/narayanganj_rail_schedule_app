@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../community/domain/entities/arrival_report.dart';
 import '../../../community/domain/entities/arrival_report_submission.dart';
+import '../../../community/domain/entities/community_session_aggregate.dart';
 import '../../../community/domain/entities/data_origin.dart';
 import '../../../community/domain/entities/community_overlay_result.dart';
 import '../../../community/domain/entities/predicted_stop_time.dart';
@@ -39,7 +40,6 @@ class RailBoardUseCase {
     this.communityDebugBypassEnabled = false,
     this.reportDedupeBucketMinutes = 2,
     this.reportDedupeRetentionMinutes = 10,
-    this.staleInsightThresholdSeconds = 10 * 60,
   }) : _sessionRepository = sessionRepository,
        _arrivalReportRepository = arrivalReportRepository,
        _arrivalReportLedgerRepository = arrivalReportLedgerRepository,
@@ -60,7 +60,6 @@ class RailBoardUseCase {
   final bool communityDebugBypassEnabled;
   final int reportDedupeBucketMinutes;
   final int reportDedupeRetentionMinutes;
-  final int staleInsightThresholdSeconds;
   final Map<String, DateTime> _recentReportKeys = {};
   final Set<String> _inFlightSubmissionKeys = <String>{};
   final Set<String> _submittedSessionKeys = <String>{};

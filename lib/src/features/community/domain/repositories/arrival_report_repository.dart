@@ -1,5 +1,6 @@
 import '../entities/arrival_report_submission.dart';
 import '../entities/arrival_report.dart';
+import '../entities/community_session_aggregate.dart';
 
 enum ArrivalReportRepositoryErrorCode {
   permissionDenied,
@@ -14,7 +15,9 @@ class ArrivalReportRepositoryException implements Exception {
 }
 
 abstract class ArrivalReportRepository {
-  Future<void> submitArrivalReport(ArrivalReportSubmission submission);
+  Future<CommunitySessionAggregate> submitArrivalReport(
+    ArrivalReportSubmission submission,
+  );
 
   Future<List<ArrivalReport>> fetchStopReports({
     required String sessionId,

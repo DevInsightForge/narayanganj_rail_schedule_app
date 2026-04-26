@@ -1,5 +1,6 @@
 import '../../../domain/entities/arrival_report.dart';
 import '../../../domain/entities/arrival_report_submission.dart';
+import '../../../domain/entities/community_session_aggregate.dart';
 import '../../../domain/repositories/arrival_report_repository.dart';
 
 class NoOpArrivalReportRepository implements ArrivalReportRepository {
@@ -24,5 +25,9 @@ class NoOpArrivalReportRepository implements ArrivalReportRepository {
   }
 
   @override
-  Future<void> submitArrivalReport(ArrivalReportSubmission submission) async {}
+  Future<CommunitySessionAggregate> submitArrivalReport(
+    ArrivalReportSubmission submission,
+  ) async {
+    throw UnimplementedError();
+  }
 }

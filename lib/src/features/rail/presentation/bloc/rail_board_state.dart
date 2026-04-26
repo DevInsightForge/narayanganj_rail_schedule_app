@@ -11,7 +11,15 @@ enum RailBoardStatus { loading, ready, failure }
 
 enum RailReportSubmissionStatus { idle, submitting, success, error }
 
-enum RailCommunityInsightStatus { idle, loading, ready, stale, empty, error }
+enum RailCommunityInsightStatus {
+  idle,
+  loading,
+  ready,
+  stale,
+  expired,
+  empty,
+  error,
+}
 
 class RailBoardViewState extends Equatable {
   const RailBoardViewState({

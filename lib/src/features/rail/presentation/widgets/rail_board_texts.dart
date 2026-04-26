@@ -60,6 +60,8 @@ class RailBoardTexts {
   static const liveRiderUpdatesLoading = 'Checking for live rider updates...';
   static const liveRiderUpdatesReady = 'Live rider updates are now available';
   static const liveRiderUpdatesStale = 'Live rider updates may be a bit older';
+  static const liveRiderUpdatesExpired =
+      'Live rider updates are out of date right now';
   static const liveRiderUpdatesEmpty = 'No rider updates have been shared yet';
   static const liveRiderUpdatesError =
       'Live rider updates are currently unavailable';
@@ -165,6 +167,7 @@ class RailBoardTexts {
       RailCommunityInsightStatus.loading => liveRiderUpdatesLoading,
       RailCommunityInsightStatus.ready => liveRiderUpdatesReady,
       RailCommunityInsightStatus.stale => liveRiderUpdatesStale,
+      RailCommunityInsightStatus.expired => liveRiderUpdatesExpired,
       RailCommunityInsightStatus.empty => liveRiderUpdatesEmpty,
       RailCommunityInsightStatus.error => liveRiderUpdatesError,
       RailCommunityInsightStatus.idle => liveRiderUpdatesIdle,

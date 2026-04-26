@@ -82,7 +82,7 @@ void main() {
               session.sessionId: railBoardReportingOverlayResult(
                 sessionId: session.sessionId,
                 fetchedAt: DateTime(2026, 3, 28, 4, 25),
-                freshnessSeconds: 1200,
+                freshnessSeconds: 180,
               ),
             },
           ),
@@ -96,6 +96,39 @@ void main() {
               state.communityInsightStatus == RailCommunityInsightStatus.stale,
         );
         expect(insightState.sessionStatusSnapshot, isNotNull);
+        await cubit.close();
+      },
+    );
+
+    test(
+      'marks community insights as expired when overlay freshness is too old',
+      () async {
+        final session = seedRailBoardReportingSessions().first;
+        final cubit = buildRailBoardReportingCubit(
+          bundledSchedule: bundledSchedule,
+          arrivalReportRepository: FlakyArrivalReportRepository(),
+          arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+          communityOverlayRepository: FakeCommunityOverlayRepository(
+            seed: {
+              session.sessionId: railBoardReportingOverlayResult(
+                sessionId: session.sessionId,
+                fetchedAt: DateTime(2026, 3, 28, 4, 25),
+                freshnessSeconds: 360,
+              ),
+            },
+          ),
+          deviceIdentityRepository: FixedDeviceIdentityRepository(),
+          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+        );
+
+        final insightState = await waitForRailBoardState(
+          cubit,
+          (state) =>
+              state.communityInsightStatus ==
+              RailCommunityInsightStatus.expired,
+        );
+        expect(insightState.sessionStatusSnapshot, isNull);
+        expect(insightState.predictedStopTimes, isEmpty);
         await cubit.close();
       },
     );
@@ -139,6 +172,88 @@ void main() {
       expect(overlayRepository.fetchCounts[session.sessionId], equals(1));
       await cubit.close();
     });
+
+    test(
+      'ages community insight locally until it expires without extra reads',
+      () async {
+        DateTime now = DateTime(2026, 3, 28, 4, 25);
+        final session = seedRailBoardReportingSessions().first;
+        final overlayRepository = FakeCommunityOverlayRepository(
+          seed: {
+            session.sessionId: railBoardReportingOverlayResult(
+              sessionId: session.sessionId,
+              fetchedAt: now,
+              freshnessSeconds: 30,
+            ),
+          },
+        );
+        final cubit = buildRailBoardReportingCubit(
+          bundledSchedule: bundledSchedule,
+          arrivalReportRepository: FlakyArrivalReportRepository(),
+          arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
+          communityOverlayRepository: overlayRepository,
+          deviceIdentityRepository: FixedDeviceIdentityRepository(),
+          nowProvider: () => now,
+        );
+
+        await waitForRailBoardState(
+          cubit,
+          (state) =>
+              state.communityInsightStatus == RailCommunityInsightStatus.ready,
+        );
+
+        for (var i = 0; i < 10; i++) {
+          now = now.add(const Duration(seconds: 30));
+          await cubit.tick();
+        }
+
+        final expiredState = await waitForRailBoardState(
+          cubit,
+          (state) =>
+              state.communityInsightStatus ==
+              RailCommunityInsightStatus.expired,
+        );
+        expect(expiredState.sessionStatusSnapshot, isNull);
+        expect(expiredState.predictedStopTimes, isEmpty);
+        expect(overlayRepository.fetchCounts[session.sessionId], equals(1));
+        await cubit.close();
+      },
+    );
+
+    test(
+      'keeps reporting success local without refetching overlay',
+      () async {
+        final reports = FlakyArrivalReportRepository()..failSubmission = false;
+        final ledger = FakeArrivalReportLedgerRepository();
+        final overlayRepository = FakeCommunityOverlayRepository();
+        final deviceIdentityRepository = FixedDeviceIdentityRepository();
+        final session = seedRailBoardReportingSessions().first;
+        final cubit = buildRailBoardReportingCubit(
+          bundledSchedule: bundledSchedule,
+          arrivalReportRepository: reports,
+          arrivalReportLedgerRepository: ledger,
+          communityOverlayRepository: overlayRepository,
+          deviceIdentityRepository: deviceIdentityRepository,
+          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+        );
+
+        await waitForRailBoardState(
+          cubit,
+          (state) => state.status == RailBoardStatus.ready,
+        );
+
+        await cubit.submitArrivalReport();
+        final success = await waitForRailBoardState(
+          cubit,
+          (state) =>
+              state.reportSubmissionStatus == RailReportSubmissionStatus.success,
+        );
+
+        expect(success.communityInsightStatus, isNot(RailCommunityInsightStatus.error));
+        expect(overlayRepository.fetchCounts[session.sessionId], equals(1));
+        await cubit.close();
+      },
+    );
 
     test(
       'skips community reporting and insights when community features are disabled',

@@ -11,7 +11,7 @@ class CachedCommunityOverlayRepository implements CommunityOverlayRepository {
     DateTime Function()? nowProvider,
   }) : _primary = primary,
        _cache = cache,
-       _cacheTtl = cacheTtl ?? const Duration(minutes: 5),
+       _cacheTtl = cacheTtl ?? const Duration(seconds: 90),
        _nowProvider = nowProvider ?? DateTime.now;
 
   final CommunityOverlayRepository _primary;
@@ -20,6 +20,8 @@ class CachedCommunityOverlayRepository implements CommunityOverlayRepository {
   final DateTime Function() _nowProvider;
   final Map<String, Future<CommunityOverlayResult>> _inFlight =
       <String, Future<CommunityOverlayResult>>{};
+  final Map<String, DateTime> _lastFailureAt = <String, DateTime>{};
+  final Duration _failureBackoff = const Duration(minutes: 2);
 
   @override
   Future<CommunityOverlayResult> fetchSessionOverlay({
@@ -32,13 +34,20 @@ class CachedCommunityOverlayRepository implements CommunityOverlayRepository {
       sessionId: sessionId,
       serviceDate: serviceDate,
     );
+    final cacheKey = _key(sessionId, serviceDate);
+    final lastFailureAt = _lastFailureAt[cacheKey];
+    if (!forceRefresh &&
+        cached != null &&
+        lastFailureAt != null &&
+        now.difference(lastFailureAt) <= _failureBackoff) {
+      return cached.copyWith(fromCache: true);
+    }
     if (!forceRefresh) {
       if (cached != null && now.difference(cached.fetchedAt) <= _cacheTtl) {
         return cached.copyWith(fromCache: true);
       }
     }
 
-    final cacheKey = _key(sessionId, serviceDate);
     final existing = _inFlight[cacheKey];
     if (existing != null) {
       return existing;
@@ -54,6 +63,7 @@ class CachedCommunityOverlayRepository implements CommunityOverlayRepository {
     try {
       return await future;
     } catch (_) {
+      _lastFailureAt[cacheKey] = _nowProvider();
       if (cached != null) {
         return cached.copyWith(fromCache: true);
       }

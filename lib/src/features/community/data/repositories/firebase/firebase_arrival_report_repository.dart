@@ -73,7 +73,9 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
   }
 
   @override
-  Future<void> submitArrivalReport(ArrivalReportSubmission submission) async {
+  Future<CommunitySessionAggregate> submitArrivalReport(
+    ArrivalReportSubmission submission,
+  ) async {
     if (submission.session.routeId != _routeId) {
       throw const ArrivalReportRepositoryException(
         ArrivalReportRepositoryErrorCode.unknown,
@@ -81,15 +83,13 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
     }
 
     try {
-      final model = await _firestore.runTransaction((transaction) async {
+      final aggregate = await _firestore.runTransaction((transaction) async {
         final docRef = _firestore
             .collection('session_status_snapshots')
             .doc(submission.session.sessionId);
         final snapshot = await transaction.get(docRef);
         final current = snapshot.exists && snapshot.data() != null
-            ? _mapper.toCommunitySessionAggregate(
-                FirestoreSessionAggregateModel.fromMap(snapshot.data()!),
-              )
+            ? _readAggregateFromData(snapshot.data()!)
             : null;
         final next = _reducer.reduce(
           current: current,
@@ -102,7 +102,7 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
           firestoreModel.toMap(),
           SetOptions(merge: false),
         );
-        return firestoreModel;
+        return next;
       });
       _logger.log(
         'submit_session_aggregate_success',
@@ -111,10 +111,11 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
           'sessionId': submission.session.sessionId,
           'stationId': submission.stationStop.stationId,
           'uid': submission.report.deviceId,
-          'reportCount': model.reportCount,
-          'stationCount': model.stationCount,
+          'reportCount': aggregate.reportCount,
+          'stationCount': aggregate.stationCount,
         },
       );
+      return aggregate;
     } on FirebaseException catch (error) {
       _logger.log(
         'submit_arrival_report_fail',
@@ -166,8 +167,14 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
     if (data == null || data.isEmpty) {
       return null;
     }
-    return _mapper.toCommunitySessionAggregate(
-      FirestoreSessionAggregateModel.fromMap(data),
-    );
+    return _readAggregateFromData(data);
+  }
+
+  CommunitySessionAggregate? _readAggregateFromData(Map<String, dynamic> data) {
+    final model = FirestoreSessionAggregateModel.tryFromMap(data);
+    if (model == null) {
+      return null;
+    }
+    return _mapper.toCommunitySessionAggregate(model);
   }
 }

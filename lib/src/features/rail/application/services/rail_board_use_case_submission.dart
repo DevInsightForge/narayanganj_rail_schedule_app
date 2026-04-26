@@ -129,7 +129,7 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
       );
       _inFlightSubmissionKeys.add(submissionKey);
       try {
-        await _arrivalReportRepository.submitArrivalReport(
+        final updatedAggregate = await _arrivalReportRepository.submitArrivalReport(
           ArrivalReportSubmission(
             report: report,
             session: session,
@@ -163,6 +163,11 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
           reason: RailReportActionReason.alreadySubmitted,
           feedbackMessage:
               'Arrival reported for $selectedStationName. Thank you.',
+          communityInsightResult: _buildCommunityInsightFromAggregate(
+            session: session,
+            aggregate: updatedAggregate,
+            now: now,
+          ),
         );
       } on FirebaseException catch (error, stackTrace) {
         final failureReason = _mapSubmissionFailureReason(error);
@@ -256,6 +261,69 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
       );
     }
     return null;
+  }
+
+  RailCommunityInsightResult _buildCommunityInsightFromAggregate({
+    required TrainSession session,
+    required CommunitySessionAggregate aggregate,
+    required DateTime now,
+  }) {
+    final snapshot = SessionStatusSnapshot(
+      sessionId: aggregate.sessionId,
+      state: SessionLifecycleState.active,
+      delayMinutes: aggregate.delayMinutes,
+      delayStatus: aggregate.delayStatus,
+      confidence: aggregate.confidence,
+      freshnessSeconds: aggregate.freshnessSeconds +
+          (now.difference(aggregate.updatedAt).inSeconds < 0
+              ? 0
+              : now.difference(aggregate.updatedAt).inSeconds),
+      lastObservedAt: aggregate.lastObservedAt,
+    );
+    final kind = switch (snapshot.freshnessState) {
+      CommunityOverlayFreshness.fresh => RailCommunityInsightKind.ready,
+      CommunityOverlayFreshness.staleButUsable =>
+        RailCommunityInsightKind.stale,
+      CommunityOverlayFreshness.expired => RailCommunityInsightKind.expired,
+    };
+    if (kind == RailCommunityInsightKind.expired) {
+      return const RailCommunityInsightResult(
+        kind: RailCommunityInsightKind.expired,
+        message:
+            'Live rider updates are a bit old right now. Showing timetable-only guidance until new updates arrive.',
+      );
+    }
+    return RailCommunityInsightResult(
+      kind: kind,
+      sessionStatusSnapshot: snapshot,
+      predictedStopTimes: _buildPredictedStopTimes(
+        session: session,
+        snapshot: snapshot,
+      ),
+    );
+  }
+
+  List<PredictedStopTime> _buildPredictedStopTimes({
+    required TrainSession session,
+    required SessionStatusSnapshot snapshot,
+  }) {
+    if (session.stops.isEmpty) {
+      return const <PredictedStopTime>[];
+    }
+    return session.stops
+        .map(
+          (stop) => PredictedStopTime(
+            sessionId: session.sessionId,
+            stationId: stop.stationId,
+            predictedAt: stop.scheduledAt.add(
+              Duration(minutes: snapshot.delayMinutes),
+            ),
+            referenceStationId: session.stops.first.stationId,
+            origin: DataOrigin.inferred,
+            confidence: snapshot.confidence,
+          ),
+        )
+        .toList(growable: false);
   }
 
   RailReportSubmissionResult _failureResult({

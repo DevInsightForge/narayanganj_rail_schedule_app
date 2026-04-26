@@ -32,20 +32,55 @@ class FirestoreStationAggregateBucketModel {
   factory FirestoreStationAggregateBucketModel.fromMap(
     Map<String, dynamic> map,
   ) {
+    final parsed = tryFromMap(map);
+    if (parsed == null) {
+      throw const FormatException('invalid_station_bucket');
+    }
+    return parsed;
+  }
+
+  static FirestoreStationAggregateBucketModel? tryFromMap(
+    Map<String, dynamic> map,
+  ) {
+    final stationId = map['stationId'];
+    final stationName = map['stationName'];
+    final sequence = map['sequence'];
+    final scheduledAt = map['scheduledAt'];
+    final firstObservedAt = map['firstObservedAt'];
+    final lastObservedAt = map['lastObservedAt'];
+    final firstSubmittedAt = map['firstSubmittedAt'];
+    final lastSubmittedAt = map['lastSubmittedAt'];
+    final latestReportId = map['latestReportId'];
+    final latestDeviceId = map['latestDeviceId'];
+    final submissionCount = map['submissionCount'];
+    final delayMinutes = map['delayMinutes'];
+    if (stationId is! String ||
+        stationName is! String ||
+        sequence is! num ||
+        scheduledAt is! Timestamp ||
+        firstObservedAt is! Timestamp ||
+        lastObservedAt is! Timestamp ||
+        firstSubmittedAt is! Timestamp ||
+        lastSubmittedAt is! Timestamp ||
+        latestReportId is! String ||
+        latestDeviceId is! String ||
+        submissionCount is! num ||
+        delayMinutes is! num) {
+      return null;
+    }
     return FirestoreStationAggregateBucketModel(
-      stationId: map['stationId'] as String? ?? '',
-      stationName: map['stationName'] as String? ?? '',
-      sequence: (map['sequence'] as num?)?.toInt() ?? 0,
-      scheduledAt: map['scheduledAt'] as Timestamp? ?? Timestamp.now(),
-      firstObservedAt: map['firstObservedAt'] as Timestamp? ?? Timestamp.now(),
-      lastObservedAt: map['lastObservedAt'] as Timestamp? ?? Timestamp.now(),
-      firstSubmittedAt:
-          map['firstSubmittedAt'] as Timestamp? ?? Timestamp.now(),
-      lastSubmittedAt: map['lastSubmittedAt'] as Timestamp? ?? Timestamp.now(),
-      latestReportId: map['latestReportId'] as String? ?? '',
-      latestDeviceId: map['latestDeviceId'] as String? ?? '',
-      submissionCount: (map['submissionCount'] as num?)?.toInt() ?? 0,
-      delayMinutes: (map['delayMinutes'] as num?)?.toInt() ?? 0,
+      stationId: stationId,
+      stationName: stationName,
+      sequence: sequence.toInt(),
+      scheduledAt: scheduledAt,
+      firstObservedAt: firstObservedAt,
+      lastObservedAt: lastObservedAt,
+      firstSubmittedAt: firstSubmittedAt,
+      lastSubmittedAt: lastSubmittedAt,
+      latestReportId: latestReportId,
+      latestDeviceId: latestDeviceId,
+      submissionCount: submissionCount.toInt(),
+      delayMinutes: delayMinutes.toInt(),
     );
   }
 
@@ -101,23 +136,62 @@ class FirestoreSessionAggregateModel {
   final Map<String, FirestoreStationAggregateBucketModel> stationBuckets;
 
   factory FirestoreSessionAggregateModel.fromMap(Map<String, dynamic> map) {
+    final parsed = tryFromMap(map);
+    if (parsed == null) {
+      throw const FormatException('invalid_session_aggregate');
+    }
+    return parsed;
+  }
+
+  static FirestoreSessionAggregateModel? tryFromMap(Map<String, dynamic> map) {
+    final sessionId = map['sessionId'];
+    final routeId = map['routeId'];
+    final directionId = map['directionId'];
+    final trainNo = map['trainNo'];
+    final serviceDate = map['serviceDate'];
+    final updatedAt = map['updatedAt'];
+    final lastObservedAt = map['lastObservedAt'];
+    final delayMinutes = map['delayMinutes'];
+    final delayStatus = map['delayStatus'];
+    final confidence = map['confidence'];
+    final freshnessSeconds = map['freshnessSeconds'];
+    final reportCount = map['reportCount'];
+    final stationCount = map['stationCount'];
+    if (sessionId is! String ||
+        routeId is! String ||
+        directionId is! String ||
+        trainNo is! num ||
+        serviceDate is! String ||
+        updatedAt is! Timestamp ||
+        (lastObservedAt != null && lastObservedAt is! Timestamp) ||
+        delayMinutes is! num ||
+        delayStatus is! String ||
+        confidence is! Map ||
+        freshnessSeconds is! num ||
+        reportCount is! num ||
+        stationCount is! num) {
+      return null;
+    }
+    final confidenceMap = Map<String, dynamic>.from(confidence);
+    final stationBuckets = _readBuckets(map['stationBuckets']);
+    if (stationBuckets == null) {
+      return null;
+    }
     return FirestoreSessionAggregateModel(
-      sessionId: map['sessionId'] as String? ?? '',
-      routeId: map['routeId'] as String? ?? '',
-      directionId: map['directionId'] as String? ?? '',
-      trainNo: (map['trainNo'] as num?)?.toInt() ?? 0,
-      serviceDate: map['serviceDate'] as String? ?? '',
-      updatedAt: map['updatedAt'] as Timestamp? ?? Timestamp.now(),
-      lastObservedAt: map['lastObservedAt'] as Timestamp?,
-      delayMinutes: (map['delayMinutes'] as num?)?.toInt() ?? 0,
-      delayStatus: map['delayStatus'] as String? ?? 'onTime',
-      confidence: Map<String, dynamic>.from(
-        map['confidence'] as Map? ?? const <String, dynamic>{},
-      ),
-      freshnessSeconds: (map['freshnessSeconds'] as num?)?.toInt() ?? 0,
-      reportCount: (map['reportCount'] as num?)?.toInt() ?? 0,
-      stationCount: (map['stationCount'] as num?)?.toInt() ?? 0,
-      stationBuckets: _readBuckets(map['stationBuckets']),
+      sessionId: sessionId,
+      routeId: routeId,
+      directionId: directionId,
+      trainNo: trainNo.toInt(),
+      serviceDate: serviceDate,
+      updatedAt: updatedAt,
+      lastObservedAt: lastObservedAt as Timestamp?,
+      delayMinutes: delayMinutes.toInt(),
+      delayStatus: delayStatus,
+      confidence: confidenceMap,
+      freshnessSeconds: freshnessSeconds.toInt(),
+      reportCount: reportCount.toInt(),
+      stationCount: stationCount.toInt(),
+      stationBuckets: stationBuckets,
     );
   }
 
@@ -142,21 +216,31 @@ class FirestoreSessionAggregateModel {
     };
   }
 
-  static Map<String, FirestoreStationAggregateBucketModel> _readBuckets(
+  static Map<String, FirestoreStationAggregateBucketModel>? _readBuckets(
     Object? value,
   ) {
     if (value is! Map) {
-      return const <String, FirestoreStationAggregateBucketModel>{};
+      return null;
     }
     final entries = <String, FirestoreStationAggregateBucketModel>{};
+    var invalid = false;
     value.forEach((key, dynamic bucketValue) {
       if (key is! String || bucketValue is! Map) {
+        invalid = true;
         return;
       }
-      entries[key] = FirestoreStationAggregateBucketModel.fromMap(
+      final parsed = FirestoreStationAggregateBucketModel.tryFromMap(
         Map<String, dynamic>.from(bucketValue),
       );
+      if (parsed == null) {
+        invalid = true;
+        return;
+      }
+      entries[key] = parsed;
     });
+    if (invalid) {
+      return null;
+    }
     return entries;
   }
 }

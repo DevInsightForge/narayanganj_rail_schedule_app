@@ -88,9 +88,11 @@ class FirebaseCommunityOverlayRepository implements CommunityOverlayRepository {
 
   CommunitySessionAggregate? _readAggregate(Map<String, dynamic> map) {
     try {
-      return _mapper.toCommunitySessionAggregate(
-        FirestoreSessionAggregateModel.fromMap(map),
-      );
+      final model = FirestoreSessionAggregateModel.tryFromMap(map);
+      if (model == null) {
+        return null;
+      }
+      return _mapper.toCommunitySessionAggregate(model);
     } catch (_) {
       return null;
     }

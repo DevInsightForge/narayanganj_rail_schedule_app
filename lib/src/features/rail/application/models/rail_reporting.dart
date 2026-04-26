@@ -1,3 +1,5 @@
+import 'rail_community_insight_result.dart';
+
 enum RailReportActionReason {
   noSession,
   beforeWindow,
@@ -32,10 +34,12 @@ class RailReportSubmissionResult {
     required this.reason,
     required this.feedbackMessage,
     this.failureReason,
+    this.communityInsightResult,
   });
 
   final RailReportSubmissionOutcome outcome;
   final RailReportActionReason reason;
   final String feedbackMessage;
   final RailReportSubmissionFailureReason? failureReason;
+  final RailCommunityInsightResult? communityInsightResult;
 }
