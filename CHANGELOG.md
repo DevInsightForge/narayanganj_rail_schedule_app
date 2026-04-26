@@ -2,6 +2,13 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v1.6.0
+
+- Fixed a race condition where station capacity checks could be bypassed during tick transitions, allowing the submit button to appear enabled for at-capacity stations before rejecting at submission time.
+- Restored device identity preservation in report fetches to maintain provenance tracking and round-trip equivalence through the submission and fetch cycle.
+- Enhanced freshness policy for community insights with three explicit states: fresh (≤90s), stale-but-usable (≤5min), and expired, with local aging on the board timer instead of Firestore reads on every tick.
+- Updated availability resolution to always validate station capacity, eliminating verification-limited fallback paths that created false positive enabled states.
+
 ## v1.5.3
 
 - Added CI and publish workflow notifications so release and failure events can notify through the shared notification script hook.
