@@ -220,40 +220,40 @@ void main() {
       },
     );
 
-    test(
-      'keeps reporting success local without refetching overlay',
-      () async {
-        final reports = FlakyArrivalReportRepository()..failSubmission = false;
-        final ledger = FakeArrivalReportLedgerRepository();
-        final overlayRepository = FakeCommunityOverlayRepository();
-        final deviceIdentityRepository = FixedDeviceIdentityRepository();
-        final session = seedRailBoardReportingSessions().first;
-        final cubit = buildRailBoardReportingCubit(
-          bundledSchedule: bundledSchedule,
-          arrivalReportRepository: reports,
-          arrivalReportLedgerRepository: ledger,
-          communityOverlayRepository: overlayRepository,
-          deviceIdentityRepository: deviceIdentityRepository,
-          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
-        );
+    test('keeps reporting success local without refetching overlay', () async {
+      final reports = FlakyArrivalReportRepository()..failSubmission = false;
+      final ledger = FakeArrivalReportLedgerRepository();
+      final overlayRepository = FakeCommunityOverlayRepository();
+      final deviceIdentityRepository = FixedDeviceIdentityRepository();
+      final session = seedRailBoardReportingSessions().first;
+      final cubit = buildRailBoardReportingCubit(
+        bundledSchedule: bundledSchedule,
+        arrivalReportRepository: reports,
+        arrivalReportLedgerRepository: ledger,
+        communityOverlayRepository: overlayRepository,
+        deviceIdentityRepository: deviceIdentityRepository,
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+      );
 
-        await waitForRailBoardState(
-          cubit,
-          (state) => state.status == RailBoardStatus.ready,
-        );
+      await waitForRailBoardState(
+        cubit,
+        (state) => state.status == RailBoardStatus.ready,
+      );
 
-        await cubit.submitArrivalReport();
-        final success = await waitForRailBoardState(
-          cubit,
-          (state) =>
-              state.reportSubmissionStatus == RailReportSubmissionStatus.success,
-        );
+      await cubit.submitArrivalReport();
+      final success = await waitForRailBoardState(
+        cubit,
+        (state) =>
+            state.reportSubmissionStatus == RailReportSubmissionStatus.success,
+      );
 
-        expect(success.communityInsightStatus, isNot(RailCommunityInsightStatus.error));
-        expect(overlayRepository.fetchCounts[session.sessionId], equals(1));
-        await cubit.close();
-      },
-    );
+      expect(
+        success.communityInsightStatus,
+        isNot(RailCommunityInsightStatus.error),
+      );
+      expect(overlayRepository.fetchCounts[session.sessionId], equals(1));
+      await cubit.close();
+    });
 
     test(
       'skips community reporting and insights when community features are disabled',

@@ -109,7 +109,6 @@ class RailBoardControllerReporting {
         attemptId: attemptId,
       );
     }
-
   }
 
   static Future<void> refreshReportAvailability(
