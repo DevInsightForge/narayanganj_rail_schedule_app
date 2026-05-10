@@ -2,6 +2,13 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v1.7.0
+
+- Isolated debug-build community overlay and report writes into `session_status_snapshots_debug` so local feature testing no longer mutates live aggregate data.
+- Simplified the Firestore community aggregate to a compact schema version 2 document without storing anonymous UIDs, raw report logs, or route-specific station rules.
+- Updated Firestore rules to validate dynamic changed-station aggregate updates, bounded station buckets, and live/debug collection parity.
+- Kept reporting duplicate prevention local to the service-day-aware ledger while preserving the single aggregate read/write path for Spark-plan usage.
+
 ## v1.6.0
 
 - Fixed a race condition where station capacity checks could be bypassed during tick transitions, allowing the submit button to appear enabled for at-capacity stations before rejecting at submission time.
