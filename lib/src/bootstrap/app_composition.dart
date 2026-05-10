@@ -7,6 +7,7 @@ import '../core/firebase/firebase_runtime.dart';
 import '../features/community/data/mappers/rail_schedule_template_mapper.dart';
 import '../features/community/data/repositories/cached/cached_community_overlay_repository.dart';
 import '../features/community/data/repositories/firebase/firebase_arrival_report_repository.dart';
+import '../features/community/data/repositories/firebase/firestore_collection_names.dart';
 import '../features/community/data/repositories/firebase/firebase_community_overlay_repository.dart';
 import '../features/community/data/repositories/firebase/firebase_device_identity_repository.dart';
 import '../features/community/data/repositories/local/generated_session_repository.dart';
@@ -91,6 +92,10 @@ class AppComposition {
     return FirebaseArrivalReportRepository(
       firestore: FirebaseFirestore.instance,
       routeId: 'narayanganj_line',
+      collectionName:
+          FirestoreCollectionNames.sessionStatusSnapshotsForDebugMode(
+            kDebugMode,
+          ),
     );
   }
 
@@ -104,11 +109,19 @@ class AppComposition {
     if (communityDebugBypassEnabled) {
       return FirebaseCommunityOverlayRepository(
         firestore: FirebaseFirestore.instance,
+        collectionName:
+            FirestoreCollectionNames.sessionStatusSnapshotsForDebugMode(
+              kDebugMode,
+            ),
       );
     }
     return CachedCommunityOverlayRepository(
       primary: FirebaseCommunityOverlayRepository(
         firestore: FirebaseFirestore.instance,
+        collectionName:
+            FirestoreCollectionNames.sessionStatusSnapshotsForDebugMode(
+              kDebugMode,
+            ),
       ),
       cache: SharedPreferencesCommunityOverlayCacheRepository(),
     );

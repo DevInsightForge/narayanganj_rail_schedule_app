@@ -148,5 +148,16 @@ service cloud.firestore {
         && isValidSessionAggregateUpdate();
       allow delete: if false;
     }
+
+    match /session_status_snapshots_debug/{sessionId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.sessionId == sessionId
+        && isValidSessionAggregateCreate();
+      allow update: if isSignedIn()
+        && request.resource.data.sessionId == sessionId
+        && isValidSessionAggregateUpdate();
+      allow delete: if false;
+    }
   }
 }

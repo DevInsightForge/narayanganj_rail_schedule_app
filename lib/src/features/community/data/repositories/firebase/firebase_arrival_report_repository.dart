@@ -9,23 +9,27 @@ import '../../../domain/services/community_session_aggregate_reducer.dart';
 import '../../mappers/firestore_community_mapper.dart';
 import '../../models/firestore_models.dart';
 import '../../../domain/services/service_day_key.dart';
+import 'firestore_collection_names.dart';
 
 class FirebaseArrivalReportRepository implements ArrivalReportRepository {
   FirebaseArrivalReportRepository({
     required FirebaseFirestore firestore,
     required String routeId,
+    String collectionName = FirestoreCollectionNames.sessionStatusSnapshots,
     FirestoreCommunityMapper mapper = const FirestoreCommunityMapper(),
     CommunitySessionAggregateReducer reducer =
         const CommunitySessionAggregateReducer(),
     DebugLogger? logger,
   }) : _firestore = firestore,
        _routeId = routeId,
+       _collectionName = collectionName,
        _mapper = mapper,
        _reducer = reducer,
        _logger = logger ?? const DebugLogger('FirebaseArrivalReportRepository');
 
   final FirebaseFirestore _firestore;
   final String _routeId;
+  final String _collectionName;
   final FirestoreCommunityMapper _mapper;
   final CommunitySessionAggregateReducer _reducer;
   final DebugLogger _logger;
@@ -82,10 +86,11 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
       );
     }
 
+    CommunitySessionAggregate? nextAggregate;
     try {
-      final aggregate = await _firestore.runTransaction((transaction) async {
+      await _firestore.runTransaction((transaction) async {
         final docRef = _firestore
-            .collection('session_status_snapshots')
+            .collection(_collectionName)
             .doc(submission.session.sessionId);
         final snapshot = await transaction.get(docRef);
         final current = snapshot.exists && snapshot.data() != null
@@ -96,14 +101,18 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
           submission: submission,
           now: submission.report.submittedAt,
         );
+        nextAggregate = next;
         final firestoreModel = _mapper.toFirestoreSessionAggregate(next);
         transaction.set(
           docRef,
           firestoreModel.toMap(),
           SetOptions(merge: false),
         );
-        return next;
       });
+      final aggregate = nextAggregate;
+      if (aggregate == null) {
+        throw StateError('aggregate_transaction_missing_result');
+      }
       _logger.log(
         'submit_session_aggregate_success',
         context: <String, Object?>{
@@ -111,6 +120,7 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
           'sessionId': submission.session.sessionId,
           'stationId': submission.stationStop.stationId,
           'uid': submission.report.deviceId,
+          'collectionName': _collectionName,
           'reportCount': aggregate.reportCount,
           'stationCount': aggregate.stationCount,
         },
@@ -124,7 +134,9 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
           'sessionId': submission.session.sessionId,
           'stationId': submission.stationStop.stationId,
           'uid': submission.report.deviceId,
+          'collectionName': _collectionName,
           'errorCode': error.code,
+          'error': error,
         },
       );
       if (error.code == 'permission-denied') {
@@ -149,9 +161,18 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
           'sessionId': submission.session.sessionId,
           'stationId': submission.stationStop.stationId,
           'uid': submission.report.deviceId,
-          'errorCode': 'unknown',
+          'collectionName': _collectionName,
+          'errorCode': _isPermissionDenied(error)
+              ? 'permission-denied'
+              : 'unknown',
+          'error': error,
         },
       );
+      if (_isPermissionDenied(error)) {
+        throw const ArrivalReportRepositoryException(
+          ArrivalReportRepositoryErrorCode.permissionDenied,
+        );
+      }
       throw const ArrivalReportRepositoryException(
         ArrivalReportRepositoryErrorCode.unknown,
       );
@@ -160,7 +181,7 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
 
   Future<CommunitySessionAggregate?> _readAggregate(String sessionId) async {
     final document = await _firestore
-        .collection('session_status_snapshots')
+        .collection(_collectionName)
         .doc(sessionId)
         .get();
     final data = document.data();
@@ -171,10 +192,21 @@ class FirebaseArrivalReportRepository implements ArrivalReportRepository {
   }
 
   CommunitySessionAggregate? _readAggregateFromData(Map<String, dynamic> data) {
-    final model = FirestoreSessionAggregateModel.tryFromMap(data);
-    if (model == null) {
+    try {
+      final model = FirestoreSessionAggregateModel.tryFromMap(data);
+      if (model == null) {
+        return null;
+      }
+      return _mapper.toCommunitySessionAggregate(model);
+    } catch (_) {
       return null;
     }
-    return _mapper.toCommunitySessionAggregate(model);
+  }
+
+  bool _isPermissionDenied(Object error) {
+    final value = error.toString().toLowerCase();
+    return value.contains('permission-denied') ||
+        value.contains('permission denied') ||
+        value.contains('insufficient permissions');
   }
 }

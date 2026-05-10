@@ -53,6 +53,7 @@
 - Keep repository interfaces clean for future backend migration.
 - Keep offline/degraded operation functional with local fallback behavior.
 - Use `session_status_snapshots/{sessionId}` as the only Firestore-backed community session record in normal app flows.
+- Use `session_status_snapshots_debug/{sessionId}` for debug builds so testing does not mutate live aggregate data.
 - Do not introduce `station_reports`, chat collections, prediction collections, or other parallel community truth sources.
 - Keep aggregate documents bounded with per-station buckets and session-level derived fields.
 - Derive predicted stop times locally from the aggregate delay plus the active schedule.

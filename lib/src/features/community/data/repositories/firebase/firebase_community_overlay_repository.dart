@@ -9,21 +9,25 @@ import '../../../domain/repositories/community_overlay_repository.dart';
 import '../../../domain/services/service_day_key.dart';
 import '../../mappers/firestore_community_mapper.dart';
 import '../../models/firestore_models.dart';
+import 'firestore_collection_names.dart';
 
 class FirebaseCommunityOverlayRepository implements CommunityOverlayRepository {
   FirebaseCommunityOverlayRepository({
     required FirebaseFirestore firestore,
     Future<Map<String, dynamic>?> Function(String sessionId)? loader,
+    String collectionName = FirestoreCollectionNames.sessionStatusSnapshots,
     DateTime Function()? nowProvider,
     DebugLogger? logger,
   }) : _firestore = firestore,
        _loader = loader,
+       _collectionName = collectionName,
        _nowProvider = nowProvider ?? DateTime.now,
        _logger =
            logger ?? const DebugLogger('FirebaseCommunityOverlayRepository');
 
   final FirebaseFirestore _firestore;
   final Future<Map<String, dynamic>?> Function(String sessionId)? _loader;
+  final String _collectionName;
   final DateTime Function() _nowProvider;
   final DebugLogger _logger;
   final FirestoreCommunityMapper _mapper = const FirestoreCommunityMapper();
@@ -54,18 +58,22 @@ class FirebaseCommunityOverlayRepository implements CommunityOverlayRepository {
   Future<Map<String, dynamic>?> _load(String sessionId) async {
     try {
       final document = await _firestore
-          .collection('session_status_snapshots')
+          .collection(_collectionName)
           .doc(sessionId)
           .get();
       return document.data();
     } catch (error) {
       _logger.log(
         'overlay_load_fail',
-        context: ErrorReportContext(
-          feature: 'community_overlay',
-          event: 'overlay_load',
-          sessionId: sessionId,
-        ).toMap(),
+        context:
+            ErrorReportContext(
+              feature: 'community_overlay',
+              event: 'overlay_load',
+              sessionId: sessionId,
+            ).toMap()..addAll(<String, Object?>{
+              'collectionName': _collectionName,
+              'error': error,
+            }),
       );
       rethrow;
     }

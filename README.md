@@ -40,6 +40,7 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 - Crashlytics error reporting is optional at runtime and can be enabled separately from the core Firebase data path.
 - Community features are enabled only after Firebase initializes successfully and degrade safely when it does not.
 - Community overlay reads and arrival-report writes are centered on `session_status_snapshots/{sessionId}`, which acts as the canonical aggregate document for a recurring train session.
+- Debug builds use `session_status_snapshots_debug/{sessionId}` for community overlay reads and arrival-report writes so local testing does not mutate live aggregate data.
 - The client updates that document transactionally and reads it through a cache-first overlay layer in release builds to keep Firestore usage predictable on Spark.
 - The aggregate document stores bounded per-station buckets, session-level delay/confidence fields, and no separate raw Firestore report log.
 - Cached aggregate overlays are served when fresh, kept usable for a short stale window, and then fall back to timetable-first messaging if they age out.
@@ -88,6 +89,7 @@ FIREBASE_APPCHECK_WEB_KEY=
 - Firestore config is versioned in [firebase.json](firebase.json), [firestore.rules](firestore.rules), and [firestore.indexes.json](firestore.indexes.json).
 - Train sessions are generated dynamically from bundled schedule templates using deterministic session IDs.
 - `session_status_snapshots/{sessionId}` is the canonical aggregate document for a recurring train session.
+- Debug builds use the matching `session_status_snapshots_debug/{sessionId}` collection instead of the live aggregate collection.
 - `session_status_snapshots/{sessionId}` is reused for the same recurring train run, with `serviceDate` stored inside the aggregate to keep stale day state from leaking forward.
 - Arrival report submission updates that aggregate document transactionally after Firebase Anonymous Auth is ready.
 - Repeated reports from the same device for the same session/station are bounded by a persisted local ledger that is service-day aware and do not expand the aggregate beyond one bucket per station.
