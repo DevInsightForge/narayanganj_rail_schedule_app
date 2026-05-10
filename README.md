@@ -42,7 +42,7 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 - Community overlay reads and arrival-report writes are centered on `session_status_snapshots/{sessionId}`, which acts as the canonical aggregate document for a recurring train session.
 - Debug builds use `session_status_snapshots_debug/{sessionId}` for community overlay reads and arrival-report writes so local testing does not mutate live aggregate data.
 - The client updates that document transactionally and reads it through a cache-first overlay layer in release builds to keep Firestore usage predictable on Spark.
-- The aggregate document stores bounded per-station buckets, session-level delay/confidence fields, and no separate raw Firestore report log.
+- The v2 aggregate document stores only session status plus bounded per-station buckets, and no separate raw Firestore report log.
 - Cached aggregate overlays are served when fresh, kept usable for a short stale window, and then fall back to timetable-first messaging if they age out.
 - Debug builds bypass the overlay cache and keep community reporting enabled outside the normal schedule window so feature testing stays practical.
 
@@ -92,7 +92,8 @@ FIREBASE_APPCHECK_WEB_KEY=
 - Debug builds use the matching `session_status_snapshots_debug/{sessionId}` collection instead of the live aggregate collection.
 - `session_status_snapshots/{sessionId}` is reused for the same recurring train run, with `serviceDate` stored inside the aggregate to keep stale day state from leaking forward.
 - Arrival report submission updates that aggregate document transactionally after Firebase Anonymous Auth is ready.
-- Repeated reports from the same device for the same session/station are bounded by a persisted local ledger that is service-day aware and do not expand the aggregate beyond one bucket per station.
+- Repeated reports from the same device for the same session/station are blocked locally by a service-day-aware ledger; the same device may still report from the next station in that session.
+- Anonymous UIDs are used only as an auth readiness and write-gating signal; the aggregate document does not store UIDs, profile data, location trails, or raw report logs.
 - The client derives predicted stop times from the aggregate delay and the current session schedule.
 - Freshness policy is intentionally short-horizon:
   - fresh for about 90 seconds
@@ -116,7 +117,7 @@ FIREBASE_APPCHECK_WEB_KEY=
 - Retention strategy is Spark-safe:
   - Firestore is treated as a short-horizon community signal store, not long-term truth
   - the client only reads and writes one narrow session aggregate doc and caches it locally for about 90 seconds, while allowing stale fallback for up to 5 minutes
-  - report submission uses client-side cooldown, dedupe, and a persisted submission ledger to avoid read-before-write verification
+  - report submission uses client-side cooldown, dedupe, and a persisted submission ledger to avoid raw report logs
 - Recommended operational guidance:
   - keep `session_status_snapshots/{sessionId}` compact and aggregate-oriented
   - avoid realtime listeners for community overlay data

@@ -6,57 +6,41 @@ import 'report_confidence.dart';
 class StationAggregateBucket extends Equatable {
   const StationAggregateBucket({
     required this.stationId,
-    required this.stationName,
     required this.sequence,
     required this.scheduledAt,
     required this.firstObservedAt,
     required this.lastObservedAt,
-    required this.firstSubmittedAt,
     required this.lastSubmittedAt,
-    required this.latestReportId,
-    required this.latestDeviceId,
     required this.submissionCount,
     required this.delayMinutes,
   });
 
   final String stationId;
-  final String stationName;
   final int sequence;
   final DateTime scheduledAt;
   final DateTime firstObservedAt;
   final DateTime lastObservedAt;
-  final DateTime firstSubmittedAt;
   final DateTime lastSubmittedAt;
-  final String latestReportId;
-  final String latestDeviceId;
   final int submissionCount;
   final int delayMinutes;
 
   StationAggregateBucket copyWith({
     String? stationId,
-    String? stationName,
     int? sequence,
     DateTime? scheduledAt,
     DateTime? firstObservedAt,
     DateTime? lastObservedAt,
-    DateTime? firstSubmittedAt,
     DateTime? lastSubmittedAt,
-    String? latestReportId,
-    String? latestDeviceId,
     int? submissionCount,
     int? delayMinutes,
   }) {
     return StationAggregateBucket(
       stationId: stationId ?? this.stationId,
-      stationName: stationName ?? this.stationName,
       sequence: sequence ?? this.sequence,
       scheduledAt: scheduledAt ?? this.scheduledAt,
       firstObservedAt: firstObservedAt ?? this.firstObservedAt,
       lastObservedAt: lastObservedAt ?? this.lastObservedAt,
-      firstSubmittedAt: firstSubmittedAt ?? this.firstSubmittedAt,
       lastSubmittedAt: lastSubmittedAt ?? this.lastSubmittedAt,
-      latestReportId: latestReportId ?? this.latestReportId,
-      latestDeviceId: latestDeviceId ?? this.latestDeviceId,
       submissionCount: submissionCount ?? this.submissionCount,
       delayMinutes: delayMinutes ?? this.delayMinutes,
     );
@@ -65,15 +49,11 @@ class StationAggregateBucket extends Equatable {
   @override
   List<Object?> get props => [
     stationId,
-    stationName,
     sequence,
     scheduledAt,
     firstObservedAt,
     lastObservedAt,
-    firstSubmittedAt,
     lastSubmittedAt,
-    latestReportId,
-    latestDeviceId,
     submissionCount,
     delayMinutes,
   ];

@@ -93,10 +93,11 @@ class FakeArrivalReportRepository implements ArrivalReportRepository {
     }
     return [
       ArrivalReport(
-        reportId: bucket.latestReportId,
+        reportId:
+            'aggregate:${aggregate.sessionId}:${bucket.stationId}:${bucket.lastSubmittedAt.microsecondsSinceEpoch}',
         sessionId: aggregate.sessionId,
         stationId: bucket.stationId,
-        deviceId: bucket.latestDeviceId,
+        deviceId: '',
         observedArrivalAt: bucket.lastObservedAt,
         submittedAt: bucket.lastSubmittedAt,
       ),

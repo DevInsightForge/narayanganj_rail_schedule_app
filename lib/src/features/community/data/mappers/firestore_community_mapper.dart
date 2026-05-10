@@ -1,38 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../domain/entities/community_session_aggregate.dart';
-import '../../domain/entities/data_origin.dart';
 import '../../domain/entities/delay_status.dart';
-import '../../domain/entities/predicted_stop_time.dart';
 import '../../domain/entities/report_confidence.dart';
-import '../../domain/entities/train_session.dart';
 import '../../domain/services/service_day_key.dart';
 import '../models/firestore_models.dart';
 
 class FirestoreCommunityMapper {
   const FirestoreCommunityMapper();
-
-  TrainSession toSession(FirestoreSessionModel model) {
-    final serviceDate = _parseServiceDate(model.serviceDate);
-    return TrainSession(
-      sessionId: model.sessionId,
-      templateId: model.templateId,
-      routeId: model.routeId,
-      directionId: model.directionId,
-      trainNo: model.trainNo,
-      serviceDate: serviceDate,
-      stops: model.stops
-          .map(
-            (stop) => SessionStop(
-              stationId: stop.stationId,
-              stationName: stop.stationName,
-              sequence: stop.sequence,
-              scheduledAt: stop.scheduledAt.toDate(),
-            ),
-          )
-          .toList(growable: false),
-    );
-  }
 
   CommunitySessionAggregate toCommunitySessionAggregate(
     FirestoreSessionAggregateModel model,
@@ -44,11 +19,11 @@ class FirestoreCommunityMapper {
       trainNo: model.trainNo,
       serviceDate: _parseServiceDate(model.serviceDate),
       updatedAt: model.updatedAt.toDate(),
-      lastObservedAt: model.lastObservedAt?.toDate(),
+      lastObservedAt: _lastObservedAt(model.stationBuckets.values),
       delayMinutes: model.delayMinutes,
       delayStatus: _parseDelayStatus(model.delayStatus),
       confidence: _readAggregateConfidence(model.confidence),
-      freshnessSeconds: model.freshnessSeconds,
+      freshnessSeconds: _freshnessSeconds(model.updatedAt.toDate()),
       stationBuckets: model.stationBuckets.values
           .map(toStationAggregateBucket)
           .toList(growable: false),
@@ -59,19 +34,17 @@ class FirestoreCommunityMapper {
     CommunitySessionAggregate aggregate,
   ) {
     return FirestoreSessionAggregateModel(
+      schemaVersion: FirestoreSessionAggregateModel.currentSchemaVersion,
       sessionId: aggregate.sessionId,
       routeId: aggregate.routeId,
       directionId: aggregate.directionId,
       trainNo: aggregate.trainNo,
       serviceDate: serviceDateKey(aggregate.serviceDate),
       updatedAt: _toTimestamp(aggregate.updatedAt),
-      lastObservedAt: aggregate.lastObservedAt == null
-          ? null
-          : _toTimestamp(aggregate.lastObservedAt!),
+      lastReportedStationId: _lastReportedStationId(aggregate),
       delayMinutes: aggregate.delayMinutes,
       delayStatus: aggregate.delayStatus.name,
       confidence: _writeAggregateConfidence(aggregate.confidence),
-      freshnessSeconds: aggregate.freshnessSeconds,
       reportCount: aggregate.reportCount,
       stationCount: aggregate.stationCount,
       stationBuckets: {
@@ -86,15 +59,11 @@ class FirestoreCommunityMapper {
   ) {
     return StationAggregateBucket(
       stationId: model.stationId,
-      stationName: model.stationName,
       sequence: model.sequence,
       scheduledAt: model.scheduledAt.toDate(),
       firstObservedAt: model.firstObservedAt.toDate(),
       lastObservedAt: model.lastObservedAt.toDate(),
-      firstSubmittedAt: model.firstSubmittedAt.toDate(),
       lastSubmittedAt: model.lastSubmittedAt.toDate(),
-      latestReportId: model.latestReportId,
-      latestDeviceId: model.latestDeviceId,
       submissionCount: model.submissionCount,
       delayMinutes: model.delayMinutes,
     );
@@ -105,34 +74,13 @@ class FirestoreCommunityMapper {
   ) {
     return FirestoreStationAggregateBucketModel(
       stationId: bucket.stationId,
-      stationName: bucket.stationName,
       sequence: bucket.sequence,
       scheduledAt: _toTimestamp(bucket.scheduledAt),
       firstObservedAt: _toTimestamp(bucket.firstObservedAt),
       lastObservedAt: _toTimestamp(bucket.lastObservedAt),
-      firstSubmittedAt: _toTimestamp(bucket.firstSubmittedAt),
       lastSubmittedAt: _toTimestamp(bucket.lastSubmittedAt),
-      latestReportId: bucket.latestReportId,
-      latestDeviceId: bucket.latestDeviceId,
       submissionCount: bucket.submissionCount,
       delayMinutes: bucket.delayMinutes,
-    );
-  }
-
-  PredictedStopTime toPredictedStop(FirestorePredictedStopModel model) {
-    final confidenceScore = model.confidence.toDouble().clamp(0.0, 1.0);
-    return PredictedStopTime(
-      sessionId: model.sessionId,
-      stationId: model.stationId,
-      predictedAt: model.predictedAt.toDate(),
-      referenceStationId: model.referenceStationId,
-      origin: DataOrigin.inferred,
-      confidence: ReportConfidence(
-        score: confidenceScore,
-        sampleSize: 0,
-        freshnessSeconds: model.freshnessSeconds,
-        agreementScore: confidenceScore,
-      ),
     );
   }
 
@@ -173,5 +121,36 @@ class FirestoreCommunityMapper {
       'late' => DelayStatus.late,
       _ => DelayStatus.onTime,
     };
+  }
+
+  DateTime? _lastObservedAt(
+    Iterable<FirestoreStationAggregateBucketModel> buckets,
+  ) {
+    DateTime? latest;
+    for (final bucket in buckets) {
+      final observedAt = bucket.lastObservedAt.toDate();
+      if (latest == null || observedAt.isAfter(latest)) {
+        latest = observedAt;
+      }
+    }
+    return latest;
+  }
+
+  int _freshnessSeconds(DateTime updatedAt) {
+    final seconds = DateTime.now().difference(updatedAt).inSeconds;
+    return seconds < 0 ? 0 : seconds;
+  }
+
+  String _lastReportedStationId(CommunitySessionAggregate aggregate) {
+    StationAggregateBucket? latest;
+    for (final bucket in aggregate.stationBuckets) {
+      if (latest == null ||
+          bucket.sequence > latest.sequence ||
+          (bucket.sequence == latest.sequence &&
+              bucket.lastSubmittedAt.isAfter(latest.lastSubmittedAt))) {
+        latest = bucket;
+      }
+    }
+    return latest?.stationId ?? '';
   }
 }

@@ -27,28 +27,20 @@ service cloud.firestore {
       return bucket is map
         && bucket.keys().hasOnly([
           'stationId',
-          'stationName',
           'sequence',
           'scheduledAt',
           'firstObservedAt',
           'lastObservedAt',
-          'firstSubmittedAt',
           'lastSubmittedAt',
-          'latestReportId',
-          'latestDeviceId',
           'submissionCount',
           'delayMinutes'
         ])
         && bucket.stationId is string
-        && bucket.stationName is string
         && bucket.sequence is number
         && bucket.scheduledAt is timestamp
         && bucket.firstObservedAt is timestamp
         && bucket.lastObservedAt is timestamp
-        && bucket.firstSubmittedAt is timestamp
         && bucket.lastSubmittedAt is timestamp
-        && bucket.latestReportId is string
-        && bucket.latestDeviceId is string
         && bucket.submissionCount is number
         && bucket.submissionCount >= 1
         && bucket.submissionCount <= 10
@@ -57,38 +49,42 @@ service cloud.firestore {
 
     function isValidSessionAggregate() {
       return hasAllowedKeys([
+          'schemaVersion',
           'sessionId',
           'routeId',
           'directionId',
           'trainNo',
           'serviceDate',
           'updatedAt',
-          'lastObservedAt',
+          'lastReportedStationId',
           'delayMinutes',
           'delayStatus',
           'confidence',
-          'freshnessSeconds',
           'reportCount',
           'stationCount',
           'stationBuckets'
         ])
+        && request.resource.data.schemaVersion == 2
         && request.resource.data.sessionId is string
         && request.resource.data.routeId is string
         && request.resource.data.directionId is string
         && request.resource.data.trainNo is number
         && request.resource.data.serviceDate is string
         && request.resource.data.updatedAt is timestamp
-        && (
-          request.resource.data.lastObservedAt == null ||
-          request.resource.data.lastObservedAt is timestamp
-        )
+        && request.resource.data.lastReportedStationId is string
         && request.resource.data.delayMinutes is number
         && request.resource.data.delayStatus is string
         && isValidAggregateConfidence()
-        && request.resource.data.freshnessSeconds is number
         && request.resource.data.reportCount is number
+        && request.resource.data.reportCount >= 1
         && request.resource.data.stationCount is number
-        && request.resource.data.stationBuckets is map;
+        && request.resource.data.stationCount >= 1
+        && request.resource.data.stationCount <= 20
+        && request.resource.data.stationBuckets is map
+        && request.resource.data.stationBuckets.size() == request.resource.data.stationCount
+        && request.resource.data.stationBuckets.keys().hasAny([
+          request.resource.data.lastReportedStationId
+        ]);
     }
 
     function isValidSingleStationBucketMap() {
@@ -98,7 +94,11 @@ service cloud.firestore {
           request.resource.data.stationBuckets[
             request.resource.data.stationBuckets.keys()[0]
           ]
-        );
+        )
+        && request.resource.data.stationBuckets.keys()[0] ==
+          request.resource.data.stationBuckets[
+            request.resource.data.stationBuckets.keys()[0]
+          ].stationId;
     }
 
     function isValidSessionAggregateCreate() {
@@ -108,11 +108,45 @@ service cloud.firestore {
         && isValidSingleStationBucketMap();
     }
 
-    function isValidSessionAggregateUpdate() {
-      let changedStations = request.resource.data.stationBuckets
+    function hasChangedOnlyStation(stationId) {
+      return request.resource.data.stationBuckets
         .diff(resource.data.stationBuckets)
         .affectedKeys()
-        ;
+        .size() == 1
+        && request.resource.data.stationBuckets
+        .diff(resource.data.stationBuckets)
+        .affectedKeys()
+        .hasOnly([stationId]);
+    }
+
+    function hasExistingStation(stationId) {
+      return resource.data.stationBuckets.keys().hasAny([stationId]);
+    }
+
+    function isValidNewStationReport(stationId) {
+      return !hasExistingStation(stationId)
+        && request.resource.data.stationBuckets[stationId].submissionCount == 1;
+    }
+
+    function isValidExistingStationReport(stationId) {
+      return hasExistingStation(stationId)
+        && request.resource.data.stationBuckets[stationId].submissionCount ==
+          resource.data.stationBuckets[stationId].submissionCount + 1;
+    }
+
+    function isValidChangedStationReport() {
+      let stationId = request.resource.data.lastReportedStationId;
+      return stationId in request.resource.data.stationBuckets
+        && hasChangedOnlyStation(stationId)
+        && request.resource.data.stationBuckets[stationId].stationId == stationId
+        && isValidStationBucket(request.resource.data.stationBuckets[stationId])
+        && (
+          isValidNewStationReport(stationId) ||
+          isValidExistingStationReport(stationId)
+        );
+    }
+
+    function isValidSessionAggregateUpdate() {
       let isServiceDayReset =
         request.resource.data.serviceDate != resource.data.serviceDate &&
         request.resource.data.reportCount == 1 &&
@@ -120,6 +154,7 @@ service cloud.firestore {
         isValidSingleStationBucketMap();
 
       return isValidSessionAggregate()
+        && request.resource.data.schemaVersion == resource.data.schemaVersion
         && request.resource.data.sessionId == resource.data.sessionId
         && request.resource.data.routeId == resource.data.routeId
         && request.resource.data.directionId == resource.data.directionId
@@ -128,7 +163,7 @@ service cloud.firestore {
           isServiceDayReset
           || (
             request.resource.data.serviceDate == resource.data.serviceDate
-            && changedStations.size() == 1
+            && isValidChangedStationReport()
             && request.resource.data.reportCount == resource.data.reportCount + 1
             && (
               request.resource.data.stationCount == resource.data.stationCount ||

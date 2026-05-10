@@ -6,16 +6,14 @@
 
 | Collection | Purpose | Client role after refactor |
 | --- | --- | --- |
-| `station_reports` | Anonymous arrival reports for a session and station | Write-only in normal app flow |
-| `session_status_snapshots` | Aggregate community overlay for a train session | Primary read path |
-| `session_status_snapshots/{sessionId}/predicted_stops` | Legacy prediction subcollection | Deprecated for normal app reads |
-| `user_profiles` | Anonymous device bootstrap metadata | One-time write on successful handshake |
+| `session_status_snapshots` | v2 aggregate community overlay and report state for a train session | Primary read/write path |
+| `session_status_snapshots_debug` | Debug-build v2 aggregate community overlay and report state | Debug read/write path |
 
 ### Other Firebase services
 
 | Service | Purpose | Spark-safe posture |
 | --- | --- | --- |
-| Firebase Anonymous Auth | Resolve a stable anonymous uid for report writes | Optional, reused instead of re-bootstrap loops |
+| Firebase Anonymous Auth | Resolve a stable anonymous uid for auth readiness and write gating | Optional, reused instead of re-bootstrap loops |
 | Firebase Remote Config | Schedule payload refresh after initial render | Optional, one-shot, already bounded by minimum fetch interval |
 | Firebase App Check | Abuse protection when configured | Optional and non-blocking when disabled |
 
@@ -29,7 +27,7 @@
 
 ### After refactor
 
-- The app reads only `session_status_snapshots/{sessionId}` for community overlay in normal flows.
+- The app reads only `session_status_snapshots/{sessionId}` for community overlay in normal release flows.
 - Overlay payloads are cached locally for 5 minutes per session.
 - The 30-second ticker no longer performs Firestore community reads.
 - Retry and post-submit refresh can bypass cache intentionally.
@@ -37,16 +35,12 @@
 
 ## Where Writes Happen
 
-### `station_reports`
-
-- Triggered only by an explicit user arrival-report submission.
-- Client writes remain create-only with session, station, route, reporter uid, and timestamps.
-- The app no longer performs read-before-write duplicate verification against Firestore.
-
-### `user_profiles`
+### `session_status_snapshots`
 
 - Triggered only after the first successful anonymous Firebase handshake on a device.
-- Repeated launches and refreshes reuse persisted handshake state and skip profile writes.
+- Submission performs one transaction against the session aggregate document.
+- The station bucket stores only compact aggregate status fields.
+- Same-device duplicate prevention remains local to the service-day-aware ledger.
 
 ## Risk Analysis By Feature
 
@@ -64,12 +58,12 @@
 ### Report submission
 
 - Previous risk: moderate due to duplicate verification reads and repeated identity/profile touches.
-- Current risk: low to moderate, bounded by explicit user actions, local cooldown, in-flight guard, and persisted submission ledger.
+- Current risk: low to moderate, bounded by explicit user actions, local cooldown, in-flight guard, persisted submission ledger, and one aggregate transaction.
 
 ### Anonymous identity bootstrap
 
-- Previous risk: unnecessary `user_profiles` writes if called repeatedly.
-- Current risk: low because profile writes are one-time and handshake state is persisted.
+- Previous risk: unnecessary profile writes if called repeatedly.
+- Current risk: low because no profile collection is written by the normal community flow.
 
 ## Exact Changes Made
 
@@ -77,16 +71,15 @@
 - Added `CachedCommunityOverlayRepository` with a 5-minute SharedPreferences-backed cache and in-flight request coalescing.
 - Added `FirebaseCommunityOverlayRepository` to read aggregate session overlay docs from `session_status_snapshots/{sessionId}`.
 - Reworked `RailCommunityInsightCoordinator` to consume the aggregate overlay path instead of per-stop raw report fan-out.
-- Added SharedPreferences-backed arrival submission ledger and switched duplicate prevention to local persisted state.
+- Added SharedPreferences-backed arrival submission ledger for client-side duplicate protection.
 - Reworked `RailReportCoordinator` to use the ledger, preserve cooldown/rate-limit behavior, and avoid Firestore read-before-write verification.
-- Added persisted Firebase identity state and changed `FirebaseDeviceIdentityRepository` so `user_profiles` is written once per device handshake instead of repeatedly.
-- Tightened `station_reports` raw fetch limit to `10` for remaining non-UI/raw access paths.
-- Updated `firestore.rules` to use a 2-hour recency guard for submitted reports instead of a TTL-coupled 7-day assumption.
-- Updated README to document Spark-safe operating assumptions and removed TTL guidance.
+- Simplified the aggregate document to schema version 2 and removed raw report, profile, and prediction collection assumptions from the normal flow.
+- Updated `firestore.rules` to validate the compact v2 aggregate without route-specific station hardcoding or UID storage.
+- Updated README to document Spark-safe operating assumptions and anonymous UID marker usage.
 
 ## Future Recommendations If Usage Grows Beyond Spark
 
 - Keep `session_status_snapshots/{sessionId}` compact and avoid expanding it into a broad historical store.
-- Add console-side/manual cleanup for old `station_reports` once storage growth becomes noticeable.
+- Use console-side/manual aggregate cleanup only if storage growth becomes noticeable.
 - If read/write volume materially exceeds Spark limits, move aggregation and retention work to infrastructure that requires Blaze only after product usage justifies it.
 - If more community features are added later, prefer aggregate documents and client cache reuse over subcollection polling and listeners.

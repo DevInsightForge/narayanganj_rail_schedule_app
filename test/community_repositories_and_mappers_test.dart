@@ -90,7 +90,8 @@ void main() {
       );
 
       expect(reports.length, equals(1));
-      expect(reports.first.reportId, equals('r-1'));
+      expect(reports.first.stationId, equals('dhaka'));
+      expect(reports.first.deviceId, isEmpty);
     });
 
     test(
@@ -180,11 +181,54 @@ void main() {
         expect(aggregate.stationCount, equals(1));
         expect(bucket, isNotNull);
         expect(bucket!.submissionCount, equals(2));
-        expect(bucket.latestReportId, equals('r-2'));
-        expect(bucket.latestDeviceId, equals('dev-2'));
         expect(bucket.delayMinutes, equals(4));
       },
     );
+
+    test('same device can submit at the next station', () async {
+      final repository = FakeArrivalReportRepository();
+      final session = _buildSession(DateTime(2026, 3, 28));
+
+      await repository.submitArrivalReport(
+        ArrivalReportSubmission(
+          report: ArrivalReport(
+            reportId: 'r-1',
+            sessionId: session.sessionId,
+            stationId: 'dhaka',
+            deviceId: 'dev-1',
+            observedArrivalAt: DateTime(2026, 3, 28, 8, 2),
+            submittedAt: DateTime(2026, 3, 28, 8, 2),
+          ),
+          session: session,
+          stationStop: session.stops.first,
+        ),
+      );
+      await repository.submitArrivalReport(
+        ArrivalReportSubmission(
+          report: ArrivalReport(
+            reportId: 'r-2',
+            sessionId: session.sessionId,
+            stationId: 'narayanganj',
+            deviceId: 'dev-1',
+            observedArrivalAt: DateTime(2026, 3, 28, 8, 50),
+            submittedAt: DateTime(2026, 3, 28, 8, 50),
+          ),
+          session: session,
+          stationStop: session.stops.last,
+        ),
+      );
+
+      final aggregate = repository.aggregateForSession(session.sessionId);
+
+      expect(aggregate, isNotNull);
+      expect(aggregate!.reportCount, equals(2));
+      expect(aggregate.stationCount, equals(2));
+      expect(aggregate.bucketForStation('dhaka')!.submissionCount, equals(1));
+      expect(
+        aggregate.bucketForStation('narayanganj')!.submissionCount,
+        equals(1),
+      );
+    });
 
     test(
       'station bucket accepts at most ten submissions per session',

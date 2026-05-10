@@ -129,13 +129,14 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
       );
       _inFlightSubmissionKeys.add(submissionKey);
       try {
-        final updatedAggregate = await _arrivalReportRepository.submitArrivalReport(
-          ArrivalReportSubmission(
-            report: report,
-            session: session,
-            stationStop: boardingStop,
-          ),
-        );
+        final updatedAggregate = await _arrivalReportRepository
+            .submitArrivalReport(
+              ArrivalReportSubmission(
+                report: report,
+                session: session,
+                stationStop: boardingStop,
+              ),
+            );
         _submittedSessionKeys.add(submissionKey);
         _recentReportKeys[dedupeKey] = now;
         try {
@@ -274,7 +275,8 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
       delayMinutes: aggregate.delayMinutes,
       delayStatus: aggregate.delayStatus,
       confidence: aggregate.confidence,
-      freshnessSeconds: aggregate.freshnessSeconds +
+      freshnessSeconds:
+          aggregate.freshnessSeconds +
           (now.difference(aggregate.updatedAt).inSeconds < 0
               ? 0
               : now.difference(aggregate.updatedAt).inSeconds),

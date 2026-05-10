@@ -26,5 +26,11 @@ void main() {
       rules,
       contains('match /session_status_snapshots_debug/{sessionId}'),
     );
+    expect(rules, contains('request.resource.data.schemaVersion == 2'));
+    expect(rules, contains('lastReportedStationId'));
+    expect(rules, isNot(contains('reporterUids')));
+    expect(rules, isNot(contains('request.auth.uid')));
+    expect(rules, isNot(contains('latestDeviceId')));
+    expect(rules, isNot(contains('latestReportId')));
   });
 }

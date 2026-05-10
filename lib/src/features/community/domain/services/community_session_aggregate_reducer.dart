@@ -27,8 +27,6 @@ class CommunitySessionAggregateReducer {
         .inMinutes;
     final nextBucket = _updateBucket(
       previous?.bucketForStation(stationStop.stationId),
-      reportId: submission.report.reportId,
-      deviceId: submission.report.deviceId,
       stationStop: stationStop,
       observedAt: observedAt,
       submittedAt: submittedAt,
@@ -69,8 +67,6 @@ class CommunitySessionAggregateReducer {
 
   StationAggregateBucket _updateBucket(
     StationAggregateBucket? existing, {
-    required String reportId,
-    required String deviceId,
     required SessionStop stationStop,
     required DateTime observedAt,
     required DateTime submittedAt,
@@ -79,15 +75,11 @@ class CommunitySessionAggregateReducer {
     if (existing == null) {
       return StationAggregateBucket(
         stationId: stationStop.stationId,
-        stationName: stationStop.stationName,
         sequence: stationStop.sequence,
         scheduledAt: stationStop.scheduledAt,
         firstObservedAt: observedAt,
         lastObservedAt: observedAt,
-        firstSubmittedAt: submittedAt,
         lastSubmittedAt: submittedAt,
-        latestReportId: reportId,
-        latestDeviceId: deviceId,
         submissionCount: 1,
         delayMinutes: delayMinutes,
       );
@@ -100,8 +92,6 @@ class CommunitySessionAggregateReducer {
     return existing.copyWith(
       lastObservedAt: observedAt,
       lastSubmittedAt: submittedAt,
-      latestReportId: reportId,
-      latestDeviceId: deviceId,
       submissionCount: existing.submissionCount + 1,
       delayMinutes: delayMinutes,
     );

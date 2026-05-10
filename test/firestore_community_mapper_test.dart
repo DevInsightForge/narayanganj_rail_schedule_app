@@ -9,40 +9,17 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/entities
 void main() {
   const mapper = FirestoreCommunityMapper();
 
-  test('maps firestore session model into domain session', () {
-    final model = FirestoreSessionModel(
-      sessionId: 's1',
-      templateId: 't1',
-      routeId: 'route',
-      directionId: 'dir',
-      trainNo: 2,
-      serviceDate: '2026-03-28',
-      stops: [
-        FirestoreSessionStopModel(
-          stationId: 'a',
-          stationName: 'A',
-          sequence: 0,
-          scheduledAt: Timestamp.fromDate(DateTime(2026, 3, 28, 4, 30)),
-        ),
-      ],
-    );
-
-    final session = mapper.toSession(model);
-
-    expect(session.sessionId, equals('s1'));
-    expect(session.stops.first.stationId, equals('a'));
-  });
-
   test('maps aggregate model into domain aggregate', () {
     final aggregate = mapper.toCommunitySessionAggregate(
       FirestoreSessionAggregateModel(
+        schemaVersion: 2,
         sessionId: 's1',
         routeId: 'route',
         directionId: 'dir',
         trainNo: 2,
         serviceDate: '2026-03-28',
         updatedAt: Timestamp.fromDate(DateTime(2026, 3, 28, 4, 32)),
-        lastObservedAt: Timestamp.fromDate(DateTime(2026, 3, 28, 4, 31)),
+        lastReportedStationId: 'a',
         delayMinutes: 3,
         delayStatus: 'late',
         confidence: const {
@@ -51,21 +28,16 @@ void main() {
           'freshnessSeconds': 30,
           'agreementScore': 0.9,
         },
-        freshnessSeconds: 30,
         reportCount: 1,
         stationCount: 1,
         stationBuckets: {
           'a': FirestoreStationAggregateBucketModel(
             stationId: 'a',
-            stationName: 'A',
             sequence: 0,
             scheduledAt: Timestamp.fromDate(DateTime(2026, 3, 28, 4, 30)),
             firstObservedAt: Timestamp.fromDate(DateTime(2026, 3, 28, 4, 31)),
             lastObservedAt: Timestamp.fromDate(DateTime(2026, 3, 28, 4, 31)),
-            firstSubmittedAt: Timestamp.fromDate(DateTime(2026, 3, 28, 4, 32)),
             lastSubmittedAt: Timestamp.fromDate(DateTime(2026, 3, 28, 4, 32)),
-            latestReportId: 'r1',
-            latestDeviceId: 'uid',
             submissionCount: 1,
             delayMinutes: 1,
           ),
@@ -144,6 +116,9 @@ void main() {
   });
 
   test('fails closed when firestore aggregate payload is malformed', () {
-    expect(FirestoreSessionAggregateModel.tryFromMap(<String, dynamic>{}), isNull);
+    expect(
+      FirestoreSessionAggregateModel.tryFromMap(<String, dynamic>{}),
+      isNull,
+    );
   });
 }
