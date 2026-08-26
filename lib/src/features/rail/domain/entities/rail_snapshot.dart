@@ -72,8 +72,6 @@ class RailBoardSnapshot extends Equatable {
     required this.destinationStationName,
     required this.nextService,
     required this.upcomingServices,
-    required this.dataSourceLabel,
-    required this.lastUpdatedAt,
     required this.scheduleVersion,
   });
 
@@ -83,8 +81,6 @@ class RailBoardSnapshot extends Equatable {
   final String destinationStationName;
   final RailServiceSnapshot? nextService;
   final List<RailServiceSnapshot> upcomingServices;
-  final String dataSourceLabel;
-  final DateTime? lastUpdatedAt;
   final String scheduleVersion;
 
   RailBoardSnapshot copyWith({
@@ -94,8 +90,6 @@ class RailBoardSnapshot extends Equatable {
     String? destinationStationName,
     RailServiceSnapshot? nextService,
     List<RailServiceSnapshot>? upcomingServices,
-    String? dataSourceLabel,
-    DateTime? lastUpdatedAt,
     String? scheduleVersion,
   }) {
     return RailBoardSnapshot(
@@ -106,8 +100,6 @@ class RailBoardSnapshot extends Equatable {
           destinationStationName ?? this.destinationStationName,
       nextService: nextService ?? this.nextService,
       upcomingServices: upcomingServices ?? this.upcomingServices,
-      dataSourceLabel: dataSourceLabel ?? this.dataSourceLabel,
-      lastUpdatedAt: lastUpdatedAt ?? this.lastUpdatedAt,
       scheduleVersion: scheduleVersion ?? this.scheduleVersion,
     );
   }
@@ -120,8 +112,6 @@ class RailBoardSnapshot extends Equatable {
     destinationStationName,
     nextService,
     upcomingServices,
-    dataSourceLabel,
-    lastUpdatedAt,
     scheduleVersion,
   ];
 }

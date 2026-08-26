@@ -9,6 +9,7 @@ class RailBoardTokens {
     required this.maxContentWidth,
     required this.pagePadding,
     required this.panelPadding,
+    required this.sheetPadding,
     required this.panelGap,
     required this.sectionGap,
     required this.itemGap,
@@ -34,6 +35,7 @@ class RailBoardTokens {
   final double maxContentWidth;
   final EdgeInsets pagePadding;
   final EdgeInsets panelPadding;
+  final EdgeInsets sheetPadding;
   final double panelGap;
   final double sectionGap;
   final double itemGap;
@@ -71,6 +73,12 @@ class RailBoardTokens {
         isTablet ? 18 : 12,
       ),
       panelPadding: EdgeInsets.all(isTablet ? 16 : 12),
+      sheetPadding: EdgeInsets.fromLTRB(
+        isTablet ? 16 : 12,
+        0,
+        isTablet ? 16 : 12,
+        isTablet ? 44 : 40,
+      ),
       panelGap: isTablet ? 12 : 8,
       sectionGap: isTablet ? 10 : 8,
       itemGap: isTablet ? 8 : 6,

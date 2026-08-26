@@ -26,7 +26,9 @@ class UpcomingPanel extends StatelessWidget {
           RailSectionHeader(
             eyebrow: RailBoardTexts.moreOptionsEyebrow,
             title: RailBoardTexts.laterDeparturesTitle,
-            subtitle: RailBoardTexts.laterDeparturesSubtitle(alternatives.length),
+            subtitle: RailBoardTexts.laterDeparturesSubtitle(
+              alternatives.length,
+            ),
           ),
           SizedBox(height: tokens.sectionGap),
           if (alternatives.isEmpty)

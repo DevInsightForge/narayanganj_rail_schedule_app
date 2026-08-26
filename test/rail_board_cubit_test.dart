@@ -2,9 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/train_session.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/data/models/rail_schedule_document_parser.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/schedule_data_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_schedule.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/selection_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
@@ -16,10 +13,9 @@ import 'support/community_fakes.dart';
 void main() {
   final bundledSchedule = loadBundledScheduleFixture();
   group('RailBoardCubit startup', () {
-    test('loads bundled data when cached and remote are unavailable', () async {
+    test('loads bundled schedule on startup', () async {
       final cubit = RailBoardCubit(
         boardService: RailBoardService(schedule: bundledSchedule),
-        scheduleDataRepository: _FakeScheduleDataRepository(),
         selectionRepository: _InMemorySelectionRepository(),
         sessionRepository: FakeSessionRepository(seed: _seedSessions()),
         arrivalReportRepository: FakeArrivalReportRepository(),
@@ -32,34 +28,23 @@ void main() {
         (state) => state.status == RailBoardStatus.ready,
       );
 
-      expect(state.snapshot.dataSourceLabel, equals('Bundled'));
+      expect(state.snapshot.scheduleVersion, equals(bundledSchedule.version));
       await cubit.close();
     });
 
-    test('loads cached first, then remote when available', () async {
-      final cachedSchedule = bundledSchedule;
-      final remoteSchedule = RailSchedule(
-        version: '2026.04.remote',
-        stations: cachedSchedule.stations,
-        directions: cachedSchedule.directions,
-        trips: cachedSchedule.trips,
+    test('restores persisted selection on startup', () async {
+      final repository = _InMemorySelectionRepository();
+      await repository.write(
+        const RailSelection(
+          direction: 'narayanganj_to_dhaka',
+          boardingStationId: 'chashara',
+          destinationStationId: 'dhaka',
+        ),
       );
 
       final cubit = RailBoardCubit(
         boardService: RailBoardService(schedule: bundledSchedule),
-        scheduleDataRepository: _FakeScheduleDataRepository(
-          stored: ScheduleLoadResult(
-            schedule: cachedSchedule,
-            source: ScheduleDataSource.cached,
-            loadedAt: DateTime(2026, 3, 27, 8),
-          ),
-          remote: ScheduleLoadResult(
-            schedule: remoteSchedule,
-            source: ScheduleDataSource.remote,
-            loadedAt: DateTime(2026, 3, 27, 9),
-          ),
-        ),
-        selectionRepository: _InMemorySelectionRepository(),
+        selectionRepository: repository,
         sessionRepository: FakeSessionRepository(seed: _seedSessions()),
         arrivalReportRepository: FakeArrivalReportRepository(),
         arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
@@ -67,17 +52,13 @@ void main() {
         deviceIdentityRepository: FakeDeviceIdentityRepository(),
       );
 
-      final firstReady = await cubit.stream.firstWhere(
+      final state = await cubit.stream.firstWhere(
         (state) => state.status == RailBoardStatus.ready,
       );
-      final secondReady = await cubit.stream.firstWhere(
-        (state) =>
-            state.status == RailBoardStatus.ready &&
-            state.snapshot.dataSourceLabel == 'Remote',
-      );
 
-      expect(firstReady.snapshot.dataSourceLabel, equals('Cached'));
-      expect(secondReady.snapshot.scheduleVersion, equals('2026.04.remote'));
+      expect(state.selection.direction, equals('narayanganj_to_dhaka'));
+      expect(state.selection.boardingStationId, equals('chashara'));
+      expect(state.selection.destinationStationId, equals('dhaka'));
       await cubit.close();
     });
   });
@@ -112,20 +93,6 @@ List<TrainSession> _seedSessions() {
       serviceDate: DateTime(2026, 3, 28),
     ),
   ];
-}
-
-class _FakeScheduleDataRepository extends ScheduleDataRepository {
-  _FakeScheduleDataRepository({this.stored, this.remote})
-    : super(parser: RailScheduleDocumentParser());
-
-  final ScheduleLoadResult? stored;
-  final ScheduleLoadResult? remote;
-
-  @override
-  Future<ScheduleLoadResult?> readStoredSchedule() async => stored;
-
-  @override
-  Future<ScheduleLoadResult?> fetchRemoteSchedule() async => remote;
 }
 
 class _InMemorySelectionRepository implements SelectionRepository {

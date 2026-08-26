@@ -8,16 +8,7 @@ import 'rail_board_texts.dart';
 import 'rail_primitives.dart';
 
 class FooterPanel extends StatelessWidget {
-  const FooterPanel({
-    super.key,
-    required this.dataSourceLabel,
-    required this.lastUpdatedAt,
-    required this.scheduleVersion,
-  });
-
-  final String dataSourceLabel;
-  final DateTime? lastUpdatedAt;
-  final String scheduleVersion;
+  const FooterPanel({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -56,17 +47,6 @@ class FooterPanel extends StatelessWidget {
     );
   }
 
-  String _lastUpdatedLabel(DateTime? value) {
-    if (value == null) {
-      return RailBoardTexts.bundledLabel;
-    }
-    final local = value.toLocal();
-    final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
-    final minute = local.minute.toString().padLeft(2, '0');
-    final period = local.hour >= 12 ? 'PM' : 'AM';
-    return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')} $hour:$minute $period';
-  }
-
   Future<void> _openUri(String value) async {
     await launchUrl(Uri.parse(value), webOnlyWindowName: '_blank');
   }
@@ -83,79 +63,60 @@ class FooterPanel extends StatelessWidget {
       builder: (context) {
         return SafeArea(
           top: false,
-          child: FractionallySizedBox(
-            heightFactor: 0.65,
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                tokens.panelPadding.left,
-                0,
-                tokens.panelPadding.right,
-                tokens.panelPadding.bottom,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RailSectionHeader(
-                    eyebrow: RailBoardTexts.aboutSheetEyebrow,
-                    title: railFooterContent.appName,
-                    subtitle: railFooterContent.tagline,
-                  ),
-                  SizedBox(height: tokens.sectionGap),
-                  _FooterSection(section: railFooterContent.sections.first),
-                  SizedBox(height: tokens.sectionGap),
-                  Divider(color: tokens.border, height: 1),
-                  SizedBox(height: tokens.sectionGap),
-                  _FooterMetaRow(
-                    label: RailBoardTexts.versionLabel,
-                    value: scheduleVersion,
-                  ),
-                  SizedBox(height: tokens.compactGap),
-                  _FooterMetaRow(
-                    label: RailBoardTexts.scheduleSourceLabel,
-                    value: dataSourceLabel,
-                  ),
-                  SizedBox(height: tokens.compactGap),
-                  _FooterMetaRow(
-                    label: RailBoardTexts.updatedLabel,
-                    value: _lastUpdatedLabel(lastUpdatedAt),
-                  ),
-                  SizedBox(height: tokens.compactGap),
-                  _FooterMetaRow(
-                    label: RailBoardTexts.createdByLabel,
-                    value: railFooterContent.author,
-                    linkLabel: RailBoardTexts.learnMoreAction,
-                    onTap: () => _openUri(railFooterContent.authorUrl),
-                  ),
-                  SizedBox(height: tokens.compactGap),
-                  _FooterMetaRow(
-                    label: RailBoardTexts.publishedByLabel,
-                    value: railFooterContent.publisher,
-                    linkLabel: RailBoardTexts.learnMoreAction,
-                    onTap: () => _openUri(railFooterContent.publisherUrl),
-                  ),
-                  SizedBox(height: tokens.compactGap),
-                  _FooterMetaRow(
-                    label: RailBoardTexts.privacyLabel,
-                    value: RailBoardTexts.privacyPolicyValue,
-                    linkLabel: RailBoardTexts.openAction,
-                    onTap: () => _openUri(railFooterContent.privacyUrl),
-                  ),
-                  SizedBox(height: tokens.compactGap),
-                  _FooterMetaRow(
-                    label: RailBoardTexts.termsLabel,
-                    value: RailBoardTexts.termsOfServiceValue,
-                    linkLabel: RailBoardTexts.openAction,
-                    onTap: () => _openUri(railFooterContent.termsUrl),
-                  ),
-                  SizedBox(height: tokens.sectionGap),
-                  Text(
-                    RailBoardTexts.footerReminder,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: tokens.textMuted,
-                    ),
-                  ),
-                ],
-              ),
+          child: SingleChildScrollView(
+            padding: tokens.sheetPadding,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RailSectionHeader(
+                  eyebrow: RailBoardTexts.aboutSheetEyebrow,
+                  title: railFooterContent.appName,
+                  subtitle: railFooterContent.tagline,
+                ),
+                SizedBox(height: tokens.sectionGap),
+                _FooterSection(section: railFooterContent.sections.first),
+                SizedBox(height: tokens.sectionGap),
+                Divider(color: tokens.border, height: 1),
+                SizedBox(height: tokens.sectionGap),
+                _FooterMetaRow(
+                  label: RailBoardTexts.versionLabel,
+                  value: railFooterContent.appVersion,
+                ),
+                SizedBox(height: tokens.compactGap),
+                _FooterMetaRow(
+                  label: RailBoardTexts.createdByLabel,
+                  value: railFooterContent.author,
+                  linkLabel: RailBoardTexts.learnMoreAction,
+                  onTap: () => _openUri(railFooterContent.authorUrl),
+                ),
+                SizedBox(height: tokens.compactGap),
+                _FooterMetaRow(
+                  label: RailBoardTexts.publishedByLabel,
+                  value: railFooterContent.publisher,
+                  linkLabel: RailBoardTexts.learnMoreAction,
+                  onTap: () => _openUri(railFooterContent.publisherUrl),
+                ),
+                SizedBox(height: tokens.compactGap),
+                _FooterMetaRow(
+                  label: RailBoardTexts.privacyLabel,
+                  value: RailBoardTexts.privacyPolicyValue,
+                  linkLabel: RailBoardTexts.openAction,
+                  onTap: () => _openUri(railFooterContent.privacyUrl),
+                ),
+                SizedBox(height: tokens.compactGap),
+                _FooterMetaRow(
+                  label: RailBoardTexts.termsLabel,
+                  value: RailBoardTexts.termsOfServiceValue,
+                  linkLabel: RailBoardTexts.openAction,
+                  onTap: () => _openUri(railFooterContent.termsUrl),
+                ),
+                SizedBox(height: tokens.sectionGap),
+                Text(
+                  RailBoardTexts.footerReminder,
+                  style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),
+                ),
+              ],
             ),
           ),
         );

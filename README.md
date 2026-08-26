@@ -11,7 +11,7 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 ## Current Status
 
 - Startup is split into bootstrap, composition, and app-shell layers.
-- Schedule loading is offline-first with bundled JSON as baseline, cached restoration, and Firebase Remote Config as a silent post-render update path.
+- Schedule loading is 100% offline-first with bundled JSON as the canonical timetable baseline.
 - Rail UI is compact, monochrome, and optimized for phone-first usage.
 - Anonymous Firebase-backed arrival reporting remains optional and secondary to the published schedule.
 - Community delay insight, freshness, and downstream prediction are derived from a single session aggregate document and remain isolated from the official schedule baseline.
@@ -33,9 +33,7 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 
 ## Schedule and Firebase Behavior
 
-- Bundled schedule JSON is the non-negotiable baseline.
-- Cached schedule data restores quickly when available.
-- Firebase Remote Config can deliver versioned schedule updates after initial render.
+- Bundled schedule JSON is the canonical offline-first baseline.
 - Firebase Anonymous Auth, Firestore, and App Check are optional at runtime and can be disabled through env configuration.
 - Crashlytics error reporting is optional at runtime and can be enabled separately from the core Firebase data path.
 - Community features are enabled only after Firebase initializes successfully and degrade safely when it does not.

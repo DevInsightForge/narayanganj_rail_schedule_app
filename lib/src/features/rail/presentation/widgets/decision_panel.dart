@@ -44,12 +44,11 @@ class DecisionPanel extends StatelessWidget {
           RailSectionHeader(
             eyebrow: RailBoardTexts.bestNextTrainEyebrow,
             title: RailBoardCopy.getDecision(nextService.waitMinutes),
-            subtitle:
-                RailBoardTexts.bestNextTrainSubtitle(
-                  from: view.snapshot.selectedStationName,
-                  destination: view.snapshot.destinationStationName,
-                  etaLabel: RailBoardCopy.getEtaLabel(nextService.etaMinutes),
-                ),
+            subtitle: RailBoardTexts.bestNextTrainSubtitle(
+              from: view.snapshot.selectedStationName,
+              destination: view.snapshot.destinationStationName,
+              etaLabel: RailBoardCopy.getEtaLabel(nextService.etaMinutes),
+            ),
           ),
           SizedBox(height: tokens.sectionGap),
           Wrap(

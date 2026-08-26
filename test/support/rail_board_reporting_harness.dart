@@ -17,8 +17,6 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/reposito
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/device_identity_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/community_session_aggregate_reducer.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/data/models/rail_schedule_document_parser.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/schedule_data_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_schedule.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/selection_repository.dart';
@@ -39,7 +37,6 @@ RailBoardCubit buildRailBoardReportingCubit({
 }) {
   return RailBoardCubit(
     boardService: RailBoardService(schedule: bundledSchedule),
-    scheduleDataRepository: _FakeScheduleDataRepository(),
     selectionRepository: _InMemorySelectionRepository(
       const RailSelection(
         direction: 'dhaka_to_narayanganj',
@@ -140,16 +137,6 @@ List<TrainSession> seedRailBoardReportingSessions() {
   ];
 }
 
-class _FakeScheduleDataRepository extends ScheduleDataRepository {
-  _FakeScheduleDataRepository() : super(parser: RailScheduleDocumentParser());
-
-  @override
-  Future<ScheduleLoadResult?> readStoredSchedule() async => null;
-
-  @override
-  Future<ScheduleLoadResult?> fetchRemoteSchedule() async => null;
-}
-
 class _InMemorySelectionRepository implements SelectionRepository {
   _InMemorySelectionRepository(this._selection);
 
@@ -208,7 +195,10 @@ class FlakyArrivalReportRepository implements ArrivalReportRepository {
       throw StateError('offline');
     }
     submitted.add(submission.report);
-    final key = _key(submission.session.sessionId, submission.session.serviceDate);
+    final key = _key(
+      submission.session.sessionId,
+      submission.session.serviceDate,
+    );
     final next = _reducer.reduce(
       current: _aggregates[key],
       submission: submission,

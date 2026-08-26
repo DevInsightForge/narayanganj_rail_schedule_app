@@ -10,6 +10,7 @@ class FooterContentSection {
 class FooterContent {
   const FooterContent({
     required this.appName,
+    required this.appVersion,
     required this.tagline,
     required this.author,
     required this.authorUrl,
@@ -21,6 +22,7 @@ class FooterContent {
   });
 
   final String appName;
+  final String appVersion;
   final String tagline;
   final String author;
   final String authorUrl;
@@ -33,6 +35,7 @@ class FooterContent {
 
 const railFooterContent = FooterContent(
   appName: RailBoardTexts.footerAppName,
+  appVersion: RailBoardTexts.footerAppVersion,
   tagline: RailBoardTexts.footerTagline,
   author: 'ZèD',
   authorUrl: 'https://imzihad21.github.io/about/',

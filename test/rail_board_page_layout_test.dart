@@ -4,8 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/train_session.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/data/models/rail_schedule_document_parser.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/data/repositories/schedule_data_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/selection_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
@@ -81,7 +79,6 @@ RailBoardCubit _buildCubit() {
   final bundledSchedule = loadBundledScheduleFixture();
   return RailBoardCubit(
     boardService: RailBoardService(schedule: bundledSchedule),
-    scheduleDataRepository: _FakeScheduleDataRepository(),
     selectionRepository: _InMemorySelectionRepository(
       const RailSelection(
         direction: 'dhaka_to_narayanganj',
@@ -125,16 +122,6 @@ List<TrainSession> _seedSessions() {
   return [
     factory.create(template: template, serviceDate: DateTime(2026, 3, 28)),
   ];
-}
-
-class _FakeScheduleDataRepository extends ScheduleDataRepository {
-  _FakeScheduleDataRepository() : super(parser: RailScheduleDocumentParser());
-
-  @override
-  Future<ScheduleLoadResult?> readStoredSchedule() async => null;
-
-  @override
-  Future<ScheduleLoadResult?> fetchRemoteSchedule() async => null;
 }
 
 class _InMemorySelectionRepository implements SelectionRepository {

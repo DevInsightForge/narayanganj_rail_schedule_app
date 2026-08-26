@@ -17,50 +17,12 @@ class RailBoardControllerLoading {
 
     try {
       final storedSelection = await controller._selectionRepository.read();
-      final storedSchedule = await controller._scheduleDataRepository
-          .readStoredSchedule();
-
-      if (storedSchedule != null) {
-        controller._boardService = RailBoardService(
-          schedule: storedSchedule.schedule,
-        );
-        controller._activeSource = storedSchedule.source;
-        controller._lastUpdatedAt = storedSchedule.loadedAt;
-      } else {
-        controller._activeSource = ScheduleDataSource.bundled;
-        controller._lastUpdatedAt = null;
-      }
-
-      var selection = controller._boardService.createSelection(
+      final selection = controller._boardService.createSelection(
         direction: storedSelection?.direction,
         boardingStationId: storedSelection?.boardingStationId,
         destinationStationId: storedSelection?.destinationStationId,
       );
 
-      await RailBoardControllerLoading.persistAndEmit(
-        controller,
-        readState,
-        emit,
-        selection: selection,
-        forceCommunityRefresh: forceCommunityRefresh,
-      );
-
-      final remoteSchedule = await controller._scheduleDataRepository
-          .fetchRemoteSchedule();
-      if (remoteSchedule == null) {
-        return;
-      }
-
-      controller._boardService = RailBoardService(
-        schedule: remoteSchedule.schedule,
-      );
-      controller._activeSource = remoteSchedule.source;
-      controller._lastUpdatedAt = remoteSchedule.loadedAt;
-      selection = controller._boardService.createSelection(
-        direction: selection.direction,
-        boardingStationId: selection.boardingStationId,
-        destinationStationId: selection.destinationStationId,
-      );
       await RailBoardControllerLoading.persistAndEmit(
         controller,
         readState,
@@ -152,12 +114,6 @@ class RailBoardControllerLoading {
     RailSelection selection,
     RailBoardState state,
   ) {
-    final sourceLabel = switch (controller._activeSource) {
-      ScheduleDataSource.bundled => 'Bundled',
-      ScheduleDataSource.cached => 'Cached',
-      ScheduleDataSource.remote => 'Remote',
-    };
-
     return RailBoardState(
       status: RailBoardStatus.ready,
       errorMessage: null,
@@ -174,8 +130,6 @@ class RailBoardControllerLoading {
         snapshot: controller._boardService
             .getSnapshot(selection: selection, now: controller._nowProvider())
             .copyWith(
-              dataSourceLabel: sourceLabel,
-              lastUpdatedAt: controller._lastUpdatedAt,
               scheduleVersion: controller._boardService.schedule.version.isEmpty
                   ? controller._initialScheduleVersion
                   : controller._boardService.schedule.version,

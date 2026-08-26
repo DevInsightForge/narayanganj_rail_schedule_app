@@ -276,7 +276,8 @@ void main() {
       final syncingState = await waitForRailBoardState(
         cubit,
         (state) =>
-            state.reportSubmissionStatus == RailReportSubmissionStatus.submitting,
+            state.reportSubmissionStatus ==
+            RailReportSubmissionStatus.submitting,
       );
       expect(syncingState.report.isSubmissionLocked, isTrue);
 
@@ -346,7 +347,10 @@ class BlockingArrivalReportRepository implements ArrivalReportRepository {
     }
     await release.future;
     submitted.add(submission.report);
-    final key = _key(submission.session.sessionId, submission.session.serviceDate);
+    final key = _key(
+      submission.session.sessionId,
+      submission.session.serviceDate,
+    );
     final next = _reducer.reduce(
       current: _aggregates[key],
       submission: submission,

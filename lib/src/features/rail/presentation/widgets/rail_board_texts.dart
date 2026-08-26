@@ -4,6 +4,7 @@ import '../bloc/rail_board_state.dart';
 
 class RailBoardTexts {
   static const appName = 'Narayanganj Commuter';
+  static const appVersion = '1.7.0';
 
   // Loading states
   static const loadingBoardTitle = 'Loading your commuter board';
@@ -46,7 +47,6 @@ class RailBoardTexts {
   static const arrivesLabel = 'Arrives';
   static const confidenceLabel = 'How sure are we';
   static const lastUpdatedLabel = 'Last updated';
-  static const updatedLabel = 'Updated';
   static const delayStatusLabel = 'Delay status';
 
   // Community / rider updates
@@ -133,8 +133,6 @@ class RailBoardTexts {
   static const aboutSectionTitle = 'About';
 
   static const versionLabel = 'Version';
-  static const bundledLabel = 'Bundled data';
-  static const scheduleSourceLabel = 'Schedule source';
   static const createdByLabel = 'Created by';
   static const publishedByLabel = 'Published by';
 
@@ -160,6 +158,7 @@ class RailBoardTexts {
       'Optional rider updates from fellow commuters provide additional real-time context about possible delays, but they do not replace the official published timetable.';
 
   static const footerAppName = appName;
+  static const footerAppVersion = appVersion;
 
   // Dynamic helpers
   static String communityHeadline(RailCommunityInsightStatus status) {

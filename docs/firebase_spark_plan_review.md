@@ -14,7 +14,6 @@
 | Service | Purpose | Spark-safe posture |
 | --- | --- | --- |
 | Firebase Anonymous Auth | Resolve a stable anonymous uid for auth readiness and write gating | Optional, reused instead of re-bootstrap loops |
-| Firebase Remote Config | Schedule payload refresh after initial render | Optional, one-shot, already bounded by minimum fetch interval |
 | Firebase App Check | Abuse protection when configured | Optional and non-blocking when disabled |
 
 ## Where Reads Happen

@@ -30,16 +30,19 @@ class RailBoardControllerCommunity {
         community: currentState.community.copyWith(
           insightStatus: mappedStatus,
           lastResolvedInsightStatus: mappedStatus,
-          sessionStatusSnapshot: freshnessState == CommunityOverlayFreshness.expired
+          sessionStatusSnapshot:
+              freshnessState == CommunityOverlayFreshness.expired
               ? null
               : agedSnapshot,
-          predictedStopTimes: freshnessState == CommunityOverlayFreshness.expired
+          predictedStopTimes:
+              freshnessState == CommunityOverlayFreshness.expired
               ? const <PredictedStopTime>[]
               : currentState.community.predictedStopTimes,
           message: freshnessState == CommunityOverlayFreshness.expired
               ? 'Live rider updates are a bit old right now. Showing timetable-only guidance until new updates arrive.'
               : currentState.community.message,
-          clearSessionStatus: freshnessState == CommunityOverlayFreshness.expired,
+          clearSessionStatus:
+              freshnessState == CommunityOverlayFreshness.expired,
           clearMessage: false,
         ),
       ),

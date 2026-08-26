@@ -10,7 +10,6 @@ import '../../../community/domain/repositories/arrival_report_repository.dart';
 import '../../../community/domain/repositories/community_overlay_repository.dart';
 import '../../../community/domain/repositories/device_identity_repository.dart';
 import '../../../community/domain/repositories/session_repository.dart';
-import '../../data/repositories/schedule_data_repository.dart';
 import '../../domain/repositories/selection_repository.dart';
 import '../../domain/services/rail_board_service.dart';
 import 'rail_board_controller.dart';
@@ -19,7 +18,6 @@ import 'rail_board_state.dart';
 class RailBoardCubit extends Cubit<RailBoardState> {
   RailBoardCubit({
     required RailBoardService boardService,
-    required ScheduleDataRepository scheduleDataRepository,
     required SelectionRepository selectionRepository,
     required SessionRepository sessionRepository,
     required ArrivalReportRepository arrivalReportRepository,
@@ -33,7 +31,6 @@ class RailBoardCubit extends Cubit<RailBoardState> {
     DateTime Function()? nowProvider,
   }) : _controller = RailBoardController(
          boardService: boardService,
-         scheduleDataRepository: scheduleDataRepository,
          selectionRepository: selectionRepository,
          sessionRepository: sessionRepository,
          arrivalReportRepository: arrivalReportRepository,

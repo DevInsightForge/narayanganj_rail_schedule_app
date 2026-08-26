@@ -22,7 +22,6 @@ import '../features/community/domain/repositories/arrival_report_repository.dart
 import '../features/community/domain/repositories/community_overlay_repository.dart';
 import '../features/community/domain/repositories/device_identity_repository.dart';
 import '../features/community/domain/repositories/session_repository.dart';
-import '../features/rail/data/repositories/schedule_data_repository.dart';
 import '../features/rail/data/repositories/shared_preferences_selection_repository.dart';
 import '../features/rail/domain/entities/rail_schedule.dart';
 import '../features/rail/domain/repositories/selection_repository.dart';
@@ -33,7 +32,6 @@ class AppComposition {
   AppComposition({
     required this.firebaseRuntime,
     required this.bundledSchedule,
-    required this.scheduleDataRepository,
     required this.errorReporter,
     this.communityDebugBypassEnabled = kDebugMode,
   }) : selectionRepository = SharedPreferencesSelectionRepository(),
@@ -57,7 +55,6 @@ class AppComposition {
 
   final FirebaseRuntime firebaseRuntime;
   final RailSchedule bundledSchedule;
-  final ScheduleDataRepository scheduleDataRepository;
   final ErrorReporter errorReporter;
   final bool communityDebugBypassEnabled;
   final SelectionRepository selectionRepository;
@@ -70,7 +67,6 @@ class AppComposition {
   RailBoardCubit createRailBoardCubit() {
     return RailBoardCubit(
       boardService: RailBoardService(schedule: bundledSchedule),
-      scheduleDataRepository: scheduleDataRepository,
       selectionRepository: selectionRepository,
       sessionRepository: sessionRepository,
       arrivalReportRepository: arrivalReportRepository,

@@ -288,14 +288,7 @@ void main() {
           home: MediaQuery(
             data: MediaQueryData(size: Size(390, 844)),
             child: Scaffold(
-              body: Padding(
-                padding: EdgeInsets.all(16),
-                child: FooterPanel(
-                  dataSourceLabel: 'Bundled schedule',
-                  lastUpdatedAt: null,
-                  scheduleVersion: 'v1',
-                ),
-              ),
+              body: Padding(padding: EdgeInsets.all(16), child: FooterPanel()),
             ),
           ),
         ),
@@ -307,6 +300,7 @@ void main() {
 
       expect(find.text(RailBoardTexts.aboutSheetEyebrow), findsOneWidget);
       expect(find.text(RailBoardTexts.footerAboutParagraphOne), findsOneWidget);
+      expect(find.text(RailBoardTexts.appVersion), findsOneWidget);
       expect(find.text('${RailBoardTexts.privacyLabel}: '), findsOneWidget);
       expect(find.text('${RailBoardTexts.termsLabel}: '), findsOneWidget);
       expect(find.text(RailBoardTexts.privacyPolicyValue), findsOneWidget);

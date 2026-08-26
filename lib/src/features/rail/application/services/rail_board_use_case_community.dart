@@ -64,7 +64,9 @@ extension RailBoardUseCaseCommunity on RailBoardUseCase {
   }) {
     final snapshot = _applyOverlayAge(overlay, now);
     if (snapshot == null && overlay.predictedStopTimes.isEmpty) {
-      return const RailCommunityInsightResult(kind: RailCommunityInsightKind.empty);
+      return const RailCommunityInsightResult(
+        kind: RailCommunityInsightKind.empty,
+      );
     }
     if (snapshot == null) {
       return RailCommunityInsightResult(
@@ -90,7 +92,10 @@ extension RailBoardUseCaseCommunity on RailBoardUseCase {
     return RailCommunityInsightResult(
       kind: kind,
       sessionStatusSnapshot: snapshot,
-      predictedStopTimes: _buildPredictedStopTimes(session: session, snapshot: snapshot),
+      predictedStopTimes: _buildPredictedStopTimes(
+        session: session,
+        snapshot: snapshot,
+      ),
     );
   }
 

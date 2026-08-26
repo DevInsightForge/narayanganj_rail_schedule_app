@@ -38,8 +38,6 @@ class RailBoardViewState extends Equatable {
       destinationStationName: '',
       nextService: null,
       upcomingServices: [],
-      dataSourceLabel: '',
-      lastUpdatedAt: null,
       scheduleVersion: '',
     ),
   });

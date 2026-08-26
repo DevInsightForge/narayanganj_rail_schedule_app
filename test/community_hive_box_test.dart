@@ -102,7 +102,9 @@ void main() {
   );
 
   test('recovers by resetting a corrupted hive box', () async {
-    final corruptedBox = File('${tempDir.path}/nrs.community.overlay_cache.hive');
+    final corruptedBox = File(
+      '${tempDir.path}/nrs.community.overlay_cache.hive',
+    );
     await corruptedBox.writeAsBytes(<int>[0, 1, 2, 3, 4, 5], flush: true);
 
     await CommunityHiveBox.initialize(hivePath: tempDir.path);

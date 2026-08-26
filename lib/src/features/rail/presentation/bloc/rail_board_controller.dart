@@ -11,7 +11,6 @@ import '../../../../core/errors/error_reporter.dart';
 import '../../../../core/tracing/attempt_id_factory.dart';
 import '../../application/models/rail_community_insight_result.dart';
 import '../../application/models/rail_reporting.dart';
-import '../../data/repositories/schedule_data_repository.dart';
 import '../../domain/entities/rail_selection.dart';
 import '../../domain/repositories/selection_repository.dart';
 import '../../domain/services/rail_board_service.dart';
@@ -28,7 +27,6 @@ typedef RailBoardStateEmitter = void Function(RailBoardState state);
 class RailBoardController {
   RailBoardController({
     required RailBoardService boardService,
-    required ScheduleDataRepository scheduleDataRepository,
     required SelectionRepository selectionRepository,
     required SessionRepository sessionRepository,
     required ArrivalReportRepository arrivalReportRepository,
@@ -41,7 +39,6 @@ class RailBoardController {
     this.communityDebugBypassEnabled = false,
     DateTime Function()? nowProvider,
   }) : _boardService = boardService,
-       _scheduleDataRepository = scheduleDataRepository,
        _selectionRepository = selectionRepository,
        _deviceIdentityRepository = deviceIdentityRepository,
        _nowProvider = nowProvider ?? DateTime.now,
@@ -57,15 +54,12 @@ class RailBoardController {
          errorReporter: errorReporter,
          communityDebugBypassEnabled: communityDebugBypassEnabled,
        ),
-       _initialScheduleVersion = boardService.schedule.version,
-       _activeSource = ScheduleDataSource.bundled,
-       _lastUpdatedAt = null;
+       _initialScheduleVersion = boardService.schedule.version;
 
   static const _fallbackErrorMessage =
       'Unable to load schedule data. Please try again.';
   static const _routeId = 'narayanganj_line';
 
-  final ScheduleDataRepository _scheduleDataRepository;
   final SelectionRepository _selectionRepository;
   final DeviceIdentityRepository _deviceIdentityRepository;
   final DateTime Function() _nowProvider;
@@ -77,9 +71,7 @@ class RailBoardController {
   final String _initialScheduleVersion;
   int _reportAvailabilityRevision = 0;
 
-  RailBoardService _boardService;
-  ScheduleDataSource _activeSource;
-  DateTime? _lastUpdatedAt;
+  final RailBoardService _boardService;
 
   RailBoardService get boardService => _boardService;
 

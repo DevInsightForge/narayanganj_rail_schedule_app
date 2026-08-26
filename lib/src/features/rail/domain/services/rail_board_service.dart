@@ -205,8 +205,6 @@ class RailBoardService {
       destinationStationName: _stationName(selection.destinationStationId),
       nextService: limitedServices.isEmpty ? null : limitedServices.first,
       upcomingServices: limitedServices,
-      dataSourceLabel: 'Bundled',
-      lastUpdatedAt: null,
       scheduleVersion: schedule.version,
     );
   }

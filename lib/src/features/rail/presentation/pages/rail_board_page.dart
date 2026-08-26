@@ -135,7 +135,7 @@ class _ReadyBoardContent extends StatelessWidget {
                 SizedBox(height: tokens.panelGap),
                 _BoardPanels(tokens: tokens),
                 SizedBox(height: tokens.panelGap),
-                const _FooterSelector(),
+                const FooterPanel(),
               ],
             ),
           ),
@@ -262,34 +262,6 @@ class _UpcomingSelector extends StatelessWidget {
     return BlocSelector<RailBoardCubit, RailBoardState, RailBoardViewState>(
       selector: (state) => state.view,
       builder: (context, view) => UpcomingPanel(snapshot: view.snapshot),
-    );
-  }
-}
-
-class _FooterSelector extends StatelessWidget {
-  const _FooterSelector();
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocSelector<
-      RailBoardCubit,
-      RailBoardState,
-      ({
-        String dataSourceLabel,
-        DateTime? lastUpdatedAt,
-        String scheduleVersion,
-      })
-    >(
-      selector: (state) => (
-        dataSourceLabel: state.view.snapshot.dataSourceLabel,
-        lastUpdatedAt: state.view.snapshot.lastUpdatedAt,
-        scheduleVersion: state.view.snapshot.scheduleVersion,
-      ),
-      builder: (context, slice) => FooterPanel(
-        dataSourceLabel: slice.dataSourceLabel,
-        lastUpdatedAt: slice.lastUpdatedAt,
-        scheduleVersion: slice.scheduleVersion,
-      ),
     );
   }
 }

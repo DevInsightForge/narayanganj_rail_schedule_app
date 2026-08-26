@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:firebase_remote_config/firebase_remote_config.dart';
 
 import '../core/errors/error_report_context.dart';
 import '../core/errors/error_reporter.dart';
@@ -10,8 +9,6 @@ import '../core/firebase/firebase_bootstrap.dart';
 import '../features/community/data/local/hive/community_hive_box.dart';
 import '../features/rail/data/models/rail_schedule_document_parser.dart';
 import '../features/rail/data/repositories/bundled_schedule_source.dart';
-import '../features/rail/data/repositories/firebase_remote_schedule_source.dart';
-import '../features/rail/data/repositories/schedule_data_repository.dart';
 import 'app_composition.dart';
 
 class AppBootstrap {
@@ -29,14 +26,6 @@ class AppBootstrap {
     final bundledSchedule = BundledScheduleSource(
       parser: _parser,
     ).loadSchedule();
-    final scheduleDataRepository = ScheduleDataRepository(
-      parser: _parser,
-      remoteSource: FirebaseRemoteScheduleSource(
-        remoteConfig: firebaseRuntime.initialized
-            ? FirebaseRemoteConfig.instance
-            : null,
-      ),
-    );
     final errorReporter = buildErrorReporter(firebaseRuntime: firebaseRuntime);
     await errorReporter.initialize();
     try {
@@ -58,7 +47,6 @@ class AppBootstrap {
     return AppComposition(
       firebaseRuntime: firebaseRuntime,
       bundledSchedule: bundledSchedule,
-      scheduleDataRepository: scheduleDataRepository,
       errorReporter: errorReporter,
     );
   }
