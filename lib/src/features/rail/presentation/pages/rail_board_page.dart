@@ -162,16 +162,16 @@ class _BoardPanels extends StatelessWidget {
               children: [
                 const _DecisionSelector(),
                 SizedBox(height: tokens.panelGap),
-                const _TimelineSelector(),
+                const _UpcomingSelector(),
               ],
             ),
           ),
           SizedBox(width: tokens.panelGap),
           Expanded(
-            flex: 4,
+            flex: 5,
             child: Column(
               children: [
-                const _UpcomingSelector(),
+                const _TimelineSelector(),
                 SizedBox(height: tokens.panelGap),
                 const NoticePanel(),
               ],
