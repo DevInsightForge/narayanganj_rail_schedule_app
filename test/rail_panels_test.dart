@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/data_origin.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/delay_status.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/firebase_auth_readiness.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/auth_readiness.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/predicted_stop_time.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/report_confidence.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/session_status_snapshot.dart';
@@ -161,7 +161,7 @@ void main() {
           ),
           report: const RailBoardReportState(
             status: RailReportSubmissionStatus.idle,
-            authReadiness: FirebaseAuthReadiness.ready('device-1'),
+            authReadiness: AuthReadiness.ready('device-1'),
             visibility: RailReportVisibility.visible,
             submitEnabled: true,
             actionReason: RailReportActionReason.eligible,
@@ -259,7 +259,7 @@ void main() {
             ),
             report: const RailBoardReportState(
               status: RailReportSubmissionStatus.idle,
-              authReadiness: FirebaseAuthReadiness.ready('device-1'),
+              authReadiness: AuthReadiness.ready('device-1'),
               visibility: RailReportVisibility.visible,
               submitEnabled: false,
               actionReason: RailReportActionReason.afterWindow,

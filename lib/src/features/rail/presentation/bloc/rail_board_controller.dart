@@ -2,7 +2,7 @@ import '../../../community/domain/repositories/arrival_report_ledger_repository.
 import '../../../community/domain/repositories/arrival_report_repository.dart';
 import '../../../community/domain/repositories/community_overlay_repository.dart';
 import '../../../community/domain/repositories/device_identity_repository.dart';
-import '../../../community/domain/entities/firebase_auth_readiness.dart';
+import '../../../community/domain/entities/auth_readiness.dart';
 import '../../../community/domain/entities/predicted_stop_time.dart';
 import '../../../community/domain/entities/session_status_snapshot.dart';
 import '../../../community/domain/repositories/session_repository.dart';

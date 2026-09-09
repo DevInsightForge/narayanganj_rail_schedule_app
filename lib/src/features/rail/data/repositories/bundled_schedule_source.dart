@@ -6,7 +6,7 @@ import '../models/rail_schedule_document_parser.dart';
 
 class BundledScheduleSource {
   const BundledScheduleSource({
-    required RailScheduleDocumentParser parser,
+    RailScheduleDocumentParser parser = const RailScheduleDocumentParser(),
     this.documentJson = defaultScheduleJson,
   }) : _parser = parser;
 

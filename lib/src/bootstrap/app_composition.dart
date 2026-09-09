@@ -1,22 +1,18 @@
 import 'package:flutter/foundation.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/api/api_config.dart';
 import '../core/errors/error_reporter.dart';
-import '../core/firebase/firebase_runtime.dart';
 import '../features/community/data/mappers/rail_schedule_template_mapper.dart';
 import '../features/community/data/repositories/cached/cached_community_overlay_repository.dart';
-import '../features/community/data/repositories/firebase/firebase_arrival_report_repository.dart';
-import '../features/community/data/repositories/firebase/firestore_collection_names.dart';
-import '../features/community/data/repositories/firebase/firebase_community_overlay_repository.dart';
-import '../features/community/data/repositories/firebase/firebase_device_identity_repository.dart';
 import '../features/community/data/repositories/local/generated_session_repository.dart';
+import '../features/community/data/repositories/local/local_device_identity_repository.dart';
 import '../features/community/data/repositories/local/shared_preferences_arrival_report_ledger_repository.dart';
 import '../features/community/data/repositories/local/shared_preferences_community_overlay_cache_repository.dart';
-import '../features/community/data/repositories/local/shared_preferences_firebase_identity_state_repository.dart';
 import '../features/community/data/repositories/noop/noop_arrival_report_repository.dart';
 import '../features/community/data/repositories/noop/noop_community_overlay_repository.dart';
-import '../features/community/data/repositories/noop/noop_device_identity_repository.dart';
+import '../features/community/data/repositories/supabase/supabase_arrival_report_repository.dart';
+import '../features/community/data/repositories/supabase/supabase_community_overlay_repository.dart';
 import '../features/community/domain/repositories/arrival_report_ledger_repository.dart';
 import '../features/community/domain/repositories/arrival_report_repository.dart';
 import '../features/community/domain/repositories/community_overlay_repository.dart';
@@ -30,32 +26,35 @@ import '../features/rail/presentation/bloc/rail_board_cubit.dart';
 
 class AppComposition {
   AppComposition({
-    required this.firebaseRuntime,
     required this.bundledSchedule,
     required this.errorReporter,
+    ApiConfig? apiConfig,
+    SupabaseClient? supabaseClient,
     this.communityDebugBypassEnabled = kDebugMode,
-  }) : selectionRepository = SharedPreferencesSelectionRepository(),
+  }) : apiConfig = apiConfig ?? ApiConfig.fromEnv(),
+       selectionRepository = SharedPreferencesSelectionRepository(),
        sessionRepository = GeneratedSessionRepository(
          templates: const RailScheduleTemplateMapper().map(
            routeId: 'narayanganj_line',
            schedule: bundledSchedule,
          ),
        ),
-       arrivalReportRepository = _buildArrivalReportRepository(firebaseRuntime),
+       arrivalReportRepository = _buildArrivalReportRepository(
+         apiConfig ?? ApiConfig.fromEnv(),
+         supabaseClient,
+       ),
        arrivalReportLedgerRepository =
            SharedPreferencesArrivalReportLedgerRepository(),
        communityOverlayRepository = _buildCommunityOverlayRepository(
-         firebaseRuntime,
+         apiConfig ?? ApiConfig.fromEnv(),
+         supabaseClient,
          communityDebugBypassEnabled,
        ),
-       deviceIdentityRepository = _buildDeviceIdentityRepository(
-         firebaseRuntime,
-         errorReporter,
-       );
+       deviceIdentityRepository = LocalDeviceIdentityRepository();
 
-  final FirebaseRuntime firebaseRuntime;
   final RailSchedule bundledSchedule;
   final ErrorReporter errorReporter;
+  final ApiConfig apiConfig;
   final bool communityDebugBypassEnabled;
   final SelectionRepository selectionRepository;
   final SessionRepository sessionRepository;
@@ -74,67 +73,55 @@ class AppComposition {
       communityOverlayRepository: communityOverlayRepository,
       deviceIdentityRepository: deviceIdentityRepository,
       errorReporter: errorReporter,
-      communityFeaturesEnabled: firebaseRuntime.initialized,
+      communityFeaturesEnabled: apiConfig.enabled,
       communityDebugBypassEnabled: communityDebugBypassEnabled,
     );
   }
 
-  static ArrivalReportRepository _buildArrivalReportRepository(
-    FirebaseRuntime firebaseRuntime,
+  static SupabaseClient _resolveSupabaseClient(
+    ApiConfig config,
+    SupabaseClient? client,
   ) {
-    if (!firebaseRuntime.initialized) {
+    if (client != null) {
+      return client;
+    }
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      return SupabaseClient(config.baseUrl, config.apiKey ?? '');
+    }
+  }
+
+  static ArrivalReportRepository _buildArrivalReportRepository(
+    ApiConfig config,
+    SupabaseClient? client,
+  ) {
+    final apiKey = config.apiKey;
+    if (!config.enabled || config.baseUrl.isEmpty || apiKey == null || apiKey.isEmpty) {
       return const NoOpArrivalReportRepository();
     }
-    return FirebaseArrivalReportRepository(
-      firestore: FirebaseFirestore.instance,
-      routeId: 'narayanganj_line',
-      collectionName:
-          FirestoreCollectionNames.sessionStatusSnapshotsForDebugMode(
-            kDebugMode,
-          ),
-    );
+    final supabaseClient = _resolveSupabaseClient(config, client);
+    return SupabaseArrivalReportRepository(client: supabaseClient);
   }
 
   static CommunityOverlayRepository _buildCommunityOverlayRepository(
-    FirebaseRuntime firebaseRuntime,
+    ApiConfig config,
+    SupabaseClient? client,
     bool communityDebugBypassEnabled,
   ) {
-    if (!firebaseRuntime.initialized) {
+    final apiKey = config.apiKey;
+    if (!config.enabled || config.baseUrl.isEmpty || apiKey == null || apiKey.isEmpty) {
       return const NoOpCommunityOverlayRepository();
     }
+    final supabaseClient = _resolveSupabaseClient(config, client);
+    final primary = SupabaseCommunityOverlayRepository(client: supabaseClient);
+
     if (communityDebugBypassEnabled) {
-      return FirebaseCommunityOverlayRepository(
-        firestore: FirebaseFirestore.instance,
-        collectionName:
-            FirestoreCollectionNames.sessionStatusSnapshotsForDebugMode(
-              kDebugMode,
-            ),
-      );
+      return primary;
     }
     return CachedCommunityOverlayRepository(
-      primary: FirebaseCommunityOverlayRepository(
-        firestore: FirebaseFirestore.instance,
-        collectionName:
-            FirestoreCollectionNames.sessionStatusSnapshotsForDebugMode(
-              kDebugMode,
-            ),
-      ),
+      primary: primary,
       cache: SharedPreferencesCommunityOverlayCacheRepository(),
-    );
-  }
-
-  static DeviceIdentityRepository _buildDeviceIdentityRepository(
-    FirebaseRuntime firebaseRuntime,
-    ErrorReporter errorReporter,
-  ) {
-    if (!firebaseRuntime.initialized) {
-      return const NoOpDeviceIdentityRepository();
-    }
-    return FirebaseDeviceIdentityRepository(
-      auth: FirebaseAuth.instance,
-      identityStateRepository:
-          SharedPreferencesFirebaseIdentityStateRepository(),
-      errorReporter: errorReporter,
     );
   }
 }

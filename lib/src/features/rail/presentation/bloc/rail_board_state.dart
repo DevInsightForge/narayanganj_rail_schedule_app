@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../community/domain/entities/firebase_auth_readiness.dart';
+import '../../../community/domain/entities/auth_readiness.dart';
 import '../../../community/domain/entities/predicted_stop_time.dart';
 import '../../../community/domain/entities/session_status_snapshot.dart';
 import '../../application/models/rail_reporting.dart';
@@ -79,7 +79,7 @@ class RailBoardReportState extends Equatable {
     this.status = RailReportSubmissionStatus.idle,
     this.feedbackMessage,
     this.actionReason = RailReportActionReason.noSession,
-    this.authReadiness = const FirebaseAuthReadiness.unknown(),
+    this.authReadiness = const AuthReadiness.unknown(),
     this.visibility = RailReportVisibility.hidden,
     this.submitEnabled = false,
     this.hasReportedCurrentSession = false,
@@ -88,7 +88,7 @@ class RailBoardReportState extends Equatable {
   final RailReportSubmissionStatus status;
   final String? feedbackMessage;
   final RailReportActionReason actionReason;
-  final FirebaseAuthReadiness authReadiness;
+  final AuthReadiness authReadiness;
   final RailReportVisibility visibility;
   final bool submitEnabled;
   final bool hasReportedCurrentSession;
@@ -103,7 +103,7 @@ class RailBoardReportState extends Equatable {
     RailReportSubmissionStatus? status,
     String? feedbackMessage,
     RailReportActionReason? actionReason,
-    FirebaseAuthReadiness? authReadiness,
+    AuthReadiness? authReadiness,
     RailReportVisibility? visibility,
     bool? submitEnabled,
     bool? hasReportedCurrentSession,

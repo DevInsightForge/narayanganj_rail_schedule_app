@@ -5,7 +5,7 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/entities
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report_submission.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_session_aggregate.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/device_identity.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/firebase_auth_readiness.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/auth_readiness.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/arrival_report_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/services/community_session_aggregate_reducer.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/application/models/rail_reporting.dart';
@@ -128,7 +128,7 @@ void main() {
     });
 
     test('hides reporting action while auth readiness is resolving', () async {
-      final readinessCompleter = Completer<FirebaseAuthReadiness>();
+      final readinessCompleter = Completer<AuthReadiness>();
       final deviceIdentityRepository = ResolvingDeviceIdentityRepository(
         readiness: readinessCompleter.future,
         identity: DeviceIdentity(
@@ -150,21 +150,17 @@ void main() {
         cubit,
         (state) =>
             state.status == RailBoardStatus.ready &&
-            state.report.authReadiness.status ==
-                FirebaseAuthReadinessStatus.resolving,
+            state.report.authReadiness.status == AuthReadinessStatus.resolving,
       );
       expect(resolvingState.report.visibility, RailReportVisibility.hidden);
       expect(resolvingState.report.submitEnabled, isFalse);
 
-      readinessCompleter.complete(
-        const FirebaseAuthReadiness.ready('device-1'),
-      );
+      readinessCompleter.complete(const AuthReadiness.ready('device-1'));
       final readyState = await waitForRailBoardState(
         cubit,
         (state) =>
             state.status == RailBoardStatus.ready &&
-            state.report.authReadiness.status ==
-                FirebaseAuthReadinessStatus.ready,
+            state.report.authReadiness.status == AuthReadinessStatus.ready,
       );
       expect(readyState.report.visibility, RailReportVisibility.visible);
       expect(readyState.report.submitEnabled, isTrue);
@@ -173,7 +169,7 @@ void main() {
 
     test('hides reporting action when auth readiness fails', () async {
       final deviceIdentityRepository = ResolvingDeviceIdentityRepository(
-        readiness: Future.value(const FirebaseAuthReadiness.failed()),
+        readiness: Future.value(const AuthReadiness.failed()),
         identity: DeviceIdentity(
           deviceId: 'device-1',
           createdAt: DateTime(2026, 3, 28, 4),
@@ -193,8 +189,7 @@ void main() {
         cubit,
         (state) =>
             state.status == RailBoardStatus.ready &&
-            state.report.authReadiness.status ==
-                FirebaseAuthReadinessStatus.failed,
+            state.report.authReadiness.status == AuthReadinessStatus.failed,
       );
       expect(failedState.report.visibility, RailReportVisibility.hidden);
       expect(failedState.report.submitEnabled, isFalse);

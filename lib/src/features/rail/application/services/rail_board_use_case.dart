@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../../community/domain/entities/arrival_report.dart';
 import '../../../community/domain/entities/arrival_report_submission.dart';
 import '../../../community/domain/entities/community_session_aggregate.dart';

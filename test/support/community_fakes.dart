@@ -1,8 +1,8 @@
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report_submission.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/auth_readiness.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_session_aggregate.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/device_identity.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/firebase_auth_readiness.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/train_session.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/arrival_report_ledger_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/arrival_report_repository.dart';
@@ -206,9 +206,9 @@ class FakeDeviceIdentityRepository implements DeviceIdentityRepository {
   DeviceIdentity? _identity;
 
   @override
-  Future<FirebaseAuthReadiness> readAuthReadiness({String? attemptId}) async {
+  Future<AuthReadiness> readAuthReadiness({String? attemptId}) async {
     final identity = await readOrCreateIdentity(attemptId: attemptId);
-    return FirebaseAuthReadiness.ready(identity.deviceId);
+    return AuthReadiness.ready(identity.deviceId);
   }
 
   @override

@@ -1,32 +1,38 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/api/api_config.dart';
 import '../core/errors/error_report_context.dart';
 import '../core/errors/error_reporter.dart';
 import '../core/errors/error_reporting.dart';
-import '../core/firebase/firebase_bootstrap.dart';
 import '../features/community/data/local/hive/community_hive_box.dart';
-import '../features/rail/data/models/rail_schedule_document_parser.dart';
 import '../features/rail/data/repositories/bundled_schedule_source.dart';
 import 'app_composition.dart';
 
 class AppBootstrap {
-  AppBootstrap({
-    FirebaseBootstrap? firebaseBootstrap,
-    RailScheduleDocumentParser? parser,
-  }) : _firebaseBootstrap = firebaseBootstrap ?? FirebaseBootstrap(),
-       _parser = parser ?? RailScheduleDocumentParser();
+  AppBootstrap({ApiConfig? apiConfig}) : _apiConfig = apiConfig;
 
-  final FirebaseBootstrap _firebaseBootstrap;
-  final RailScheduleDocumentParser _parser;
+  final ApiConfig? _apiConfig;
 
   Future<AppComposition> initialize() async {
-    final firebaseRuntime = await _firebaseBootstrap.initialize();
-    final bundledSchedule = BundledScheduleSource(
-      parser: _parser,
-    ).loadSchedule();
-    final errorReporter = buildErrorReporter(firebaseRuntime: firebaseRuntime);
+    final apiConfig = _apiConfig ?? ApiConfig.fromEnv();
+    final apiKey = apiConfig.apiKey;
+    if (apiConfig.enabled &&
+        apiConfig.baseUrl.isNotEmpty &&
+        apiKey != null &&
+        apiKey.isNotEmpty) {
+      try {
+        await Supabase.initialize(
+          url: apiConfig.baseUrl,
+          publishableKey: apiKey,
+        );
+      } catch (_) {}
+    }
+
+    final bundledSchedule = const BundledScheduleSource().loadSchedule();
+    final errorReporter = buildErrorReporter();
     await errorReporter.initialize();
     try {
       await CommunityHiveBox.initialize();
@@ -36,7 +42,7 @@ class AppBootstrap {
         error,
         stackTrace,
         reason: 'community_hive_bootstrap_failed',
-        context: ErrorReportContext(
+        context: const ErrorReportContext(
           feature: 'community_hive',
           event: 'bootstrap',
         ),
@@ -45,9 +51,9 @@ class AppBootstrap {
     _configureFatalErrorHandlers(errorReporter);
 
     return AppComposition(
-      firebaseRuntime: firebaseRuntime,
       bundledSchedule: bundledSchedule,
       errorReporter: errorReporter,
+      apiConfig: apiConfig,
     );
   }
 
@@ -61,7 +67,10 @@ class AppBootstrap {
         errorReporter.reportFatal(
           details.exception,
           details.stack ?? StackTrace.current,
-          context: ErrorReportContext(feature: 'app', event: 'flutter_error'),
+          context: const ErrorReportContext(
+            feature: 'app',
+            event: 'flutter_error',
+          ),
         ),
       );
       FlutterError.presentError(details);
@@ -71,7 +80,10 @@ class AppBootstrap {
         errorReporter.reportFatal(
           error,
           stack,
-          context: ErrorReportContext(feature: 'app', event: 'platform_error'),
+          context: const ErrorReportContext(
+            feature: 'app',
+            event: 'platform_error',
+          ),
         ),
       );
       return true;

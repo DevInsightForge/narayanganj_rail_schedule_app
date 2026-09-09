@@ -6,21 +6,21 @@
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app is centered on a compact rail board that keeps the official timetable as baseline truth and layers optional anonymous community delay signals on top.
+Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app is centered on a compact rail board that keeps the official timetable as baseline truth and layers optional anonymous community delay signals on top via a Supabase Free Tier PostgREST edge API.
 
 ## Current Status
 
 - Startup is split into bootstrap, composition, and app-shell layers.
 - Schedule loading is 100% offline-first with bundled JSON as the canonical timetable baseline.
 - Rail UI is compact, monochrome, and optimized for phone-first usage.
-- Anonymous Firebase-backed arrival reporting remains optional and secondary to the published schedule.
-- Community delay insight, freshness, and downstream prediction are derived from a single session aggregate document and remain isolated from the official schedule baseline.
-- Session documents are reused across recurring daily train runs; `serviceDate` remains stored inside the aggregate so the document can reset cleanly when the day changes.
-- Community freshness is aged locally on the board timer; Firestore refreshes happen on board open, route/session changes, explicit retry, and successful submissions instead of on every tick.
-- Rail-board orchestration is split into a thin cubit plus bounded feature-local helpers, including a smaller use-case layer, to keep the feature navigable without making the codebase a maze.
+- Anonymous arrival reporting and community delay insight are backed by Supabase Free Tier (PostgreSQL + PostgREST), eliminating standalone backend repository maintenance.
+- Zero Firebase client dependencies; official Supabase Flutter SDK (`supabase_flutter`) used for community delay operations.
+- Community delay insight, freshness, and downstream predictions are derived from session aggregates and remain isolated from the official schedule baseline.
+- Community freshness is aged locally on the board timer; network refreshes happen on board open, route/session changes, explicit retry, and successful submissions instead of on every tick.
+- Rail-board orchestration is split into a thin cubit plus bounded feature-local helpers to keep the feature navigable without bloated classes.
 - Rail board copy and time formatting live in a small presentation helper so the domain service stays focused on selection and snapshot logic.
 - Test-only fakes live under `test/support`, while `lib/` stays focused on runtime code.
-- Footer metadata, privacy policy, and terms now live in an in-app drawer with static app-owned content.
+- Footer metadata, privacy policy, and terms live in an in-app drawer with static app-owned content.
 
 ## Core Features
 
@@ -29,20 +29,16 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 - Journey trace with scheduled stops and optional predicted downstream timing
 - Backup departure list for the active route selection
 - Anonymous arrival reporting and community delay aggregation
-- Graceful fallback when Firebase is disabled, unavailable, or partially degraded
+- Graceful fallback when the community API is disabled, offline, or unreachable
 
-## Schedule and Firebase Behavior
+## Schedule and Edge API Behavior
 
 - Bundled schedule JSON is the canonical offline-first baseline.
-- Firebase Anonymous Auth, Firestore, and App Check are optional at runtime and can be disabled through env configuration.
-- Crashlytics error reporting is optional at runtime and can be enabled separately from the core Firebase data path.
-- Community features are enabled only after Firebase initializes successfully and degrade safely when it does not.
-- Community overlay reads and arrival-report writes are centered on `session_status_snapshots/{sessionId}`, which acts as the canonical aggregate document for a recurring train session.
-- Debug builds use `session_status_snapshots_debug/{sessionId}` for community overlay reads and arrival-report writes so local testing does not mutate live aggregate data.
-- The client updates that document transactionally and reads it through a cache-first overlay layer in release builds to keep Firestore usage predictable on Spark.
-- The v2 aggregate document stores only session status plus bounded per-station buckets, and no separate raw Firestore report log.
-- Cached aggregate overlays are served when fresh, kept usable for a short stale window, and then fall back to timetable-first messaging if they age out.
-- Debug builds bypass the overlay cache and keep community reporting enabled outside the normal schedule window so feature testing stays practical.
+- Community features communicate over HTTPS with Supabase PostgREST endpoints (`/rest/v1/session_snapshots` and `/rest/v1/rpc/submit_arrival_report`).
+- Local anonymous device UUID identity is persisted in `SharedPreferences` / `Hive` without external authentication services.
+- The client reads overlays through a cache-first layer in release builds (90s cache TTL) to minimize network roundtrips.
+- Cached aggregate overlays are served when fresh, kept usable for a short stale window (up to 5m), and fall back to timetable baseline if expired.
+- Debug builds bypass the overlay cache and keep community reporting enabled outside the normal schedule window for feature testing.
 
 ## Local Setup
 
@@ -55,74 +51,22 @@ flutter run
 Optional root `.env`:
 
 ```env
-# Optional override: set to false to disable Firebase.
-FIREBASE_ENABLED=true
-FIREBASE_APPCHECK_ENABLED=false
-FIREBASE_CRASHLYTICS_ENABLED=false
-
-# Minimal required Firebase env values.
-FIREBASE_PROJECT_ID=
-FIREBASE_API_KEY=
-
-# Optional platform-specific API key overrides.
-FIREBASE_WEB_API_KEY=
-FIREBASE_ANDROID_API_KEY=
-FIREBASE_IOS_API_KEY=
-
-# Optional web analytics / App Check web config.
-FIREBASE_MEASUREMENT_ID=
-FIREBASE_APPCHECK_WEB_KEY=
+# Community delay API configuration (Supabase Free Tier PostgREST)
+COMMUNITY_API_ENABLED=true
+COMMUNITY_API_BASE_URL=https://your-project-id.supabase.co
+COMMUNITY_API_KEY=your-supabase-anon-key
 ```
 
 ## Release Notes
 
 - Android release requires a configured Android SDK on the build machine.
 - Android release signing requires `android/key.properties`.
-- Android Firebase-backed release behavior may require `android/app/google-services.json` depending on your release setup.
-- If `FIREBASE_APPCHECK_ENABLED=true`, Firebase App Check must already be configured in Firebase Console for the target platform.
-- If `FIREBASE_CRASHLYTICS_ENABLED=true`, Crashlytics collection is enabled only after Firebase initializes successfully for that build.
+- Multi-platform desktop and web builds compile with pure Dart networking without native mobile SDK registrants.
 
-## Firebase Security Baseline
+## Edge API Architecture & Rate-Limiting
 
-- Firestore config is versioned in [firebase.json](firebase.json), [firestore.rules](firestore.rules), and [firestore.indexes.json](firestore.indexes.json).
-- Train sessions are generated dynamically from bundled schedule templates using deterministic session IDs.
-- `session_status_snapshots/{sessionId}` is the canonical aggregate document for a recurring train session.
-- Debug builds use the matching `session_status_snapshots_debug/{sessionId}` collection instead of the live aggregate collection.
-- `session_status_snapshots/{sessionId}` is reused for the same recurring train run, with `serviceDate` stored inside the aggregate to keep stale day state from leaking forward.
-- Arrival report submission updates that aggregate document transactionally after Firebase Anonymous Auth is ready.
-- Repeated reports from the same device for the same session/station are blocked locally by a service-day-aware ledger; the same device may still report from the next station in that session.
-- Anonymous UIDs are used only as an auth readiness and write-gating signal; the aggregate document does not store UIDs, profile data, location trails, or raw report logs.
-- The client derives predicted stop times from the aggregate delay and the current session schedule.
-- Freshness policy is intentionally short-horizon:
-  - fresh for about 90 seconds
-  - stale-but-usable until about 5 minutes
-  - expired after that, with timetable-first fallback until a new refresh arrives
-- Arrival reporting UI stays hidden until anonymous auth readiness resolves, while community overlay insight can still render independently.
-- Debug builds can bypass the community overlay cache and schedule-window gating for reporting so feature testing stays available outside the normal active window.
-
-## Firebase Spark Plan Considerations
-
-- Firestore is used only for optional community-driven signals:
-  - transactional updates to `session_status_snapshots/{sessionId}`
-  - aggregate session overlay reads from `session_status_snapshots/{sessionId}`
-- Spark free-tier limits to design around:
-  - `50,000` document reads per day
-  - `20,000` document writes per day
-  - `20,000` document deletes per day
-  - `1 GiB` stored data
-  - `10 GiB` outbound data per month
-- The app does not rely on Firestore TTL, PITR, backups, restore, or clone. Those are not assumed available for this app's operating model.
-- Retention strategy is Spark-safe:
-  - Firestore is treated as a short-horizon community signal store, not long-term truth
-  - the client only reads and writes one narrow session aggregate doc and caches it locally for about 90 seconds, while allowing stale fallback for up to 5 minutes
-  - report submission uses client-side cooldown, dedupe, and a persisted submission ledger to avoid raw report logs
-- Recommended operational guidance:
-  - keep `session_status_snapshots/{sessionId}` compact and aggregate-oriented
-  - avoid realtime listeners for community overlay data
-  - avoid broad historical scans and per-stop polling
-  - prefer schedule-only mode if Firebase is misconfigured or degraded
-- Risky patterns to avoid:
-  - querying many stops individually for the same train session
-  - depending on separate predicted-stop subcollections
-  - depending on Firestore cleanup features that require Blaze billing
-- The app remains fully usable with Firebase disabled or degraded because the official bundled/cached timetable stays offline-first.
+- Co-located SQL migrations in `supabase/migrations/0001_init.sql`.
+- Single aggregate record per recurring daily train trip (`session_snapshots`), reused with `service_date` scoping.
+- Deduplication ledger (`report_ledger`) is partitioned by `service_date` with automatic 48-hour `pg_cron` roll-off, keeping storage under 15 MB (<500 MB quota).
+- Atomic 120-second cooldown enforced on `device_rate_limits` table with transaction-level advisory locks to eliminate rush-hour lock contention.
+- Multi-tier statistical consensus (Median / IQR outlier elimination) ensures single-actor spam cannot manipulate delay statuses.

@@ -63,7 +63,7 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
           outcome: RailReportSubmissionOutcome.error,
           reason: RailReportActionReason.temporarilyUnavailable,
           feedbackMessage:
-              'Sign in is not ready yet. Please try again shortly.',
+              'Reporting service is initializing. Please try again shortly.',
           failureReason: RailReportSubmissionFailureReason.authNotReady,
         );
       }
@@ -169,22 +169,6 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
             aggregate: updatedAggregate,
             now: now,
           ),
-        );
-      } on FirebaseException catch (error, stackTrace) {
-        final failureReason = _mapSubmissionFailureReason(error);
-        await _reportNonFatal(
-          error,
-          stackTrace,
-          feature: 'rail_board_use_case',
-          event: 'submit_firestore',
-          attemptId: attemptId,
-          sessionId: session.sessionId,
-          stationId: selection.boardingStationId,
-          uid: identity.deviceId,
-        );
-        return _failureResult(
-          failureReason: failureReason,
-          reason: RailReportActionReason.temporarilyUnavailable,
         );
       } on ArrivalReportRepositoryException catch (error, stackTrace) {
         final failureReason =
@@ -343,7 +327,7 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
   String _failureMessage(RailReportSubmissionFailureReason failureReason) {
     return switch (failureReason) {
       RailReportSubmissionFailureReason.authNotReady =>
-        'Sign in is not ready yet. Please try again shortly.',
+        'Reporting service is initializing. Please try again shortly.',
       RailReportSubmissionFailureReason.invalidPayload =>
         'Arrival report could not be submitted. Please check the selected station and try again.',
       RailReportSubmissionFailureReason.permissionDenied =>
@@ -354,9 +338,6 @@ extension RailBoardUseCaseSubmission on RailBoardUseCase {
   }
 
   RailReportSubmissionFailureReason _mapSubmissionFailureReason(Object error) {
-    if (error is FirebaseException && error.code == 'permission-denied') {
-      return RailReportSubmissionFailureReason.permissionDenied;
-    }
     if (error is StateError ||
         error is ArgumentError ||
         error is FormatException ||

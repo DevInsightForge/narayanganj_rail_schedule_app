@@ -126,7 +126,7 @@ class RailBoardControllerReporting {
         !controller.communityFeaturesEnabled) {
       final nextReport = deriveReportActionState(
         currentState.report,
-        authReadiness: const FirebaseAuthReadiness.unknown(),
+        authReadiness: const AuthReadiness.unknown(),
         reason: RailReportActionReason.noSession,
       );
       if (revision == controller._reportAvailabilityRevision &&
@@ -138,7 +138,7 @@ class RailBoardControllerReporting {
 
     final resolvingReport = currentState.report.copyWith(
       status: RailReportSubmissionStatus.idle,
-      authReadiness: const FirebaseAuthReadiness.resolving(),
+      authReadiness: const AuthReadiness.resolving(),
       visibility: RailReportVisibility.hidden,
       submitEnabled: false,
       actionReason: RailReportActionReason.noSession,
@@ -214,7 +214,7 @@ class RailBoardControllerReporting {
 
   static RailBoardReportState deriveReportActionState(
     RailBoardReportState base, {
-    required FirebaseAuthReadiness authReadiness,
+    required AuthReadiness authReadiness,
     required RailReportActionReason reason,
     bool forceEnabled = false,
   }) {

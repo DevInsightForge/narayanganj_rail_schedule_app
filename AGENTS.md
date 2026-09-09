@@ -2,18 +2,18 @@
 
 ## Role and Objective
 - Build production-ready, maintainable Flutter code for Narayanganj Commuter.
-- Preserve the schedule-first baseline while adding Firebase-backed community status features.
+- Preserve the schedule-first baseline while providing low-latency community delay features via Supabase Free Tier PostgREST edge API.
 - Keep behavior deterministic, testable, and resilient under degraded connectivity.
-- Keep the community layer aggregate-first: one Firestore document per recurring train session is the source of truth for community delay state, with `serviceDate` stored in the aggregate and reset when the service day changes.
+- Keep the community layer aggregate-first: one session record per recurring train trip is the source of truth for community delay state, with `serviceDate` stored in the aggregate and reset when the service day changes.
 
 ## Architecture Rules
 - No spaghetti code.
 - Preserve or improve clean architecture.
 - Keep clear separation of presentation, application/state, domain, and data/infrastructure.
 - Keep business rules out of widgets.
-- Isolate Firebase SDK usage behind repository and data-source boundaries.
-- Keep domain entities independent from Firebase DTO/document shapes.
-- Keep DTO/document models separate from domain models.
+- Isolate HTTP networking and external REST contracts behind repository boundaries.
+- Keep domain entities independent from HTTP/JSON DTO shapes.
+- Keep DTO models separate from domain models.
 - Prefer composition over inheritance.
 - Follow SOLID pragmatically.
 - Follow DRY without harming clarity.
@@ -41,21 +41,15 @@
 - Keep state transitions explicit and testable.
 - Separate domain/application state from transient widget state.
 - Model loading, success, empty, stale, error, and degraded states intentionally.
-- Submission flows must model success, failure, cooldown/rate-limit, dedupe, and degraded Firebase outcomes.
+- Submission flows must model success, failure, cooldown/rate-limit, dedupe, and degraded API outcomes.
 
-## Firebase and Data Rules
-- Use Firebase client SDK only.
-- No Firebase Admin SDK.
-- No Cloud Functions or custom backend as a requirement for MVP.
-- Use Firebase Anonymous Auth for identity bootstrap.
-- Keep Crashlytics error reporting optional and gated separately from the core Firebase data path.
-- Keep Firestore model and writes security-rules-friendly.
-- Keep repository interfaces clean for future backend migration.
-- Keep offline/degraded operation functional with local fallback behavior.
-- Use `session_status_snapshots/{sessionId}` as the only Firestore-backed community session record in normal app flows.
-- Use `session_status_snapshots_debug/{sessionId}` for debug builds so testing does not mutate live aggregate data.
-- Do not introduce `station_reports`, chat collections, prediction collections, or other parallel community truth sources.
-- Keep aggregate documents bounded with per-station buckets and session-level derived fields.
+## Edge API and Data Rules
+- Use official `supabase_flutter` SDK (`SupabaseClient`) for community operations.
+- Zero Firebase client dependencies; backend is hosted on Supabase PostgreSQL with PostgREST RPC.
+- Use local anonymous device UUID identity (`LocalDeviceIdentityRepository`) for report identity.
+- Keep repository interfaces clean for modular backend implementations.
+- Keep offline/degraded operation functional with local fallback behavior (Hive + SharedPreferences).
+- Bounded aggregate model with per-station buckets and session-level derived fields.
 - Derive predicted stop times locally from the aggregate delay plus the active schedule.
 - Keep overlay reads cache-first and stale-safe.
 - In debug builds, community overlay reads may bypass the cache and reporting may stay enabled outside the normal schedule window to support feature testing.
@@ -73,13 +67,13 @@
 - Document removals and migration tradeoffs in the Decision Log.
 - Prefer incremental, reviewable changes.
 - When splitting oversized files, keep collaborators nearby and bounded so the module stays easy to navigate.
-- When architecture changes, update docs for source of truth, degraded behavior, and Firestore operational assumptions in the same change.
+- When architecture changes, update docs for source of truth, degraded behavior, and edge operational assumptions in the same change.
 
 ## Definition of Done
 - Code, tests, and docs are complete.
 - AGENTS.md and README.md stay current.
 - No feature is done without critical state handling and tests.
-- Schedule baseline remains useful offline when Firebase is unavailable.
+- Schedule baseline remains useful offline when the community API is unavailable.
 - Community features are not done unless aggregate write/read behavior, cache fallback, and session-date scoping are covered by tests.
 
 ## Commit Guidance

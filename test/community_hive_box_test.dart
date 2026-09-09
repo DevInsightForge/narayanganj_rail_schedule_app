@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/local/hive/community_hive_box.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/models/hive/arrival_report_ledger_entry_hive.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/data/models/hive/community_overlay_cache_hive.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/data/models/hive/firebase_identity_state_hive.dart';
 
 void main() {
   late Directory tempDir;
@@ -50,10 +49,6 @@ void main() {
       'nrs:community:arrival-report-ledger': jsonEncode({
         's1::20260328::dhaka::device-1': '2026-03-28T04:30:00.000Z',
       }),
-      'nrs:community:firebase-identity-state': jsonEncode({
-        'uid': 'device-1',
-        'handshakeCompleted': true,
-      }),
     });
   });
 
@@ -77,9 +72,6 @@ void main() {
       final ledgerBox = Hive.box<ArrivalReportLedgerEntryHive>(
         CommunityHiveBox.arrivalReportLedgerBoxName,
       );
-      final identityBox = Hive.box<FirebaseIdentityStateHive>(
-        CommunityHiveBox.firebaseIdentityStateBoxName,
-      );
 
       final overlay = overlayBox.get('s1::20260328');
       expect(overlay, isNotNull);
@@ -93,25 +85,24 @@ void main() {
       expect(ledger?.sessionId, equals('s1'));
       expect(ledger?.deviceFingerprint, equals('device-1'));
       expect(ledger?.syncedAt, isNotNull);
-
-      final identity = identityBox.get('device-1');
-      expect(identity, isNotNull);
-      expect(identity?.uid, equals('device-1'));
-      expect(identity?.handshakeCompleted, isTrue);
     },
   );
 
-  test('recovers by resetting a corrupted hive box', () async {
-    final corruptedBox = File(
-      '${tempDir.path}/nrs.community.overlay_cache.hive',
-    );
-    await corruptedBox.writeAsBytes(<int>[0, 1, 2, 3, 4, 5], flush: true);
+  test(
+    'recovers gracefully from corrupted box by wiping and re-opening',
+    () async {
+      final badFile = File(
+        '${tempDir.path}/${CommunityHiveBox.overlayCacheBoxName}.hive',
+      );
+      await badFile.writeAsString('corrupted data string');
 
-    await CommunityHiveBox.initialize(hivePath: tempDir.path);
-    final overlayBox = Hive.box<CommunityOverlayCacheHive>(
-      CommunityHiveBox.overlayCacheBoxName,
-    );
+      await CommunityHiveBox.initialize(hivePath: tempDir.path);
 
-    expect(overlayBox.values, isEmpty);
-  });
+      final overlayBox = Hive.box<CommunityOverlayCacheHive>(
+        CommunityHiveBox.overlayCacheBoxName,
+      );
+      expect(overlayBox.isOpen, isTrue);
+      expect(overlayBox.isEmpty, isTrue);
+    },
+  );
 }

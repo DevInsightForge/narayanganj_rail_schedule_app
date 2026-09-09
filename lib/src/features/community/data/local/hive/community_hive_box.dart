@@ -6,8 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/hive/arrival_report_ledger_entry_hive.dart';
 import '../../models/hive/community_overlay_cache_hive.dart';
-import '../../models/hive/firebase_identity_state_hive.dart';
-import '../../models/hive/pending_report_hive.dart';
 
 class CommunityHiveBox {
   CommunityHiveBox._();
@@ -15,8 +13,6 @@ class CommunityHiveBox {
   static const overlayCacheBoxName = 'nrs.community.overlay_cache';
   static const arrivalReportLedgerBoxName =
       'nrs.community.arrival_report_ledger';
-  static const pendingReportBoxName = 'nrs.community.pending_reports';
-  static const firebaseIdentityStateBoxName = 'nrs.community.identity_state';
   static const migrationFlagKey = 'nrs:community:hive-migration-v1';
   static const currentSchemaVersion = 1;
 
@@ -39,8 +35,6 @@ class CommunityHiveBox {
 
     await openOverlayCacheBox();
     await openArrivalReportLedgerBox();
-    await openPendingReportBox();
-    await openFirebaseIdentityStateBox();
   }
 
   static Future<void> migrateLegacySharedPreferences() async {
@@ -51,7 +45,6 @@ class CommunityHiveBox {
 
     await _migrateOverlayCache(preferences);
     await _migrateArrivalReportLedger(preferences);
-    await _migrateFirebaseIdentityState(preferences);
 
     await preferences.setBool(migrationFlagKey, true);
   }
@@ -67,17 +60,6 @@ class CommunityHiveBox {
     );
   }
 
-  static Future<Box<PendingReportHive>> openPendingReportBox() async {
-    return _openRecovering<PendingReportHive>(pendingReportBoxName);
-  }
-
-  static Future<Box<FirebaseIdentityStateHive>>
-  openFirebaseIdentityStateBox() async {
-    return _openRecovering<FirebaseIdentityStateHive>(
-      firebaseIdentityStateBoxName,
-    );
-  }
-
   static void _registerAdapters() {
     if (!Hive.isAdapterRegistered(CommunityOverlayCacheHive.typeId)) {
       Hive.registerAdapter(CommunityOverlayCacheHiveAdapter());
@@ -85,18 +67,12 @@ class CommunityHiveBox {
     if (!Hive.isAdapterRegistered(ArrivalReportLedgerEntryHive.typeId)) {
       Hive.registerAdapter(ArrivalReportLedgerEntryHiveAdapter());
     }
-    if (!Hive.isAdapterRegistered(PendingReportHive.typeId)) {
-      Hive.registerAdapter(PendingReportHiveAdapter());
-    }
-    if (!Hive.isAdapterRegistered(FirebaseIdentityStateHive.typeId)) {
-      Hive.registerAdapter(FirebaseIdentityStateHiveAdapter());
-    }
   }
 
   static Future<void> _migrateOverlayCache(
     SharedPreferences preferences,
   ) async {
-    final overlayPrefix = 'nrs:community:overlay:';
+    const overlayPrefix = 'nrs:community:overlay:';
     final keys = preferences
         .getKeys()
         .where((key) => key.startsWith(overlayPrefix))
@@ -160,35 +136,6 @@ class CommunityHiveBox {
       );
       await box.put(hiveEntry.dedupeKey, hiveEntry);
     }
-  }
-
-  static Future<void> _migrateFirebaseIdentityState(
-    SharedPreferences preferences,
-  ) async {
-    const legacyKey = 'nrs:community:firebase-identity-state';
-    final raw = preferences.getString(legacyKey);
-    if (raw == null || raw.isEmpty) {
-      return;
-    }
-
-    final decoded = _decodeMap(raw);
-    if (decoded == null || decoded.isEmpty) {
-      return;
-    }
-
-    final uid = '${decoded['uid'] ?? ''}'.trim();
-    if (uid.isEmpty) {
-      return;
-    }
-
-    final box = await openFirebaseIdentityStateBox();
-    final hiveValue = FirebaseIdentityStateHive(
-      uid: uid,
-      handshakeCompleted: decoded['handshakeCompleted'] == true,
-      schemaVersion: currentSchemaVersion,
-      lastSyncedAt: DateTime.now(),
-    );
-    await box.put(uid, hiveValue);
   }
 
   static Map<String, dynamic>? _decodeMap(String raw) {

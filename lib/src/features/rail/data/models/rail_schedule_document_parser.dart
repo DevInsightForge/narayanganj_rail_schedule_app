@@ -2,6 +2,8 @@ import '../../domain/entities/rail_direction.dart';
 import '../../domain/entities/rail_schedule.dart';
 
 class RailScheduleDocumentParser {
+  const RailScheduleDocumentParser();
+
   RailSchedule parse(Map<String, dynamic> document) {
     final version = _parseVersion(document['version']);
     final stations = _parseStations(document['stations']);

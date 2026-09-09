@@ -7,7 +7,7 @@ import 'package:narayanganj_rail_schedule/src/features/community/domain/entities
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/data_origin.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/delay_status.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/device_identity.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/firebase_auth_readiness.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/auth_readiness.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/predicted_stop_time.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/report_confidence.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
@@ -227,8 +227,8 @@ class FixedDeviceIdentityRepository implements DeviceIdentityRepository {
   final DeviceIdentity identity;
 
   @override
-  Future<FirebaseAuthReadiness> readAuthReadiness({String? attemptId}) async {
-    return FirebaseAuthReadiness.ready(identity.deviceId);
+  Future<AuthReadiness> readAuthReadiness({String? attemptId}) async {
+    return AuthReadiness.ready(identity.deviceId);
   }
 
   @override
@@ -238,15 +238,15 @@ class FixedDeviceIdentityRepository implements DeviceIdentityRepository {
 
 class ResolvingDeviceIdentityRepository implements DeviceIdentityRepository {
   ResolvingDeviceIdentityRepository({
-    required Future<FirebaseAuthReadiness> readiness,
+    required Future<AuthReadiness> readiness,
     required this.identity,
   }) : _readiness = readiness;
 
-  final Future<FirebaseAuthReadiness> _readiness;
+  final Future<AuthReadiness> _readiness;
   final DeviceIdentity identity;
 
   @override
-  Future<FirebaseAuthReadiness> readAuthReadiness({String? attemptId}) {
+  Future<AuthReadiness> readAuthReadiness({String? attemptId}) {
     return _readiness;
   }
 
