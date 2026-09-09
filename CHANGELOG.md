@@ -2,6 +2,13 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v2.0.0
+
+- Upgraded Android build toolchains to Gradle 9.1.0, Android Gradle Plugin 9.0.1, and Kotlin 2.3.20.
+- Added AGP 9 migration flags (`builtInKotlin`, `newDsl`) to `gradle.properties` for reproducible builds and full backward compatibility with Flutter plugins.
+- Upgraded Flutter SDK baseline to Flutter 3.47 and Dart 3.13, raising macOS deployment target to 12.0.
+- Updated project transitive dependencies and dependency lockfile.
+
 ## v1.8.0
 
 - Migrated community arrival reporting and delay insight operations to Supabase (PostgreSQL + PostgREST), eliminating separate backend services and Firebase client dependencies.
