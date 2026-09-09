@@ -2,6 +2,13 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v1.8.0
+
+- Migrated community arrival reporting and delay insight operations to Supabase (PostgreSQL + PostgREST), eliminating separate backend services and Firebase client dependencies.
+- Replaced Cloudflare Worker and Firebase dependencies with `supabase_flutter` for official SDK client integration.
+- Switched schedule timetable loading directly to bundled JSON baseline, removing Remote Config dependencies and speeding up app initialization.
+- Reorganized desktop layout by placing the Notice panel in Column 2 below the Route Stops timeline for balanced vertical space on wide screens.
+
 ## v1.7.0
 
 - Isolated debug-build community overlay and report writes into `session_status_snapshots_debug` so local feature testing no longer mutates live aggregate data.
