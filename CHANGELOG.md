@@ -2,6 +2,16 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v2.0.1
+
+- Migrated community backend to Cloudflare Workers edge API with HMAC-SHA256 request signing, replacing Supabase client dependency.
+- Fixed UI layout shifts on the best-next-train card: corrected travel duration display (was showing total ETA instead of journey time), equalized metric tile heights, and locked the report action area to a fixed height.
+- Enforced strict monochrome black/white palette across the app theme, removing all hardcoded color values from widgets.
+- Gated the community report button to only enable within a 5-minute pre-departure window; re-evaluates on each 30-second tick.
+- Fixed community freshness classification where backend-reported stale data was immediately mapped to expired, causing valid reports to disappear from the UI.
+- Extended the usable freshness window to 20 minutes and preserved community overlay data across all freshness states — expired reports now show with a staleness indicator rather than being discarded.
+- Centralized all community user-facing copy into `RailBoardTexts` with professional, community-focused wording.
+
 ## v2.0.0
 
 - Upgraded Android build toolchains to Gradle 9.1.0, Android Gradle Plugin 9.0.1, and Kotlin 2.3.20.
