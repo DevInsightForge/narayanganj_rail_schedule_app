@@ -29,6 +29,59 @@ void main() {
       await cubit.close();
     });
 
+    test(
+      'disables reporting when scheduled train departure is outside window',
+      () async {
+        final cubit = buildRailBoardReportingCubit(
+          bundledSchedule: bundledSchedule,
+          communityRepository: FakeCommunityRepository(),
+          nowProvider: () => DateTime(2026, 3, 28, 4, 20),
+        );
+
+        final state = await waitForRailBoardState(
+          cubit,
+          (state) =>
+              state.status == RailBoardStatus.ready &&
+              state.report.actionReason == RailReportActionReason.beforeWindow,
+        );
+        expect(state.report.visibility, RailReportVisibility.visible);
+        expect(state.report.submitEnabled, isFalse);
+        await cubit.close();
+      },
+    );
+
+    test(
+      'enables reporting when scheduled departure enters window on tick',
+      () async {
+        DateTime now = DateTime(2026, 3, 28, 4, 24);
+        final cubit = buildRailBoardReportingCubit(
+          bundledSchedule: bundledSchedule,
+          communityRepository: FakeCommunityRepository(),
+          nowProvider: () => now,
+        );
+
+        final locked = await waitForRailBoardState(
+          cubit,
+          (state) =>
+              state.status == RailBoardStatus.ready &&
+              state.report.actionReason == RailReportActionReason.beforeWindow,
+        );
+        expect(locked.report.submitEnabled, isFalse);
+
+        now = DateTime(2026, 3, 28, 4, 25);
+        await cubit.tick();
+
+        final unlocked = await waitForRailBoardState(
+          cubit,
+          (state) =>
+              state.status == RailBoardStatus.ready &&
+              state.report.actionReason == RailReportActionReason.eligible,
+        );
+        expect(unlocked.report.submitEnabled, isTrue);
+        await cubit.close();
+      },
+    );
+
     test('hides reporting when community features are disabled', () async {
       final cubit = buildRailBoardReportingCubit(
         bundledSchedule: bundledSchedule,

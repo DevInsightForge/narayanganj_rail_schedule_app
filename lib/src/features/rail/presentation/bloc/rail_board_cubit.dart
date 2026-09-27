@@ -261,19 +261,47 @@ class RailBoardCubit extends Cubit<RailBoardState> {
     );
   }
 
+  static const _reportingWindowMinutes = 5;
+
   void _refreshReportAvailability() {
     final nextService = state.snapshot.nextService;
-    final isEligible = communityFeaturesEnabled && nextService != null;
+    if (!communityFeaturesEnabled || nextService == null) {
+      _safeEmit(
+        state.copyWith(
+          report: state.report.copyWith(
+            visibility: communityFeaturesEnabled
+                ? RailReportVisibility.visible
+                : RailReportVisibility.hidden,
+            submitEnabled: false,
+            actionReason: RailReportActionReason.noSession,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (state.report.hasReportedCurrentSession) {
+      _safeEmit(
+        state.copyWith(
+          report: state.report.copyWith(
+            visibility: RailReportVisibility.visible,
+            submitEnabled: false,
+            actionReason: RailReportActionReason.alreadySubmitted,
+          ),
+        ),
+      );
+      return;
+    }
+
+    final isInRange = nextService.waitMinutes <= _reportingWindowMinutes;
     _safeEmit(
       state.copyWith(
         report: state.report.copyWith(
-          visibility: communityFeaturesEnabled
-              ? RailReportVisibility.visible
-              : RailReportVisibility.hidden,
-          submitEnabled: isEligible && !state.report.hasReportedCurrentSession,
-          actionReason: isEligible
+          visibility: RailReportVisibility.visible,
+          submitEnabled: isInRange,
+          actionReason: isInRange
               ? RailReportActionReason.eligible
-              : RailReportActionReason.noSession,
+              : RailReportActionReason.beforeWindow,
         ),
       ),
     );
