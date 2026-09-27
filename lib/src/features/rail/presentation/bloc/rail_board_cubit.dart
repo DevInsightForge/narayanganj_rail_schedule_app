@@ -14,6 +14,7 @@ import '../../domain/entities/rail_selection.dart';
 import '../../domain/entities/rail_snapshot.dart';
 import '../../domain/repositories/selection_repository.dart';
 import '../../domain/services/rail_board_service.dart';
+import '../widgets/rail_board_texts.dart';
 import 'rail_board_state.dart';
 
 class RailBoardCubit extends Cubit<RailBoardState> {
@@ -156,8 +157,9 @@ class RailBoardCubit extends Cubit<RailBoardState> {
               actionReason: RailReportActionReason.alreadySubmitted,
               hasReportedCurrentSession: true,
               submitEnabled: false,
-              feedbackMessage:
-                  'Arrival confirmed at ${state.snapshot.selectedStationName}. Thank you!',
+              feedbackMessage: RailBoardTexts.arrivalConfirmedAt(
+                state.snapshot.selectedStationName,
+              ),
             ),
           ),
         );
@@ -173,8 +175,9 @@ class RailBoardCubit extends Cubit<RailBoardState> {
               actionReason: RailReportActionReason.alreadySubmitted,
               hasReportedCurrentSession: true,
               submitEnabled: false,
-              feedbackMessage:
-                  'You reported recently. Please wait ${result.retryAfterSeconds}s before submitting again.',
+              feedbackMessage: RailBoardTexts.cooldownWait(
+                result.retryAfterSeconds,
+              ),
             ),
           ),
         );
@@ -186,8 +189,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
           report: state.report.copyWith(
             status: RailReportSubmissionStatus.error,
             feedbackMessage:
-                result.errorMessage ??
-                'Failed to submit report. Please try again.',
+                result.errorMessage ?? RailBoardTexts.reportSubmissionFailed,
           ),
         ),
       );
@@ -196,7 +198,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
         state.copyWith(
           report: state.report.copyWith(
             status: RailReportSubmissionStatus.error,
-            feedbackMessage: 'Failed to submit report. Please try again.',
+            feedbackMessage: RailBoardTexts.reportSubmissionFailed,
           ),
         ),
       );
@@ -319,31 +321,21 @@ class RailBoardCubit extends Cubit<RailBoardState> {
       freshnessSeconds: overlay.freshnessSeconds + elapsedSeconds,
     );
     final freshnessState = agedOverlay.freshnessState;
-    if (freshnessState == CommunityOverlayFreshness.expired) {
-      _safeEmit(
-        state.copyWith(
-          community: state.community.copyWith(
-            insightStatus: RailCommunityInsightStatus.expired,
-            clearOverlay: true,
-            predictedStopTimes: const [],
-            message:
-                'Live rider updates are a bit old right now. Showing timetable-only guidance until new updates arrive.',
-            clearMessage: false,
-          ),
-        ),
-      );
-      return;
-    }
-
     final mappedStatus = freshnessState == CommunityOverlayFreshness.fresh
         ? RailCommunityInsightStatus.ready
-        : RailCommunityInsightStatus.stale;
+        : freshnessState == CommunityOverlayFreshness.staleButUsable
+        ? RailCommunityInsightStatus.stale
+        : RailCommunityInsightStatus.expired;
 
     _safeEmit(
       state.copyWith(
         community: state.community.copyWith(
           insightStatus: mappedStatus,
           overlay: agedOverlay,
+          clearMessage: mappedStatus != RailCommunityInsightStatus.expired,
+          message: mappedStatus == RailCommunityInsightStatus.expired
+              ? RailBoardTexts.communityExpiredMessage
+              : null,
         ),
       ),
     );
@@ -376,7 +368,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
               insightStatus: RailCommunityInsightStatus.empty,
               clearOverlay: true,
               predictedStopTimes: const [],
-              message: 'No rider updates are available for this train yet.',
+              message: RailBoardTexts.communityNoDataMessage,
             ),
           ),
         );
@@ -384,24 +376,11 @@ class RailBoardCubit extends Cubit<RailBoardState> {
       }
 
       final freshness = overlay.freshnessState;
-      if (freshness == CommunityOverlayFreshness.expired) {
-        _safeEmit(
-          state.copyWith(
-            community: state.community.copyWith(
-              insightStatus: RailCommunityInsightStatus.expired,
-              clearOverlay: true,
-              predictedStopTimes: const [],
-              message:
-                  'Live rider updates are a bit old right now. Showing timetable-only guidance until new updates arrive.',
-            ),
-          ),
-        );
-        return;
-      }
-
       final status = freshness == CommunityOverlayFreshness.fresh
           ? RailCommunityInsightStatus.ready
-          : RailCommunityInsightStatus.stale;
+          : freshness == CommunityOverlayFreshness.staleButUsable
+          ? RailCommunityInsightStatus.stale
+          : RailCommunityInsightStatus.expired;
 
       final predictedStops = _buildPredictedStopTimes(
         tripId: tripId,
@@ -416,7 +395,10 @@ class RailBoardCubit extends Cubit<RailBoardState> {
             insightStatus: status,
             overlay: overlay,
             predictedStopTimes: predictedStops,
-            clearMessage: true,
+            clearMessage: status != RailCommunityInsightStatus.expired,
+            message: status == RailCommunityInsightStatus.expired
+                ? RailBoardTexts.communityExpiredMessage
+                : null,
           ),
         ),
       );
@@ -427,8 +409,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
             insightStatus: RailCommunityInsightStatus.error,
             clearOverlay: true,
             predictedStopTimes: const [],
-            message:
-                'Live rider updates are temporarily unavailable. The timetable is still available.',
+            message: RailBoardTexts.communityOfflineMessage,
           ),
         ),
       );

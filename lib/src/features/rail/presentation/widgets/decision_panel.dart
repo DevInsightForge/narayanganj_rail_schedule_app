@@ -228,14 +228,7 @@ class _CommunityLiveBlock extends StatelessWidget {
               style: textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
             ),
           ],
-          if (community.insightStatus ==
-              RailCommunityInsightStatus.expired) ...[
-            SizedBox(height: tokens.itemGap),
-            Text(
-              'We will keep the timetable current even while live rider updates catch up.',
-              style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),
-            ),
-          ],
+
           if (report.isActionVisible) ...[
             SizedBox(height: tokens.sectionGap),
             if (isReported)

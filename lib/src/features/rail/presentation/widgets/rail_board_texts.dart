@@ -32,7 +32,6 @@ class RailBoardTexts {
 
   // Success / status labels
   static const bestNextTrainEyebrow = 'Best next train';
-  static const liveRiderUpdatesEyebrow = 'Live rider updates';
   static const moreOptionsEyebrow = 'More options';
   static const routeStopsEyebrow = 'Route stops';
   static const scheduledStopsTitle = 'Scheduled stops and live estimates';
@@ -50,24 +49,38 @@ class RailBoardTexts {
   static const delayStatusLabel = 'Delay status';
 
   // Community / rider updates
-  static const communityUpdateShared = 'Your update has been shared';
-  static const sendingUpdate = 'Sending your update...';
-  static const shareArrivalUpdate = 'Share your arrival update';
-  static const updatesUnavailable = 'Rider updates are currently unavailable';
-  static const updateSent = 'Update sent successfully';
+  static const liveRiderUpdatesEyebrow = 'COMMUNITY UPDATES';
+  static const communityUpdateShared = 'Arrival shared with commuters';
+  static const sendingUpdate = 'Sharing your report with commuters...';
+  static const shareArrivalUpdate = 'Share train arrival with commuters';
+  static const updatesUnavailable = 'Reporting currently unavailable';
+  static const updateSent = 'Thank you for updating commuters!';
   static const arrivalSharedThankYou = 'Arrival shared • Thank you!';
-  static const reportingClosedNow = 'Reporting closed now';
+  static const reportingClosedNow = 'Reporting opens near departure';
 
-  static const liveRiderUpdatesLoading = 'Checking for live rider updates...';
-  static const liveRiderUpdatesReady = 'Live rider updates are now available';
-  static const liveRiderUpdatesStale = 'Live rider updates may be a bit older';
-  static const liveRiderUpdatesExpired =
-      'Live rider updates are out of date right now';
-  static const liveRiderUpdatesEmpty = 'No rider updates have been shared yet';
-  static const liveRiderUpdatesError =
-      'Live rider updates are currently unavailable';
-  static const liveRiderUpdatesIdle =
-      'Live rider updates from fellow commuters will appear here';
+  static const liveRiderUpdatesLoading = 'Checking community updates...';
+  static const liveRiderUpdatesReady = 'Live community delay update';
+  static const liveRiderUpdatesStale = 'Recent community update';
+  static const liveRiderUpdatesExpired = 'Timetable may be out of date';
+  static const liveRiderUpdatesEmpty = 'No commuter reports yet for this train';
+  static const liveRiderUpdatesError = 'Community service temporarily offline';
+  static const liveRiderUpdatesIdle = 'Commuter reports will appear here';
+  static const communityExpiredMessage =
+      'Community data may be outdated. Showing the latest available report.';
+  static const communityNoDataMessage =
+      'No commuter reports are available for this train yet.';
+  static const communityOfflineMessage =
+      'Community service is temporarily unavailable. Scheduled timetable remains available.';
+  static const reportSubmissionFailed =
+      'Unable to submit your report. Please try again.';
+
+  static String arrivalConfirmedAt(String stationName) =>
+      'Arrival shared at $stationName. Thank you!';
+
+  static String cooldownWait(int? retryAfterSeconds) =>
+      retryAfterSeconds != null
+      ? 'Report received. Please wait ${retryAfterSeconds}s before submitting again.'
+      : 'Report received. Please wait a moment before submitting again.';
 
   // Route & stops
   static const routeDirectionLabel = 'Route direction';

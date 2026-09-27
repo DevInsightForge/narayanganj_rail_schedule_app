@@ -124,10 +124,7 @@ void main() {
               state.reportSubmissionStatus ==
               RailReportSubmissionStatus.success,
         );
-        expect(
-          successState.reportFeedbackMessage,
-          contains('Arrival confirmed'),
-        );
+        expect(successState.reportFeedbackMessage, contains('Arrival shared'));
         expect(repo.submissions.length, equals(1));
         expect(repo.submissions.first['tripId'], equals('dhk-ngj-2'));
         expect(repo.submissions.first['stationId'], equals('dhaka'));
@@ -187,10 +184,7 @@ void main() {
         (state) =>
             state.reportSubmissionStatus == RailReportSubmissionStatus.error,
       );
-      expect(
-        errorState.reportFeedbackMessage,
-        contains('Failed to submit report'),
-      );
+      expect(errorState.reportFeedbackMessage, contains('Unable to submit'));
       await cubit.close();
     });
   });

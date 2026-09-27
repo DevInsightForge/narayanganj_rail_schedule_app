@@ -72,7 +72,7 @@ void main() {
             tripId: railBoardReportingOverlayResult(
               sessionId: tripId,
               fetchedAt: DateTime(2026, 3, 28, 4, 25),
-              freshnessSeconds: 180,
+              freshnessSeconds: 240,
             ),
           },
         );
@@ -101,7 +101,7 @@ void main() {
             tripId: railBoardReportingOverlayResult(
               sessionId: tripId,
               fetchedAt: DateTime(2026, 3, 28, 4, 25),
-              freshnessSeconds: 360,
+              freshnessSeconds: 1300,
             ),
           },
         );
@@ -117,8 +117,8 @@ void main() {
               state.communityInsightStatus ==
               RailCommunityInsightStatus.expired,
         );
-        expect(insightState.overlay, isNull);
-        expect(insightState.predictedStopTimes, isEmpty);
+        expect(insightState.overlay, isNotNull);
+        expect(insightState.predictedStopTimes, isNotEmpty);
         await cubit.close();
       },
     );
@@ -189,7 +189,7 @@ void main() {
         railBoardReportingOverlayResult(
           sessionId: tripId,
           fetchedAt: now,
-          freshnessSeconds: 350,
+          freshnessSeconds: 1300,
         ),
       );
 
@@ -200,7 +200,7 @@ void main() {
         (state) =>
             state.communityInsightStatus == RailCommunityInsightStatus.expired,
       );
-      expect(expiredState.overlay, isNull);
+      expect(expiredState.overlay, isNotNull);
       await cubit.close();
     });
 

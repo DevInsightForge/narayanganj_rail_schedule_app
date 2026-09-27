@@ -35,14 +35,17 @@ class CommunityOverlay extends Equatable {
       ? DateTime.fromMillisecondsSinceEpoch(lastReportedAt! * 1000)
       : null;
 
+  static const freshWindowSeconds = 180;
+  static const maxUsableWindowSeconds = 1200;
+
   CommunityOverlayFreshness get freshnessState {
-    if (freshness == Freshness.stale || freshnessSeconds > 300) {
+    if (freshnessSeconds > maxUsableWindowSeconds) {
       return CommunityOverlayFreshness.expired;
     }
-    if (freshnessSeconds <= 90) {
-      return CommunityOverlayFreshness.fresh;
+    if (freshness == Freshness.stale || freshnessSeconds > freshWindowSeconds) {
+      return CommunityOverlayFreshness.staleButUsable;
     }
-    return CommunityOverlayFreshness.staleButUsable;
+    return CommunityOverlayFreshness.fresh;
   }
 
   factory CommunityOverlay.fromJson(
