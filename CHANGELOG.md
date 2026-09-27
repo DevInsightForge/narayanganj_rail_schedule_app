@@ -2,7 +2,7 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
-## v2.0.1
+## v2.1.0
 
 - Migrated community backend to Cloudflare Workers edge API with HMAC-SHA256 request signing, replacing Supabase client dependency.
 - Fixed UI layout shifts on the best-next-train card: corrected travel duration display (was showing total ETA instead of journey time), equalized metric tile heights, and locked the report action area to a fixed height.
