@@ -55,6 +55,7 @@ class RailBoardTexts {
   static const shareArrivalUpdate = 'Share your arrival update';
   static const updatesUnavailable = 'Rider updates are currently unavailable';
   static const updateSent = 'Update sent successfully';
+  static const arrivalSharedThankYou = 'Arrival shared • Thank you!';
   static const reportingClosedNow = 'Reporting closed now';
 
   static const liveRiderUpdatesLoading = 'Checking for live rider updates...';
@@ -75,6 +76,8 @@ class RailBoardTexts {
   static const boardHere = 'Board here';
   static const arriveHere = 'Arrive here';
   static const alongRoute = 'Along the route';
+  static const departedHere = 'Departed';
+  static const nextStopHere = 'Next stop';
   static const liveEstimateLabel = 'Live estimate';
   static const plannedLabel = 'Planned';
 
@@ -206,5 +209,13 @@ class RailBoardTexts {
       DelayStatus.majorDelay ||
       DelayStatus.severeDelay => '$delayMinutes minutes late',
     };
+  }
+
+  static String reportsCountLabel(int count) {
+    return count == 1 ? '1 report' : '$count reports';
+  }
+
+  static String cooldownWaitLabel(int seconds) {
+    return 'Cooldown: wait ${seconds}s';
   }
 }

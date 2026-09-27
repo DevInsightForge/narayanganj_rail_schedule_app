@@ -221,18 +221,16 @@ class _SelectionChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = RailBoardTokens.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
     return Opacity(
       opacity: disabled ? 0.45 : 1,
       child: FilledButton.tonal(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
-          foregroundColor: selected
-              ? (isDark ? const Color(0xFF171717) : Colors.white)
-              : null,
+          foregroundColor: selected ? theme.colorScheme.onPrimary : null,
           backgroundColor: selected ? tokens.accent : tokens.primarySurface,
           side: BorderSide(color: selected ? tokens.accent : tokens.border),
-          textStyle: Theme.of(context).textTheme.labelMedium,
+          textStyle: theme.textTheme.labelMedium,
           minimumSize: const Size(0, 34),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           visualDensity: const VisualDensity(horizontal: -1, vertical: -1),

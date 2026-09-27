@@ -1,33 +1,65 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const _primary = Color(0xFF171717);
-  static const _primarySoft = Color(0xFF262626);
-  static const _secondary = Color(0xFFE0E0E0);
-  static const _background = Color(0xFFEBEBEB);
-  static const _surface = Color(0xFFF7F7F7);
-  static const _surfaceMuted = Color(0xFFF1F1F1);
-  static const _textSecondary = Color(0xFF5E5E5E);
-  static const _divider = Color(0xFFD3D3D3);
-  static const _darkPrimary = Color(0xFFD8D8D8);
-  static const _darkPrimarySoft = Color(0xFFC2C2C2);
-  static const _darkSecondary = Color(0xFF262626);
-  static const _darkBackground = Color(0xFF151515);
+  static const _primary = Color(0xFF000000);
+  static const _onPrimary = Color(0xFFFFFFFF);
+  static const _secondary = Color(0xFF262626);
+  static const _background = Color(0xFFF5F5F5);
+  static const _surface = Color(0xFFFFFFFF);
+  static const _surfaceLow = Color(0xFFF5F5F5);
+  static const _surfaceMuted = Color(0xFFEEEEEE);
+  static const _surfaceHigh = Color(0xFFE5E5E5);
+  static const _surfaceHighest = Color(0xFFDCDCDC);
+  static const _textPrimary = Color(0xFF000000);
+  static const _textSecondary = Color(0xFF555555);
+  static const _divider = Color(0xFFE0E0E0);
+  static const _outline = Color(0xFF888888);
+
+  static const _darkPrimary = Color(0xFFFFFFFF);
+  static const _darkOnPrimary = Color(0xFF000000);
+  static const _darkSecondary = Color(0xFFE0E0E0);
+  static const _darkBackground = Color(0xFF000000);
+  static const _darkSurfaceLowest = Color(0xFF0A0A0A);
   static const _darkSurface = Color(0xFF121212);
-  static const _darkSurfaceMuted = Color(0xFF1C1C1C);
-  static const _darkTextSecondary = Color(0xFFA4A4A4);
-  static const _darkDivider = Color(0xFF343434);
+  static const _darkSurfaceLow = Color(0xFF161616);
+  static const _darkSurfaceMuted = Color(0xFF1E1E1E);
+  static const _darkSurfaceHigh = Color(0xFF262626);
+  static const _darkSurfaceHighest = Color(0xFF333333);
+  static const _darkTextPrimary = Color(0xFFFFFFFF);
+  static const _darkTextSecondary = Color(0xFFAAAAAA);
+  static const _darkDivider = Color(0xFF2A2A2A);
+  static const _darkOutline = Color(0xFF777777);
+  static const _shadow = Color(0xFF000000);
 
   static ThemeData light() {
+    const colorScheme = ColorScheme(
+      brightness: Brightness.light,
+      primary: _primary,
+      onPrimary: _onPrimary,
+      primaryContainer: _surfaceHigh,
+      onPrimaryContainer: _primary,
+      secondary: _secondary,
+      onSecondary: _onPrimary,
+      secondaryContainer: _surfaceMuted,
+      onSecondaryContainer: _textPrimary,
+      surface: _surface,
+      onSurface: _textPrimary,
+      surfaceContainerLowest: _surface,
+      surfaceContainerLow: _surfaceLow,
+      surfaceContainer: _surfaceMuted,
+      surfaceContainerHigh: _surfaceHigh,
+      surfaceContainerHighest: _surfaceHighest,
+      onSurfaceVariant: _textSecondary,
+      outline: _outline,
+      outlineVariant: _divider,
+      shadow: _shadow,
+      error: _textPrimary,
+      onError: _onPrimary,
+    );
+
     final base = ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: _primary,
-        brightness: Brightness.light,
-        primary: _primary,
-        secondary: _secondary,
-        surface: _surface,
-      ),
+      colorScheme: colorScheme,
       scaffoldBackgroundColor: _background,
       fontFamily: 'Segoe UI',
       dividerColor: _divider,
@@ -42,52 +74,52 @@ class AppTheme {
           height: 1,
           fontWeight: FontWeight.w800,
           letterSpacing: -1.2,
-          color: _primary,
+          color: _textPrimary,
         ),
         displaySmall: const TextStyle(
           fontSize: 30,
           height: 1.05,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.8,
-          color: _primary,
+          color: _textPrimary,
         ),
         headlineSmall: const TextStyle(
           fontSize: 21,
           height: 1.1,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.5,
-          color: _primary,
+          color: _textPrimary,
         ),
         headlineMedium: const TextStyle(
           fontSize: 19,
           height: 1.1,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.4,
-          color: _primary,
+          color: _textPrimary,
         ),
         titleLarge: const TextStyle(
           fontSize: 17,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.2,
-          color: _primary,
+          color: _textPrimary,
         ),
         titleMedium: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.1,
-          color: _primary,
+          color: _textPrimary,
         ),
         bodyLarge: const TextStyle(
           fontSize: 13,
           height: 1.35,
           fontWeight: FontWeight.w500,
-          color: _primary,
+          color: _textPrimary,
         ),
         bodyMedium: const TextStyle(
           fontSize: 13,
           height: 1.35,
           fontWeight: FontWeight.w500,
-          color: _primary,
+          color: _textPrimary,
         ),
         bodySmall: const TextStyle(
           fontSize: 11,
@@ -105,23 +137,23 @@ class AppTheme {
           fontSize: 12,
           fontWeight: FontWeight.w700,
           letterSpacing: 0,
-          color: _primary,
+          color: _textPrimary,
         ),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: _primary,
+        foregroundColor: _textPrimary,
         surfaceTintColor: Colors.transparent,
       ),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: _surfaceMuted,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0x12171717)),
+          side: const BorderSide(color: _divider),
         ),
         labelStyle: const TextStyle(
-          color: _primarySoft,
+          color: _textPrimary,
           fontWeight: FontWeight.w700,
           fontSize: 12,
         ),
@@ -147,15 +179,34 @@ class AppTheme {
   }
 
   static ThemeData dark() {
+    const colorScheme = ColorScheme(
+      brightness: Brightness.dark,
+      primary: _darkPrimary,
+      onPrimary: _darkOnPrimary,
+      primaryContainer: _darkSurfaceHigh,
+      onPrimaryContainer: _darkPrimary,
+      secondary: _darkSecondary,
+      onSecondary: _darkOnPrimary,
+      secondaryContainer: _darkSurfaceMuted,
+      onSecondaryContainer: _darkTextPrimary,
+      surface: _darkSurface,
+      onSurface: _darkTextPrimary,
+      surfaceContainerLowest: _darkSurfaceLowest,
+      surfaceContainerLow: _darkSurfaceLow,
+      surfaceContainer: _darkSurfaceMuted,
+      surfaceContainerHigh: _darkSurfaceHigh,
+      surfaceContainerHighest: _darkSurfaceHighest,
+      onSurfaceVariant: _darkTextSecondary,
+      outline: _darkOutline,
+      outlineVariant: _darkDivider,
+      shadow: _shadow,
+      error: _darkTextPrimary,
+      onError: _darkOnPrimary,
+    );
+
     final base = ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: _darkPrimary,
-        brightness: Brightness.dark,
-        primary: _darkPrimary,
-        secondary: _darkSecondary,
-        surface: _darkSurface,
-      ),
+      colorScheme: colorScheme,
       scaffoldBackgroundColor: _darkBackground,
       fontFamily: 'Segoe UI',
       dividerColor: _darkDivider,
@@ -170,52 +221,52 @@ class AppTheme {
           height: 1,
           fontWeight: FontWeight.w800,
           letterSpacing: -1.2,
-          color: _darkPrimary,
+          color: _darkTextPrimary,
         ),
         displaySmall: const TextStyle(
           fontSize: 30,
           height: 1.05,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.8,
-          color: _darkPrimary,
+          color: _darkTextPrimary,
         ),
         headlineSmall: const TextStyle(
           fontSize: 21,
           height: 1.1,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.5,
-          color: _darkPrimary,
+          color: _darkTextPrimary,
         ),
         headlineMedium: const TextStyle(
           fontSize: 19,
           height: 1.1,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.4,
-          color: _darkPrimary,
+          color: _darkTextPrimary,
         ),
         titleLarge: const TextStyle(
           fontSize: 17,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.2,
-          color: _darkPrimary,
+          color: _darkTextPrimary,
         ),
         titleMedium: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.1,
-          color: _darkPrimary,
+          color: _darkTextPrimary,
         ),
         bodyLarge: const TextStyle(
           fontSize: 13,
           height: 1.35,
           fontWeight: FontWeight.w500,
-          color: _darkPrimary,
+          color: _darkTextPrimary,
         ),
         bodyMedium: const TextStyle(
           fontSize: 13,
           height: 1.35,
           fontWeight: FontWeight.w500,
-          color: _darkPrimary,
+          color: _darkTextPrimary,
         ),
         bodySmall: const TextStyle(
           fontSize: 11,
@@ -233,23 +284,23 @@ class AppTheme {
           fontSize: 12,
           fontWeight: FontWeight.w700,
           letterSpacing: 0,
-          color: _darkPrimary,
+          color: _darkTextPrimary,
         ),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: _darkPrimary,
+        foregroundColor: _darkTextPrimary,
         surfaceTintColor: Colors.transparent,
       ),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: _darkSurfaceMuted,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0x26F5F5F5)),
+          side: const BorderSide(color: _darkDivider),
         ),
         labelStyle: const TextStyle(
-          color: _darkPrimarySoft,
+          color: _darkTextPrimary,
           fontWeight: FontWeight.w700,
           fontSize: 12,
         ),

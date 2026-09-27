@@ -54,6 +54,7 @@ class RailBoardTokens {
   factory RailBoardTokens.of(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final width = MediaQuery.sizeOf(context).width;
     final isTablet = width >= 900;
     final isWide = width >= 700;
@@ -81,20 +82,18 @@ class RailBoardTokens {
       heroRadius: 20,
       panelRadius: 18,
       chipRadius: 12,
-      boardStart: colorScheme.surface,
+      boardStart: theme.scaffoldBackgroundColor,
       boardEnd: colorScheme.surfaceContainerLow,
       primarySurface: colorScheme.surfaceContainerLowest,
       secondarySurface: colorScheme.surfaceContainerLow,
-      accentSurface: theme.brightness == Brightness.dark
+      accentSurface: isDark
           ? colorScheme.surfaceContainerHigh
           : colorScheme.surfaceContainerHighest,
-      border: colorScheme.outlineVariant.withValues(alpha: 0.55),
+      border: colorScheme.outlineVariant,
       textMuted: colorScheme.onSurfaceVariant,
       accent: colorScheme.primary,
-      accentSoft: colorScheme.onSurface.withValues(
-        alpha: theme.brightness == Brightness.dark ? 0.1 : 0.06,
-      ),
-      shadow: colorScheme.shadow.withValues(alpha: 0.12),
+      accentSoft: colorScheme.onSurface.withValues(alpha: isDark ? 0.12 : 0.06),
+      shadow: colorScheme.shadow.withValues(alpha: isDark ? 0.40 : 0.08),
     );
   }
 

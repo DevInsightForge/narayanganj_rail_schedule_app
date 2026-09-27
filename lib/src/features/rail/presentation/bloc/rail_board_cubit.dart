@@ -428,15 +428,17 @@ class RailBoardCubit extends Cubit<RailBoardState> {
             hour,
             minute,
           );
+          final predictedAt = scheduledAt.add(
+            Duration(minutes: overlay.delayMinutes),
+          );
           return PredictedStopTime(
             sessionId: tripId,
             stationId: stop.stationId,
-            predictedAt: scheduledAt.add(
-              Duration(minutes: overlay.delayMinutes),
-            ),
+            predictedAt: predictedAt,
             referenceStationId: nextService.stops.first.stationId,
             origin: DataOrigin.inferred,
             confidence: overlay.confidence,
+            isPassed: predictedAt.isBefore(now),
           );
         })
         .toList(growable: false);

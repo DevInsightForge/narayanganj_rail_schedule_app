@@ -11,6 +11,7 @@ class PredictedStopTime extends Equatable {
     required this.referenceStationId,
     required this.origin,
     required this.confidence,
+    this.isPassed = false,
   });
 
   final String sessionId;
@@ -19,6 +20,7 @@ class PredictedStopTime extends Equatable {
   final String referenceStationId;
   final DataOrigin origin;
   final ReportConfidence confidence;
+  final bool isPassed;
 
   @override
   List<Object> get props => [
@@ -28,5 +30,6 @@ class PredictedStopTime extends Equatable {
     referenceStationId,
     origin,
     confidence,
+    isPassed,
   ];
 }

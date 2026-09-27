@@ -38,6 +38,13 @@ class TimelinePanel extends StatelessWidget {
         prediction.stationId: prediction,
     };
 
+    final hasPassedStops = predictedByStation.values.any((p) => p.isPassed);
+    final firstApproachingIndex = hasPassedStops
+        ? nextService.stops.indexWhere(
+            (stop) => predictedByStation[stop.stationId]?.isPassed != true,
+          )
+        : -1;
+
     return PanelShell(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,6 +71,7 @@ class TimelinePanel extends StatelessWidget {
                   predicted: predictedByStation[nextService.stops[i].stationId],
                   isFirst: i == 0,
                   isLast: i == nextService.stops.length - 1,
+                  isApproaching: i == firstApproachingIndex,
                 ),
                 if (i < nextService.stops.length - 1)
                   Padding(
@@ -93,6 +101,7 @@ class _StopCard extends StatelessWidget {
     required this.predicted,
     required this.isFirst,
     required this.isLast,
+    this.isApproaching = false,
   });
 
   final RailStopSnapshot stop;
@@ -100,18 +109,52 @@ class _StopCard extends StatelessWidget {
   final PredictedStopTime? predicted;
   final bool isFirst;
   final bool isLast;
+  final bool isApproaching;
 
   @override
   Widget build(BuildContext context) {
     final tokens = RailBoardTokens.of(context);
     final textTheme = Theme.of(context).textTheme;
+    final isPassed = predicted?.isPassed == true;
+
+    final cardBorder = isApproaching
+        ? Border.all(color: tokens.accent.withValues(alpha: 0.6), width: 1.5)
+        : Border.all(color: tokens.border);
+
+    final cardColor = isApproaching
+        ? tokens.accentSoft
+        : isPassed
+        ? tokens.secondarySurface.withValues(alpha: 0.5)
+        : tokens.secondarySurface;
+
+    final iconData = isPassed
+        ? Icons.check_circle_outline_rounded
+        : isApproaching
+        ? Icons.navigation_rounded
+        : isFirst
+        ? Icons.login_rounded
+        : isLast
+        ? Icons.flag_rounded
+        : Icons.more_horiz_rounded;
+
+    final iconColor = isPassed ? tokens.textMuted : tokens.accent;
+
+    final subtitleText = isPassed
+        ? RailBoardTexts.departedHere
+        : isFirst
+        ? RailBoardTexts.boardHere
+        : isApproaching
+        ? RailBoardTexts.nextStopHere
+        : isLast
+        ? RailBoardTexts.arriveHere
+        : RailBoardTexts.alongRoute;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
       decoration: BoxDecoration(
-        color: tokens.secondarySurface,
+        color: cardColor,
         borderRadius: BorderRadius.circular(tokens.chipRadius),
-        border: Border.all(color: tokens.border),
+        border: cardBorder,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -120,37 +163,30 @@ class _StopCard extends StatelessWidget {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: isFirst || isLast
+              color: isApproaching || isFirst || isLast
                   ? tokens.accentSoft
                   : tokens.primarySurface,
               borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,
-            child: Icon(
-              isFirst
-                  ? Icons.login_rounded
-                  : isLast
-                  ? Icons.flag_rounded
-                  : Icons.more_horiz_rounded,
-              size: 14,
-              color: tokens.accent,
-            ),
+            child: Icon(iconData, size: 14, color: iconColor),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(stop.stationName, style: textTheme.labelLarge),
+                Text(
+                  stop.stationName,
+                  style: textTheme.labelLarge?.copyWith(
+                    color: isPassed ? tokens.textMuted : null,
+                  ),
+                ),
                 const SizedBox(height: 1),
                 Text(
-                  isFirst
-                      ? RailBoardTexts.boardHere
-                      : isLast
-                      ? RailBoardTexts.arriveHere
-                      : RailBoardTexts.alongRoute,
+                  subtitleText,
                   style: textTheme.bodyMedium?.copyWith(
-                    color: tokens.textMuted,
+                    color: isApproaching ? tokens.accent : tokens.textMuted,
                   ),
                 ),
               ],

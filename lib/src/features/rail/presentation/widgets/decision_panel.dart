@@ -47,7 +47,7 @@ class DecisionPanel extends StatelessWidget {
             subtitle: RailBoardTexts.bestNextTrainSubtitle(
               from: view.snapshot.selectedStationName,
               destination: view.snapshot.destinationStationName,
-              etaLabel: RailBoardCopy.getEtaLabel(nextService.etaMinutes),
+              etaLabel: RailBoardCopy.getDurationLabel(travelMinutes),
             ),
           ),
           SizedBox(height: tokens.sectionGap),
@@ -90,14 +90,14 @@ class DecisionPanel extends StatelessWidget {
               RailMetricTile(
                 label: RailBoardTexts.arrivesLabel,
                 value: RailBoardCopy.formatTimeAmPm(nextService.arrivalTime),
-                detail: RailBoardCopy.getEtaLabel(nextService.etaMinutes),
+                detail: RailBoardCopy.getWaitLabel(nextService.etaMinutes),
                 icon: Icons.flag_rounded,
               ),
             ],
           ),
           if (community.featuresEnabled) ...[
             SizedBox(height: tokens.sectionGap),
-            _CommunityPanel(
+            _CommunityLiveBlock(
               report: report,
               community: community,
               onPressed: () =>
@@ -128,19 +128,22 @@ class _MetricGrid extends StatelessWidget {
         ],
       );
     }
-    return Row(
-      children: [
-        for (var i = 0; i < tiles.length; i++) ...[
-          Expanded(child: tiles[i]),
-          if (i < tiles.length - 1) SizedBox(width: tokens.itemGap),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < tiles.length; i++) ...[
+            Expanded(child: tiles[i]),
+            if (i < tiles.length - 1) SizedBox(width: tokens.itemGap),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
 
-class _CommunityPanel extends StatelessWidget {
-  const _CommunityPanel({
+class _CommunityLiveBlock extends StatelessWidget {
+  const _CommunityLiveBlock({
     required this.report,
     required this.community,
     required this.onPressed,
@@ -153,7 +156,11 @@ class _CommunityPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = RailBoardTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final status = community.overlay;
+    final isReported =
+        report.hasReportedCurrentSession ||
+        report.status == RailReportSubmissionStatus.success;
 
     return PanelShell(
       surface: RailPanelSurface.secondary,
@@ -166,7 +173,7 @@ class _CommunityPanel extends StatelessWidget {
             title: RailBoardTexts.communityHeadline(community.insightStatus),
           ),
           if (status != null) ...[
-            SizedBox(height: tokens.sectionGap),
+            SizedBox(height: tokens.itemGap),
             Wrap(
               spacing: tokens.compactGap,
               runSpacing: tokens.compactGap,
@@ -189,14 +196,36 @@ class _CommunityPanel extends StatelessWidget {
                 ),
               ],
             ),
+            SizedBox(height: tokens.compactGap),
+            Row(
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: status.confidence.score >= 0.6
+                        ? tokens.accent
+                        : tokens.textMuted,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${(status.confidence.score * 100).round()}% confidence • ${RailBoardTexts.freshnessLabel(status.freshnessSeconds)} • ${RailBoardTexts.reportsCountLabel(status.confidence.sampleCount)}',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: tokens.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
           if (community.message != null && community.message!.isNotEmpty) ...[
             SizedBox(height: tokens.itemGap),
             Text(
               community.message!,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
+              style: textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
             ),
           ],
           if (community.insightStatus ==
@@ -204,52 +233,83 @@ class _CommunityPanel extends StatelessWidget {
             SizedBox(height: tokens.itemGap),
             Text(
               'We will keep the timetable current even while live rider updates catch up.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: tokens.textMuted),
+              style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),
             ),
           ],
           if (report.isActionVisible) ...[
             SizedBox(height: tokens.sectionGap),
-            Divider(color: tokens.border, height: 1),
-            SizedBox(height: tokens.sectionGap),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _isSubmitDisabled() ? null : onPressed,
-                icon: Icon(
-                  report.status == RailReportSubmissionStatus.submitting
-                      ? Icons.sync_rounded
-                      : Icons.flag_rounded,
+            if (isReported)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 9,
                 ),
-                label: Text(
-                  RailBoardTexts.communityButtonLabel(
-                    hasReportedCurrentSession: report.hasReportedCurrentSession,
-                    status: report.status,
-                    submitEnabled: report.submitEnabled,
-                    actionReason: report.actionReason,
+                decoration: BoxDecoration(
+                  color: tokens.accentSoft,
+                  borderRadius: BorderRadius.circular(tokens.chipRadius),
+                  border: Border.all(
+                    color: tokens.accent.withValues(alpha: 0.3),
                   ),
                 ),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(36),
-                  visualDensity: const VisualDensity(
-                    horizontal: -2,
-                    vertical: -2,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.check_circle_rounded,
+                      size: 16,
+                      color: tokens.accent,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      RailBoardTexts.arrivalSharedThankYou,
+                      style: textTheme.labelMedium?.copyWith(
+                        color: tokens.accent,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: report.isSubmissionLocked ? null : onPressed,
+                  icon: report.status == RailReportSubmissionStatus.submitting
+                      ? SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        )
+                      : const Icon(Icons.flag_rounded, size: 16),
+                  label: Text(
+                    RailBoardTexts.communityButtonLabel(
+                      hasReportedCurrentSession:
+                          report.hasReportedCurrentSession,
+                      status: report.status,
+                      submitEnabled: report.submitEnabled,
+                      actionReason: report.actionReason,
+                    ),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(36),
+                    visualDensity: const VisualDensity(
+                      horizontal: -2,
+                      vertical: -2,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ],
       ),
     );
-  }
-
-  bool _isSubmitDisabled() {
-    return report.isSubmissionLocked;
   }
 }

@@ -299,6 +299,125 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('timeline panel highlights passed and approaching stops', (
+    tester,
+  ) async {
+    final service = RailBoardService(schedule: loadBundledScheduleFixture());
+    final snapshot = service.getSnapshot(
+      selection: const RailSelection(
+        direction: 'dhaka_to_narayanganj',
+        boardingStationId: 'dhaka',
+        destinationStationId: 'narayanganj',
+      ),
+      now: DateTime(2026, 3, 28, 4, 25),
+    );
+
+    await tester.pumpWidget(
+      _PanelHarness(
+        size: const Size(1100, 900),
+        service: service,
+        child: TimelinePanel(
+          snapshot: snapshot,
+          predictedStopTimes: [
+            PredictedStopTime(
+              sessionId: 'session-1',
+              stationId: 'dhaka',
+              predictedAt: DateTime(2026, 3, 28, 4, 20),
+              referenceStationId: 'dhaka',
+              origin: DataOrigin.inferred,
+              confidence: const ReportConfidence(score: 0.8, sampleCount: 3),
+              isPassed: true,
+            ),
+            PredictedStopTime(
+              sessionId: 'session-1',
+              stationId: 'gandaria',
+              predictedAt: DateTime(2026, 3, 28, 4, 35),
+              referenceStationId: 'dhaka',
+              origin: DataOrigin.inferred,
+              confidence: const ReportConfidence(score: 0.8, sampleCount: 3),
+              isPassed: false,
+            ),
+            PredictedStopTime(
+              sessionId: 'session-1',
+              stationId: 'narayanganj',
+              predictedAt: DateTime(2026, 3, 28, 5, 18),
+              referenceStationId: 'dhaka',
+              origin: DataOrigin.inferred,
+              confidence: const ReportConfidence(score: 0.8, sampleCount: 3),
+              isPassed: false,
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text(RailBoardTexts.departedHere), findsOneWidget);
+    expect(find.byIcon(Icons.check_circle_outline_rounded), findsOneWidget);
+    expect(find.text(RailBoardTexts.nextStopHere), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'decision panel renders unified community telemetry and reported badge',
+    (tester) async {
+      final service = RailBoardService(schedule: loadBundledScheduleFixture());
+      final snapshot = service.getSnapshot(
+        selection: const RailSelection(
+          direction: 'dhaka_to_narayanganj',
+          boardingStationId: 'dhaka',
+          destinationStationId: 'narayanganj',
+        ),
+        now: DateTime(2026, 3, 28, 4, 25),
+      );
+
+      await tester.pumpWidget(
+        _PanelHarness(
+          size: const Size(1100, 900),
+          service: service,
+          child: DecisionPanel(
+            view: RailBoardViewState(
+              selection: const RailSelection(
+                direction: 'dhaka_to_narayanganj',
+                boardingStationId: 'dhaka',
+                destinationStationId: 'narayanganj',
+              ),
+              snapshot: snapshot,
+            ),
+            report: const RailBoardReportState(
+              status: RailReportSubmissionStatus.success,
+              visibility: RailReportVisibility.visible,
+              submitEnabled: false,
+              actionReason: RailReportActionReason.eligible,
+            ),
+            community: RailBoardCommunityState(
+              featuresEnabled: true,
+              insightStatus: RailCommunityInsightStatus.ready,
+              overlay: CommunityOverlay(
+                tripId: 'session-1',
+                serviceDate: '2026-03-28',
+                delayMinutes: 4,
+                delayStatus: DelayStatus.minorDelay,
+                freshness: Freshness.live,
+                confidence: const ReportConfidence(score: 0.85, sampleCount: 5),
+                freshnessSeconds: 60,
+                lastReportedAt:
+                    DateTime(2026, 3, 28, 4, 24).millisecondsSinceEpoch ~/ 1000,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text(RailBoardTexts.arrivalSharedThankYou), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      expect(find.textContaining('85% confidence'), findsOneWidget);
+      expect(find.textContaining('5 reports'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 class _PanelHarness extends StatelessWidget {
