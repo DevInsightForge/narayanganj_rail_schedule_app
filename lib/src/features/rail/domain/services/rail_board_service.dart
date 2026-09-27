@@ -43,43 +43,28 @@ class RailBoardService {
   }
 
   RailSelection changeDirection(String direction) {
-    final stations = getStationsForDirection(direction);
-
-    if (stations.isEmpty) {
-      return createSelection(direction: direction);
-    }
-
-    return RailSelection(
-      direction: direction,
-      boardingStationId: stations.first.id,
-      destinationStationId: stations.last.id,
-    );
+    return createSelection(direction: direction);
   }
 
   RailSelection changeBoardingStation(
     RailSelection selection,
     String boardingStationId,
   ) {
-    final stations = getStationsForDirection(selection.direction);
-    final boardingIndex = stations.indexWhere(
-      (station) => station.id == boardingStationId,
+    final downstreamStations = getDownstreamStations(
+      direction: selection.direction,
+      boardingStationId: boardingStationId,
     );
 
-    if (boardingIndex < 0 || boardingIndex >= stations.length - 1) {
+    if (downstreamStations.isEmpty) {
       return selection;
     }
 
-    final downstreamStations = stations.sublist(boardingIndex + 1);
-    final destinationOptions = getDestinationOptions(
-      selection.direction,
-      boardingStationId,
-    );
     final nextDestinationStationId =
         downstreamStations.any(
           (station) => station.id == selection.destinationStationId,
         )
         ? selection.destinationStationId
-        : destinationOptions.firstWhere((option) => !option.disabled).value;
+        : downstreamStations.last.id;
 
     return selection.copyWith(
       boardingStationId: boardingStationId,
@@ -199,8 +184,6 @@ class RailBoardService {
         .toList(growable: false);
 
     return RailBoardSnapshot(
-      direction: selection.direction,
-      currentTime: _minutesToTime(nowMinutes),
       selectedStationName: _stationName(selection.boardingStationId),
       destinationStationName: _stationName(selection.destinationStationId),
       nextService: limitedServices.isEmpty ? null : limitedServices.first,
@@ -285,8 +268,6 @@ class RailBoardService {
             .where((trip) => trip.directionId == direction.id)
             .map(
               (trip) => _ScheduleView(
-                scheduleId:
-                    '${direction.prefix}-${trip.trainNo.toString().padLeft(2, '0')}',
                 trainNo: trip.trainNo,
                 servicePeriod: trip.servicePeriod,
                 stops: List<RailStopSnapshot>.generate(
@@ -337,7 +318,6 @@ class RailBoardService {
     final travelMinutes = _durationMinutes(departureMinutes, arrivalMinutes);
 
     return RailServiceSnapshot(
-      scheduleId: scheduleView.scheduleId,
       trainNo: scheduleView.trainNo,
       servicePeriod: scheduleView.servicePeriod,
       departureTime: boardingStop.time,
@@ -362,24 +342,15 @@ class RailBoardService {
 
     return _minutesPerDay - fromMinutes + toMinutes;
   }
-
-  String _minutesToTime(int minutes) {
-    final safeMinutes = minutes % _minutesPerDay;
-    final hour = safeMinutes ~/ 60;
-    final minute = safeMinutes % 60;
-    return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-  }
 }
 
 class _ScheduleView {
   const _ScheduleView({
-    required this.scheduleId,
     required this.trainNo,
     required this.servicePeriod,
     required this.stops,
   });
 
-  final String scheduleId;
   final int trainNo;
   final String servicePeriod;
   final List<RailStopSnapshot> stops;

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-enum RailPanelSurface { shell, primary, secondary, accent }
+enum RailPanelSurface { primary, secondary, accent }
 
 class RailBoardTokens {
   const RailBoardTokens({
-    required this.isTablet,
     required this.isWide,
     required this.maxContentWidth,
     required this.pagePadding,
@@ -19,7 +18,6 @@ class RailBoardTokens {
     required this.chipRadius,
     required this.boardStart,
     required this.boardEnd,
-    required this.shellSurface,
     required this.primarySurface,
     required this.secondarySurface,
     required this.accentSurface,
@@ -30,7 +28,6 @@ class RailBoardTokens {
     required this.shadow,
   });
 
-  final bool isTablet;
   final bool isWide;
   final double maxContentWidth;
   final EdgeInsets pagePadding;
@@ -45,7 +42,6 @@ class RailBoardTokens {
   final double chipRadius;
   final Color boardStart;
   final Color boardEnd;
-  final Color shellSurface;
   final Color primarySurface;
   final Color secondarySurface;
   final Color accentSurface;
@@ -63,7 +59,6 @@ class RailBoardTokens {
     final isWide = width >= 700;
 
     return RailBoardTokens(
-      isTablet: isTablet,
       isWide: isWide,
       maxContentWidth: isTablet ? 1040 : 700,
       pagePadding: EdgeInsets.fromLTRB(
@@ -88,9 +83,6 @@ class RailBoardTokens {
       chipRadius: 12,
       boardStart: colorScheme.surface,
       boardEnd: colorScheme.surfaceContainerLow,
-      shellSurface: colorScheme.surface.withValues(
-        alpha: theme.brightness == Brightness.dark ? 0.94 : 0.88,
-      ),
       primarySurface: colorScheme.surfaceContainerLowest,
       secondarySurface: colorScheme.surfaceContainerLow,
       accentSurface: theme.brightness == Brightness.dark
@@ -108,7 +100,6 @@ class RailBoardTokens {
 
   Color surfaceFor(RailPanelSurface surface) {
     return switch (surface) {
-      RailPanelSurface.shell => shellSurface,
       RailPanelSurface.primary => primarySurface,
       RailPanelSurface.secondary => secondarySurface,
       RailPanelSurface.accent => accentSurface,

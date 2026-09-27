@@ -34,8 +34,8 @@ class FooterContent {
 }
 
 const railFooterContent = FooterContent(
-  appName: RailBoardTexts.footerAppName,
-  appVersion: RailBoardTexts.footerAppVersion,
+  appName: RailBoardTexts.appName,
+  appVersion: RailBoardTexts.appVersion,
   tagline: RailBoardTexts.footerTagline,
   author: 'ZèD',
   authorUrl: 'https://imzihad21.github.io/about/',

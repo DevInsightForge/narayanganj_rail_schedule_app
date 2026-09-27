@@ -1,38 +1,20 @@
 import 'dart:async';
 
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/arrival_report_submission.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_overlay_result.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_session_aggregate.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/data_origin.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_overlay.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/delay_status.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/device_identity.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/auth_readiness.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/predicted_stop_time.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/freshness.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/report_confidence.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/session_status_snapshot.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/train_session.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/arrival_report_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/device_identity_repository.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/services/community_session_aggregate_reducer.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/repositories/community_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_schedule.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/selection_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_cubit.dart';
 
-import 'community_fakes.dart';
-
 RailBoardCubit buildRailBoardReportingCubit({
   required RailSchedule bundledSchedule,
-  required ArrivalReportRepository arrivalReportRepository,
-  required FakeArrivalReportLedgerRepository arrivalReportLedgerRepository,
-  required FakeCommunityOverlayRepository communityOverlayRepository,
-  required DeviceIdentityRepository deviceIdentityRepository,
+  required CommunityRepository communityRepository,
   bool communityFeaturesEnabled = true,
-  bool communityDebugBypassEnabled = false,
   required DateTime Function() nowProvider,
 }) {
   return RailBoardCubit(
@@ -44,57 +26,30 @@ RailBoardCubit buildRailBoardReportingCubit({
         destinationStationId: 'narayanganj',
       ),
     ),
-    sessionRepository: FakeSessionRepository(
-      seed: seedRailBoardReportingSessions(),
-    ),
-    arrivalReportRepository: arrivalReportRepository,
-    arrivalReportLedgerRepository: arrivalReportLedgerRepository,
-    communityOverlayRepository: communityOverlayRepository,
-    deviceIdentityRepository: deviceIdentityRepository,
+    communityRepository: communityRepository,
     communityFeaturesEnabled: communityFeaturesEnabled,
-    communityDebugBypassEnabled: communityDebugBypassEnabled,
     nowProvider: nowProvider,
     enableTicker: false,
   );
 }
 
-CommunityOverlayResult railBoardReportingOverlayResult({
+CommunityOverlay railBoardReportingOverlayResult({
   required String sessionId,
   required DateTime fetchedAt,
   required int freshnessSeconds,
 }) {
-  return CommunityOverlayResult(
-    sessionStatusSnapshot: SessionStatusSnapshot(
-      sessionId: sessionId,
-      state: SessionLifecycleState.active,
-      delayMinutes: 4,
-      delayStatus: DelayStatus.late,
-      confidence: const ReportConfidence(
-        score: 0.85,
-        sampleSize: 3,
-        freshnessSeconds: 30,
-        agreementScore: 0.8,
-      ),
-      freshnessSeconds: freshnessSeconds,
-      lastObservedAt: fetchedAt.subtract(const Duration(minutes: 1)),
-    ),
-    predictedStopTimes: [
-      PredictedStopTime(
-        sessionId: sessionId,
-        stationId: 'narayanganj',
-        predictedAt: fetchedAt.add(const Duration(minutes: 40)),
-        referenceStationId: 'dhaka',
-        origin: DataOrigin.community,
-        confidence: const ReportConfidence(
-          score: 0.8,
-          sampleSize: 3,
-          freshnessSeconds: 30,
-          agreementScore: 0.75,
-        ),
-      ),
-    ],
-    fetchedAt: fetchedAt,
-    fromCache: false,
+  return CommunityOverlay(
+    tripId: sessionId,
+    serviceDate: '2026-03-28',
+    delayMinutes: 4,
+    delayStatus: DelayStatus.minorDelay,
+    freshness: Freshness.live,
+    confidence: const ReportConfidence(score: 0.85, sampleCount: 3),
+    lastReportedStation: 'dhaka',
+    lastReportedAt:
+        fetchedAt.subtract(const Duration(minutes: 1)).millisecondsSinceEpoch ~/
+        1000,
+    freshnessSeconds: freshnessSeconds,
   );
 }
 
@@ -107,34 +62,6 @@ Future<RailBoardState> waitForRailBoardState(
     return current;
   }
   return cubit.stream.firstWhere(predicate);
-}
-
-List<TrainSession> seedRailBoardReportingSessions() {
-  const factory = TrainSessionFactory();
-  final template = ScheduleTemplate(
-    templateId: 'route:02',
-    routeId: 'narayanganj_line',
-    directionId: 'dhaka_to_narayanganj',
-    trainNo: 2,
-    servicePeriod: 'early_morning',
-    stops: const [
-      StationStop(
-        stationId: 'dhaka',
-        stationName: 'Dhaka',
-        sequence: 0,
-        scheduledTime: '04:30',
-      ),
-      StationStop(
-        stationId: 'narayanganj',
-        stationName: 'Narayanganj',
-        sequence: 1,
-        scheduledTime: '05:15',
-      ),
-    ],
-  );
-  return [
-    factory.create(template: template, serviceDate: DateTime(2026, 3, 28)),
-  ];
 }
 
 class _InMemorySelectionRepository implements SelectionRepository {
@@ -151,106 +78,35 @@ class _InMemorySelectionRepository implements SelectionRepository {
   }
 }
 
-class FlakyArrivalReportRepository implements ArrivalReportRepository {
+class FlakyCommunityRepository implements CommunityRepository {
   bool failSubmission = true;
-  final List<ArrivalReport> submitted = [];
-  final Map<String, CommunitySessionAggregate> _aggregates =
-      <String, CommunitySessionAggregate>{};
-  final CommunitySessionAggregateReducer _reducer =
-      const CommunitySessionAggregateReducer();
+  ArrivalReportResult reportResult = const ArrivalReportResult.accepted();
+  final List<Map<String, dynamic>> submitted = [];
 
   @override
-  Future<List<ArrivalReport>> fetchStopReports({
-    required String sessionId,
-    required DateTime serviceDate,
-    required String stationId,
+  Future<CommunityOverlay?> fetchOverlay({
+    required String tripId,
+    String? serviceDate,
   }) async {
-    return submitted
-        .where(
-          (report) =>
-              report.sessionId == sessionId && report.stationId == stationId,
-        )
-        .toList(growable: false);
+    return null;
   }
 
   @override
-  Future<int> fetchStationSubmissionCount({
-    required String sessionId,
-    required DateTime serviceDate,
+  Future<ArrivalReportResult> submitArrivalReport({
+    required String tripId,
     required String stationId,
+    int? delayMinutes,
+    String? serviceDate,
   }) async {
-    return submitted
-        .where(
-          (report) =>
-              report.sessionId == sessionId && report.stationId == stationId,
-        )
-        .length;
-  }
-
-  @override
-  Future<CommunitySessionAggregate> submitArrivalReport(
-    ArrivalReportSubmission submission,
-  ) async {
     if (failSubmission) {
       throw StateError('offline');
     }
-    submitted.add(submission.report);
-    final key = _key(
-      submission.session.sessionId,
-      submission.session.serviceDate,
-    );
-    final next = _reducer.reduce(
-      current: _aggregates[key],
-      submission: submission,
-      now: submission.report.submittedAt,
-    );
-    _aggregates[key] = next;
-    return next;
+    submitted.add({
+      'tripId': tripId,
+      'stationId': stationId,
+      'delayMinutes': delayMinutes,
+      'serviceDate': serviceDate,
+    });
+    return reportResult;
   }
-
-  String _key(String sessionId, DateTime serviceDate) {
-    final year = serviceDate.year.toString().padLeft(4, '0');
-    final month = serviceDate.month.toString().padLeft(2, '0');
-    final day = serviceDate.day.toString().padLeft(2, '0');
-    return '$sessionId::$year$month$day';
-  }
-}
-
-class FixedDeviceIdentityRepository implements DeviceIdentityRepository {
-  FixedDeviceIdentityRepository()
-    : identity = DeviceIdentity(
-        deviceId: 'device-1',
-        createdAt: DateTime(2026, 3, 28, 4),
-        lastSeenAt: DateTime(2026, 3, 28, 4),
-      );
-
-  final DeviceIdentity identity;
-
-  @override
-  Future<AuthReadiness> readAuthReadiness({String? attemptId}) async {
-    return AuthReadiness.ready(identity.deviceId);
-  }
-
-  @override
-  Future<DeviceIdentity> readOrCreateIdentity({String? attemptId}) async =>
-      identity;
-}
-
-class ResolvingDeviceIdentityRepository implements DeviceIdentityRepository {
-  ResolvingDeviceIdentityRepository({
-    required Future<AuthReadiness> readiness,
-    required this.identity,
-  }) : _readiness = readiness;
-
-  final Future<AuthReadiness> _readiness;
-  final DeviceIdentity identity;
-
-  @override
-  Future<AuthReadiness> readAuthReadiness({String? attemptId}) {
-    return _readiness;
-  }
-
-  @override
-  Future<DeviceIdentity> readOrCreateIdentity({String? attemptId}) async =>
-      identity;
 }

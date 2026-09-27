@@ -98,7 +98,6 @@ class DecisionPanel extends StatelessWidget {
           if (community.featuresEnabled) ...[
             SizedBox(height: tokens.sectionGap),
             _CommunityPanel(
-              view: view,
               report: report,
               community: community,
               onPressed: () =>
@@ -142,13 +141,11 @@ class _MetricGrid extends StatelessWidget {
 
 class _CommunityPanel extends StatelessWidget {
   const _CommunityPanel({
-    required this.view,
     required this.report,
     required this.community,
     required this.onPressed,
   });
 
-  final RailBoardViewState view;
   final RailBoardReportState report;
   final RailBoardCommunityState community;
   final VoidCallback onPressed;
@@ -156,7 +153,7 @@ class _CommunityPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = RailBoardTokens.of(context);
-    final status = community.sessionStatusSnapshot;
+    final status = community.overlay;
 
     return PanelShell(
       surface: RailPanelSurface.secondary,

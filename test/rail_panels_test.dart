@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_overlay.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/data_origin.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/delay_status.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/auth_readiness.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/freshness.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/predicted_stop_time.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/report_confidence.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/session_status_snapshot.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/application/models/rail_reporting.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
@@ -49,12 +49,7 @@ void main() {
               predictedAt: DateTime(2026, 3, 28, 5, 18),
               referenceStationId: 'dhaka',
               origin: DataOrigin.inferred,
-              confidence: const ReportConfidence(
-                score: 0.65,
-                sampleSize: 2,
-                freshnessSeconds: 120,
-                agreementScore: 0.7,
-              ),
+              confidence: const ReportConfidence(score: 0.65, sampleCount: 2),
             ),
           ],
         ),
@@ -161,7 +156,6 @@ void main() {
           ),
           report: const RailBoardReportState(
             status: RailReportSubmissionStatus.idle,
-            authReadiness: AuthReadiness.ready('device-1'),
             visibility: RailReportVisibility.visible,
             submitEnabled: true,
             actionReason: RailReportActionReason.eligible,
@@ -169,19 +163,16 @@ void main() {
           community: RailBoardCommunityState(
             featuresEnabled: true,
             insightStatus: RailCommunityInsightStatus.ready,
-            sessionStatusSnapshot: SessionStatusSnapshot(
-              sessionId: 'session-1',
-              state: SessionLifecycleState.active,
+            overlay: CommunityOverlay(
+              tripId: 'session-1',
+              serviceDate: '2026-03-28',
               delayMinutes: 4,
-              delayStatus: DelayStatus.late,
-              confidence: const ReportConfidence(
-                score: 0.8,
-                sampleSize: 3,
-                freshnessSeconds: 30,
-                agreementScore: 0.75,
-              ),
+              delayStatus: DelayStatus.minorDelay,
+              freshness: Freshness.live,
+              confidence: const ReportConfidence(score: 0.8, sampleCount: 3),
               freshnessSeconds: 45,
-              lastObservedAt: DateTime(2026, 3, 28, 4, 24),
+              lastReportedAt:
+                  DateTime(2026, 3, 28, 4, 24).millisecondsSinceEpoch ~/ 1000,
             ),
           ),
         ),
@@ -259,7 +250,6 @@ void main() {
             ),
             report: const RailBoardReportState(
               status: RailReportSubmissionStatus.idle,
-              authReadiness: AuthReadiness.ready('device-1'),
               visibility: RailReportVisibility.visible,
               submitEnabled: false,
               actionReason: RailReportActionReason.afterWindow,

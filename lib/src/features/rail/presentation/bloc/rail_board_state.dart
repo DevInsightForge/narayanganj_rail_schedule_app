@@ -1,8 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../community/domain/entities/auth_readiness.dart';
+import '../../../community/domain/entities/community_overlay.dart';
 import '../../../community/domain/entities/predicted_stop_time.dart';
-import '../../../community/domain/entities/session_status_snapshot.dart';
 import '../../application/models/rail_reporting.dart';
 import '../../domain/entities/rail_selection.dart';
 import '../../domain/entities/rail_snapshot.dart';
@@ -32,8 +31,6 @@ class RailBoardViewState extends Equatable {
     this.boardingStations = const [],
     this.destinationStations = const [],
     this.snapshot = const RailBoardSnapshot(
-      direction: '',
-      currentTime: '',
       selectedStationName: '',
       destinationStationName: '',
       nextService: null,
@@ -79,7 +76,6 @@ class RailBoardReportState extends Equatable {
     this.status = RailReportSubmissionStatus.idle,
     this.feedbackMessage,
     this.actionReason = RailReportActionReason.noSession,
-    this.authReadiness = const AuthReadiness.unknown(),
     this.visibility = RailReportVisibility.hidden,
     this.submitEnabled = false,
     this.hasReportedCurrentSession = false,
@@ -88,7 +84,6 @@ class RailBoardReportState extends Equatable {
   final RailReportSubmissionStatus status;
   final String? feedbackMessage;
   final RailReportActionReason actionReason;
-  final AuthReadiness authReadiness;
   final RailReportVisibility visibility;
   final bool submitEnabled;
   final bool hasReportedCurrentSession;
@@ -103,7 +98,6 @@ class RailBoardReportState extends Equatable {
     RailReportSubmissionStatus? status,
     String? feedbackMessage,
     RailReportActionReason? actionReason,
-    AuthReadiness? authReadiness,
     RailReportVisibility? visibility,
     bool? submitEnabled,
     bool? hasReportedCurrentSession,
@@ -115,7 +109,6 @@ class RailBoardReportState extends Equatable {
           ? null
           : feedbackMessage ?? this.feedbackMessage,
       actionReason: actionReason ?? this.actionReason,
-      authReadiness: authReadiness ?? this.authReadiness,
       visibility: visibility ?? this.visibility,
       submitEnabled: submitEnabled ?? this.submitEnabled,
       hasReportedCurrentSession:
@@ -128,7 +121,6 @@ class RailBoardReportState extends Equatable {
     status,
     feedbackMessage,
     actionReason,
-    authReadiness,
     visibility,
     submitEnabled,
     hasReportedCurrentSession,
@@ -139,37 +131,30 @@ class RailBoardCommunityState extends Equatable {
   const RailBoardCommunityState({
     this.featuresEnabled = true,
     this.insightStatus = RailCommunityInsightStatus.idle,
-    this.lastResolvedInsightStatus = RailCommunityInsightStatus.idle,
-    this.sessionStatusSnapshot,
+    this.overlay,
     this.predictedStopTimes = const [],
     this.message,
   });
 
   final bool featuresEnabled;
   final RailCommunityInsightStatus insightStatus;
-  final RailCommunityInsightStatus lastResolvedInsightStatus;
-  final SessionStatusSnapshot? sessionStatusSnapshot;
+  final CommunityOverlay? overlay;
   final List<PredictedStopTime> predictedStopTimes;
   final String? message;
 
   RailBoardCommunityState copyWith({
     bool? featuresEnabled,
     RailCommunityInsightStatus? insightStatus,
-    RailCommunityInsightStatus? lastResolvedInsightStatus,
-    SessionStatusSnapshot? sessionStatusSnapshot,
+    CommunityOverlay? overlay,
     List<PredictedStopTime>? predictedStopTimes,
     String? message,
-    bool clearSessionStatus = false,
+    bool clearOverlay = false,
     bool clearMessage = false,
   }) {
     return RailBoardCommunityState(
       featuresEnabled: featuresEnabled ?? this.featuresEnabled,
       insightStatus: insightStatus ?? this.insightStatus,
-      lastResolvedInsightStatus:
-          lastResolvedInsightStatus ?? this.lastResolvedInsightStatus,
-      sessionStatusSnapshot: clearSessionStatus
-          ? null
-          : sessionStatusSnapshot ?? this.sessionStatusSnapshot,
+      overlay: clearOverlay ? null : overlay ?? this.overlay,
       predictedStopTimes: predictedStopTimes ?? this.predictedStopTimes,
       message: clearMessage ? null : message ?? this.message,
     );
@@ -179,8 +164,7 @@ class RailBoardCommunityState extends Equatable {
   List<Object?> get props => [
     featuresEnabled,
     insightStatus,
-    lastResolvedInsightStatus,
-    sessionStatusSnapshot,
+    overlay,
     predictedStopTimes,
     message,
   ];
@@ -213,8 +197,7 @@ class RailBoardState extends Equatable {
   String? get reportFeedbackMessage => report.feedbackMessage;
   RailCommunityInsightStatus get communityInsightStatus =>
       community.insightStatus;
-  SessionStatusSnapshot? get sessionStatusSnapshot =>
-      community.sessionStatusSnapshot;
+  CommunityOverlay? get overlay => community.overlay;
   List<PredictedStopTime> get predictedStopTimes =>
       community.predictedStopTimes;
   String? get communityMessage => community.message;

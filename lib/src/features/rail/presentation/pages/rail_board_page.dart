@@ -118,26 +118,21 @@ class _ReadyBoardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final boardService = context.read<RailBoardCubit>().boardService;
-
-    return RepositoryProvider.value(
-      value: boardService,
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: SingleChildScrollView(
-          padding: tokens.pagePadding,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: tokens.maxContentWidth),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const _HeaderSelector(),
-                SizedBox(height: tokens.panelGap),
-                _BoardPanels(tokens: tokens),
-                SizedBox(height: tokens.panelGap),
-                const FooterPanel(),
-              ],
-            ),
+    return Align(
+      alignment: Alignment.topCenter,
+      child: SingleChildScrollView(
+        padding: tokens.pagePadding,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: tokens.maxContentWidth),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _HeaderSelector(),
+              SizedBox(height: tokens.panelGap),
+              _BoardPanels(tokens: tokens),
+              SizedBox(height: tokens.panelGap),
+              const FooterPanel(),
+            ],
           ),
         ),
       ),
@@ -259,9 +254,9 @@ class _UpcomingSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<RailBoardCubit, RailBoardState, RailBoardViewState>(
-      selector: (state) => state.view,
-      builder: (context, view) => UpcomingPanel(snapshot: view.snapshot),
+    return BlocSelector<RailBoardCubit, RailBoardState, RailBoardSnapshot>(
+      selector: (state) => state.view.snapshot,
+      builder: (context, snapshot) => UpcomingPanel(snapshot: snapshot),
     );
   }
 }

@@ -32,7 +32,6 @@ class RailStopSnapshot extends Equatable {
 
 class RailServiceSnapshot extends Equatable {
   const RailServiceSnapshot({
-    required this.scheduleId,
     required this.trainNo,
     required this.servicePeriod,
     required this.departureTime,
@@ -42,7 +41,6 @@ class RailServiceSnapshot extends Equatable {
     required this.stops,
   });
 
-  final String scheduleId;
   final int trainNo;
   final String servicePeriod;
   final String departureTime;
@@ -53,7 +51,6 @@ class RailServiceSnapshot extends Equatable {
 
   @override
   List<Object> get props => [
-    scheduleId,
     trainNo,
     servicePeriod,
     departureTime,
@@ -66,8 +63,6 @@ class RailServiceSnapshot extends Equatable {
 
 class RailBoardSnapshot extends Equatable {
   const RailBoardSnapshot({
-    required this.direction,
-    required this.currentTime,
     required this.selectedStationName,
     required this.destinationStationName,
     required this.nextService,
@@ -75,8 +70,6 @@ class RailBoardSnapshot extends Equatable {
     required this.scheduleVersion,
   });
 
-  final String direction;
-  final String currentTime;
   final String selectedStationName;
   final String destinationStationName;
   final RailServiceSnapshot? nextService;
@@ -84,8 +77,6 @@ class RailBoardSnapshot extends Equatable {
   final String scheduleVersion;
 
   RailBoardSnapshot copyWith({
-    String? direction,
-    String? currentTime,
     String? selectedStationName,
     String? destinationStationName,
     RailServiceSnapshot? nextService,
@@ -93,8 +84,6 @@ class RailBoardSnapshot extends Equatable {
     String? scheduleVersion,
   }) {
     return RailBoardSnapshot(
-      direction: direction ?? this.direction,
-      currentTime: currentTime ?? this.currentTime,
       selectedStationName: selectedStationName ?? this.selectedStationName,
       destinationStationName:
           destinationStationName ?? this.destinationStationName,
@@ -106,8 +95,6 @@ class RailBoardSnapshot extends Equatable {
 
   @override
   List<Object?> get props => [
-    direction,
-    currentTime,
     selectedStationName,
     destinationStationName,
     nextService,

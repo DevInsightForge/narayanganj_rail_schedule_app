@@ -76,13 +76,11 @@ class RailPill extends StatelessWidget {
     super.key,
     required this.label,
     this.value,
-    this.icon,
     this.accent = false,
   });
 
   final String label;
   final String? value;
-  final IconData? icon;
   final bool accent;
 
   @override
@@ -99,30 +97,17 @@ class RailPill extends StatelessWidget {
           color: accent ? tokens.accent.withValues(alpha: 0.24) : tokens.border,
         ),
       ),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 3,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          if (icon != null)
-            Icon(
-              icon,
-              size: 14,
-              color: accent ? tokens.accent : tokens.textMuted,
-            ),
-          RichText(
-            text: TextSpan(
-              style: textTheme.labelMedium?.copyWith(
-                color: accent ? tokens.accent : tokens.textMuted,
-              ),
-              children: [
-                TextSpan(text: value == null ? label : '$label  '),
-                if (value != null)
-                  TextSpan(text: value!, style: textTheme.labelMedium),
-              ],
-            ),
+      child: RichText(
+        text: TextSpan(
+          style: textTheme.labelMedium?.copyWith(
+            color: accent ? tokens.accent : tokens.textMuted,
           ),
-        ],
+          children: [
+            TextSpan(text: value == null ? label : '$label  '),
+            if (value != null)
+              TextSpan(text: value!, style: textTheme.labelMedium),
+          ],
+        ),
       ),
     );
   }

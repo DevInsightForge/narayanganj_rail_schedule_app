@@ -68,14 +68,6 @@ class RailBoardTexts {
   static const liveRiderUpdatesIdle =
       'Live rider updates from fellow commuters will appear here';
 
-  static const noMatchingTrainActive =
-      'No matching train is active at the moment.';
-  static const noRiderUpdatesAvailable =
-      'No rider updates are available for this train yet.';
-
-  static const liveUpdatesTemporarilyUnavailable =
-      'Live rider updates are temporarily unavailable. The official timetable is still available for you.';
-
   // Route & stops
   static const routeDirectionLabel = 'Route direction';
   static const boardFromLabel = 'Board from';
@@ -157,9 +149,6 @@ class RailBoardTexts {
   static const footerAboutParagraphTwo =
       'Optional rider updates from fellow commuters provide additional real-time context about possible delays, but they do not replace the official published timetable.';
 
-  static const footerAppName = appName;
-  static const footerAppVersion = appVersion;
-
   // Dynamic helpers
   static String communityHeadline(RailCommunityInsightStatus status) {
     return switch (status) {
@@ -213,7 +202,9 @@ class RailBoardTexts {
     return switch (delayStatus) {
       DelayStatus.early => '${delayMinutes.abs()} minutes early',
       DelayStatus.onTime => 'On time',
-      DelayStatus.late => '$delayMinutes minutes late',
+      DelayStatus.minorDelay ||
+      DelayStatus.majorDelay ||
+      DelayStatus.severeDelay => '$delayMinutes minutes late',
     };
   }
 }

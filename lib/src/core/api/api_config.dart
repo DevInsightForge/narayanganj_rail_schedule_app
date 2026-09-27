@@ -4,7 +4,7 @@ class ApiConfig {
   const ApiConfig({
     required this.baseUrl,
     required this.enabled,
-    this.apiKey,
+    this.apiSecret,
     this.timeout = const Duration(seconds: 10),
   });
 
@@ -16,17 +16,22 @@ class ApiConfig {
     final baseUrl = (rawBaseUrl != null && rawBaseUrl.isNotEmpty)
         ? rawBaseUrl
         : '';
-    final rawApiKey =
-        (reader('COMMUNITY_API_KEY') ?? reader('SUPABASE_ANON_KEY'))?.trim();
-    final apiKey = (rawApiKey != null && rawApiKey.isNotEmpty)
-        ? rawApiKey
+    final rawSecret = reader('COMMUNITY_API_SECRET')?.trim();
+    final apiSecret = (rawSecret != null && rawSecret.isNotEmpty)
+        ? rawSecret
         : null;
 
-    return ApiConfig(baseUrl: baseUrl, enabled: enabled, apiKey: apiKey);
+    return ApiConfig(baseUrl: baseUrl, enabled: enabled, apiSecret: apiSecret);
   }
 
   final String baseUrl;
   final bool enabled;
-  final String? apiKey;
+  final String? apiSecret;
   final Duration timeout;
+
+  bool get isValid =>
+      enabled &&
+      baseUrl.isNotEmpty &&
+      apiSecret != null &&
+      apiSecret!.isNotEmpty;
 }

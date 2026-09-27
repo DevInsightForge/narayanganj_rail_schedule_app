@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/train_session.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/selection_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
@@ -108,42 +105,10 @@ RailBoardCubit _buildCubit() {
         destinationStationId: 'narayanganj',
       ),
     ),
-    sessionRepository: FakeSessionRepository(seed: _seedSessions()),
-    arrivalReportRepository: FakeArrivalReportRepository(),
-    arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
-    communityOverlayRepository: FakeCommunityOverlayRepository(),
-    deviceIdentityRepository: FakeDeviceIdentityRepository(),
+    communityRepository: FakeCommunityRepository(),
     enableTicker: false,
     nowProvider: () => DateTime(2026, 3, 28, 4, 25),
   );
-}
-
-List<TrainSession> _seedSessions() {
-  const factory = TrainSessionFactory();
-  final template = ScheduleTemplate(
-    templateId: 'route:02',
-    routeId: 'narayanganj_line',
-    directionId: 'dhaka_to_narayanganj',
-    trainNo: 2,
-    servicePeriod: 'early_morning',
-    stops: const [
-      StationStop(
-        stationId: 'dhaka',
-        stationName: 'Dhaka',
-        sequence: 0,
-        scheduledTime: '04:30',
-      ),
-      StationStop(
-        stationId: 'narayanganj',
-        stationName: 'Narayanganj',
-        sequence: 1,
-        scheduledTime: '05:15',
-      ),
-    ],
-  );
-  return [
-    factory.create(template: template, serviceDate: DateTime(2026, 3, 28)),
-  ];
 }
 
 class _InMemorySelectionRepository implements SelectionRepository {

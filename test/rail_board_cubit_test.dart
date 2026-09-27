@@ -1,7 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/schedule_template.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/train_session.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/services/train_session_factory.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/selection_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
@@ -17,11 +14,7 @@ void main() {
       final cubit = RailBoardCubit(
         boardService: RailBoardService(schedule: bundledSchedule),
         selectionRepository: _InMemorySelectionRepository(),
-        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
-        arrivalReportRepository: FakeArrivalReportRepository(),
-        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
-        communityOverlayRepository: FakeCommunityOverlayRepository(),
-        deviceIdentityRepository: FakeDeviceIdentityRepository(),
+        communityRepository: FakeCommunityRepository(),
       );
 
       final state = await cubit.stream.firstWhere(
@@ -45,11 +38,7 @@ void main() {
       final cubit = RailBoardCubit(
         boardService: RailBoardService(schedule: bundledSchedule),
         selectionRepository: repository,
-        sessionRepository: FakeSessionRepository(seed: _seedSessions()),
-        arrivalReportRepository: FakeArrivalReportRepository(),
-        arrivalReportLedgerRepository: FakeArrivalReportLedgerRepository(),
-        communityOverlayRepository: FakeCommunityOverlayRepository(),
-        deviceIdentityRepository: FakeDeviceIdentityRepository(),
+        communityRepository: FakeCommunityRepository(),
       );
 
       final state = await cubit.stream.firstWhere(
@@ -64,38 +53,9 @@ void main() {
   });
 }
 
-List<TrainSession> _seedSessions() {
-  const sessionFactory = TrainSessionFactory();
-  final template = ScheduleTemplate(
-    templateId: 'route:1',
-    routeId: 'narayanganj_line',
-    directionId: 'dhaka_to_narayanganj',
-    trainNo: 1,
-    servicePeriod: 'morning',
-    stops: const [
-      StationStop(
-        stationId: 'dhaka',
-        stationName: 'Dhaka',
-        sequence: 0,
-        scheduledTime: '08:00',
-      ),
-      StationStop(
-        stationId: 'narayanganj',
-        stationName: 'Narayanganj',
-        sequence: 1,
-        scheduledTime: '08:45',
-      ),
-    ],
-  );
-  return [
-    sessionFactory.create(
-      template: template,
-      serviceDate: DateTime(2026, 3, 28),
-    ),
-  ];
-}
-
 class _InMemorySelectionRepository implements SelectionRepository {
+  _InMemorySelectionRepository();
+
   RailSelection? _selection;
 
   @override

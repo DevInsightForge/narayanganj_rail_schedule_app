@@ -65,8 +65,8 @@ jobs:
 
           cat > .env <<EOF
           COMMUNITY_API_ENABLED=${{ vars.COMMUNITY_API_ENABLED || 'true' }}
-          COMMUNITY_API_BASE_URL=${{ vars.COMMUNITY_API_BASE_URL || secrets.COMMUNITY_API_BASE_URL || 'https://your-project-id.supabase.co' }}
-          COMMUNITY_API_KEY=${{ vars.COMMUNITY_API_KEY || secrets.COMMUNITY_API_KEY || '' }}
+          COMMUNITY_API_BASE_URL=${{ vars.COMMUNITY_API_BASE_URL || secrets.COMMUNITY_API_BASE_URL || '' }}
+          COMMUNITY_API_SECRET=${{ vars.COMMUNITY_API_SECRET || secrets.COMMUNITY_API_SECRET || '' }}
           EOF
 
           test -s .env
