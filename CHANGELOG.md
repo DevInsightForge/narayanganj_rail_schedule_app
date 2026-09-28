@@ -2,6 +2,16 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v2.1.2
+
+- Added system accessibility font and display size scaling support clamped safely between 0.85x and 1.35x.
+- Added compact screen token optimizations for devices under 360dp width.
+- Stacked departure, ride duration, and arrival metric tiles into full-width vertical rows across all screen sizes.
+- Repositioned community update card to the top of the right column on wide/desktop layouts.
+- Removed text truncation and ellipsis to display full station and stop information across hero, upcoming, and timeline panels.
+- Bumped typographic scale by one standard step across light and dark themes.
+- Updated header departure hero to display 'From {station}'.
+
 ## v2.1.1
 
 - Fixed socket network connectivity error on Android release builds by explicitly declaring `android.permission.INTERNET` in the main Android manifest.
