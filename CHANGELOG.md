@@ -2,6 +2,10 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v2.1.1
+
+- Fixed socket network connectivity error on Android release builds by explicitly declaring `android.permission.INTERNET` in the main Android manifest.
+
 ## v2.1.0
 
 - Migrated community backend to Cloudflare Workers edge API with HMAC-SHA256 request signing, replacing Supabase client dependency.
