@@ -47,21 +47,24 @@ void main() {
   });
 
   testWidgets(
-    'desktop wide layout places decision and upcoming in col1, timeline and notice in col2',
+    'desktop wide layout places decision and upcoming in col1, community, timeline and notice in col2',
     (tester) async {
       final wide = await _pumpBoard(tester, const Size(1280, 900));
 
       final decisionOffset = tester.getTopLeft(find.byType(DecisionPanel));
       final upcomingOffset = tester.getTopLeft(find.byType(UpcomingPanel));
+      final communityOffset = tester.getTopLeft(find.byType(CommunityPanel));
       final timelineOffset = tester.getTopLeft(find.byType(TimelinePanel));
       final noticeOffset = tester.getTopLeft(find.byType(NoticePanel));
 
       expect(decisionOffset.dx, equals(upcomingOffset.dx));
+      expect(communityOffset.dx, equals(timelineOffset.dx));
       expect(timelineOffset.dx, equals(noticeOffset.dx));
 
       expect(timelineOffset.dx, greaterThan(decisionOffset.dx));
 
       expect(decisionOffset.dy, lessThan(upcomingOffset.dy));
+      expect(communityOffset.dy, lessThan(timelineOffset.dy));
       expect(timelineOffset.dy, lessThan(noticeOffset.dy));
 
       await wide.close();

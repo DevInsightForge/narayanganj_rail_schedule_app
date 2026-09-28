@@ -58,27 +58,28 @@ class RailBoardTokens {
     final width = MediaQuery.sizeOf(context).width;
     final isTablet = width >= 900;
     final isWide = width >= 700;
+    final isCompact = width < 360;
 
     return RailBoardTokens(
       isWide: isWide,
       maxContentWidth: isTablet ? 1040 : 700,
       pagePadding: EdgeInsets.fromLTRB(
-        isTablet ? 20 : 10,
-        isTablet ? 16 : 8,
-        isTablet ? 20 : 10,
-        isTablet ? 18 : 12,
+        isTablet ? 20 : (isCompact ? 6 : 10),
+        isTablet ? 16 : (isCompact ? 6 : 8),
+        isTablet ? 20 : (isCompact ? 6 : 10),
+        isTablet ? 18 : (isCompact ? 10 : 12),
       ),
-      panelPadding: EdgeInsets.all(isTablet ? 16 : 12),
+      panelPadding: EdgeInsets.all(isTablet ? 16 : (isCompact ? 10 : 12)),
       sheetPadding: EdgeInsets.fromLTRB(
-        isTablet ? 16 : 12,
+        isTablet ? 16 : (isCompact ? 10 : 12),
         0,
-        isTablet ? 16 : 12,
+        isTablet ? 16 : (isCompact ? 10 : 12),
         isTablet ? 44 : 40,
       ),
-      panelGap: isTablet ? 12 : 8,
-      sectionGap: isTablet ? 10 : 8,
-      itemGap: isTablet ? 8 : 6,
-      compactGap: isTablet ? 6 : 4,
+      panelGap: isTablet ? 12 : (isCompact ? 6 : 8),
+      sectionGap: isTablet ? 10 : (isCompact ? 6 : 8),
+      itemGap: isTablet ? 8 : (isCompact ? 5 : 6),
+      compactGap: isTablet ? 6 : (isCompact ? 3 : 4),
       heroRadius: 20,
       panelRadius: 18,
       chipRadius: 12,

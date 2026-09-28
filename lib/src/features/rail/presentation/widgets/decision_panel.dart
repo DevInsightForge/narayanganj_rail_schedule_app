@@ -14,11 +14,13 @@ class DecisionPanel extends StatelessWidget {
     required this.view,
     required this.report,
     required this.community,
+    this.showCommunity = true,
   });
 
   final RailBoardViewState view;
   final RailBoardReportState report;
   final RailBoardCommunityState community;
+  final bool showCommunity;
 
   @override
   Widget build(BuildContext context) {
@@ -95,9 +97,9 @@ class DecisionPanel extends StatelessWidget {
               ),
             ],
           ),
-          if (community.featuresEnabled) ...[
+          if (showCommunity && community.featuresEnabled) ...[
             SizedBox(height: tokens.sectionGap),
-            _CommunityLiveBlock(
+            CommunityPanel(
               report: report,
               community: community,
               onPressed: () =>
@@ -118,40 +120,30 @@ class _MetricGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = RailBoardTokens.of(context);
-    if (!tokens.isWide) {
-      return Column(
-        children: [
-          for (var i = 0; i < tiles.length; i++) ...[
-            tiles[i],
-            if (i < tiles.length - 1) SizedBox(height: tokens.itemGap),
-          ],
+    return Column(
+      children: [
+        for (var i = 0; i < tiles.length; i++) ...[
+          tiles[i],
+          if (i < tiles.length - 1) SizedBox(height: tokens.itemGap),
         ],
-      );
-    }
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var i = 0; i < tiles.length; i++) ...[
-            Expanded(child: tiles[i]),
-            if (i < tiles.length - 1) SizedBox(width: tokens.itemGap),
-          ],
-        ],
-      ),
+      ],
     );
   }
 }
 
-class _CommunityLiveBlock extends StatelessWidget {
-  const _CommunityLiveBlock({
+class CommunityPanel extends StatelessWidget {
+  const CommunityPanel({
+    super.key,
     required this.report,
     required this.community,
-    required this.onPressed,
+    this.onPressed,
+    this.isStandalone = false,
   });
 
   final RailBoardReportState report;
   final RailBoardCommunityState community;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+  final bool isStandalone;
 
   @override
   Widget build(BuildContext context) {
@@ -163,8 +155,10 @@ class _CommunityLiveBlock extends StatelessWidget {
         report.status == RailReportSubmissionStatus.success;
 
     return PanelShell(
-      surface: RailPanelSurface.secondary,
-      padding: const EdgeInsets.all(12),
+      surface: isStandalone
+          ? RailPanelSurface.primary
+          : RailPanelSurface.secondary,
+      padding: isStandalone ? tokens.panelPadding : const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -254,10 +248,13 @@ class _CommunityLiveBlock extends StatelessWidget {
                       color: tokens.accent,
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      RailBoardTexts.arrivalSharedThankYou,
-                      style: textTheme.labelMedium?.copyWith(
-                        color: tokens.accent,
+                    Flexible(
+                      child: Text(
+                        RailBoardTexts.arrivalSharedThankYou,
+                        style: textTheme.labelMedium?.copyWith(
+                          color: tokens.accent,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ],

@@ -97,8 +97,8 @@ class RailPill extends StatelessWidget {
           color: accent ? tokens.accent.withValues(alpha: 0.24) : tokens.border,
         ),
       ),
-      child: RichText(
-        text: TextSpan(
+      child: Text.rich(
+        TextSpan(
           style: textTheme.labelMedium?.copyWith(
             color: accent ? tokens.accent : tokens.textMuted,
           ),

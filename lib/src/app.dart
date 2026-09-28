@@ -39,7 +39,15 @@ class NarayanganjRailScheduleApp extends StatelessWidget {
               systemNavigationBarContrastEnforced: false,
             ),
           );
-          return child ?? const SizedBox.shrink();
+          final mediaQuery = MediaQuery.of(context);
+          final clampedScaler = mediaQuery.textScaler.clamp(
+            minScaleFactor: 0.85,
+            maxScaleFactor: 1.35,
+          );
+          return MediaQuery(
+            data: mediaQuery.copyWith(textScaler: clampedScaler),
+            child: child ?? const SizedBox.shrink(),
+          );
         },
         home: const RailBoardPage(),
       ),

@@ -155,30 +155,21 @@ class _BoardPanels extends StatelessWidget {
             flex: 6,
             child: Column(
               children: [
-                const _DecisionSelector(),
+                const _DecisionSelector(showCommunity: false),
                 SizedBox(height: tokens.panelGap),
                 const _UpcomingSelector(),
               ],
             ),
           ),
           SizedBox(width: tokens.panelGap),
-          Expanded(
-            flex: 5,
-            child: Column(
-              children: [
-                const _TimelineSelector(),
-                SizedBox(height: tokens.panelGap),
-                const NoticePanel(),
-              ],
-            ),
-          ),
+          Expanded(flex: 5, child: _WideRightColumn(tokens: tokens)),
         ],
       );
     }
 
     return Column(
       children: [
-        const _DecisionSelector(),
+        const _DecisionSelector(showCommunity: true),
         SizedBox(height: tokens.panelGap),
         const _TimelineSelector(),
         SizedBox(height: tokens.panelGap),
@@ -186,6 +177,32 @@ class _BoardPanels extends StatelessWidget {
         SizedBox(height: tokens.panelGap),
         const NoticePanel(),
       ],
+    );
+  }
+}
+
+class _WideRightColumn extends StatelessWidget {
+  const _WideRightColumn({required this.tokens});
+
+  final RailBoardTokens tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<RailBoardCubit, RailBoardState, bool>(
+      selector: (state) => state.community.featuresEnabled,
+      builder: (context, featuresEnabled) {
+        return Column(
+          children: [
+            if (featuresEnabled) ...[
+              const _CommunitySelector(),
+              SizedBox(height: tokens.panelGap),
+            ],
+            const _TimelineSelector(),
+            SizedBox(height: tokens.panelGap),
+            const NoticePanel(),
+          ],
+        );
+      },
     );
   }
 }
@@ -203,7 +220,9 @@ class _HeaderSelector extends StatelessWidget {
 }
 
 class _DecisionSelector extends StatelessWidget {
-  const _DecisionSelector();
+  const _DecisionSelector({this.showCommunity = true});
+
+  final bool showCommunity;
 
   @override
   Widget build(BuildContext context) {
@@ -222,6 +241,28 @@ class _DecisionSelector extends StatelessWidget {
         view: slice.view,
         report: slice.report,
         community: slice.community,
+        showCommunity: showCommunity,
+      ),
+    );
+  }
+}
+
+class _CommunitySelector extends StatelessWidget {
+  const _CommunitySelector();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<
+      RailBoardCubit,
+      RailBoardState,
+      ({RailBoardReportState report, RailBoardCommunityState community})
+    >(
+      selector: (state) => (report: state.report, community: state.community),
+      builder: (context, slice) => CommunityPanel(
+        report: slice.report,
+        community: slice.community,
+        isStandalone: true,
+        onPressed: () => context.read<RailBoardCubit>().submitArrivalReport(),
       ),
     );
   }

@@ -53,10 +53,7 @@ class HeaderPanelHero extends StatelessWidget {
                     : RailBoardTexts.departureHeroDetail(nextService.trainNo),
                 detailLineTwo: nextService == null
                     ? null
-                    : _routeSummary(
-                        from: view.snapshot.selectedStationName,
-                        destination: view.snapshot.destinationStationName,
-                      ),
+                    : _routeSummary(from: view.snapshot.selectedStationName),
               ),
             ],
           )
@@ -85,10 +82,7 @@ class HeaderPanelHero extends StatelessWidget {
                     : RailBoardTexts.departureHeroDetail(nextService.trainNo),
                 detailLineTwo: nextService == null
                     ? null
-                    : _routeSummary(
-                        from: view.snapshot.selectedStationName,
-                        destination: view.snapshot.destinationStationName,
-                      ),
+                    : _routeSummary(from: view.snapshot.selectedStationName),
               ),
             ],
           );
@@ -101,11 +95,8 @@ class HeaderPanelHero extends StatelessWidget {
     return 'Board at $from and travel to $destination.';
   }
 
-  static String _routeSummary({
-    required String from,
-    required String destination,
-  }) {
-    return '$from to $destination';
+  static String _routeSummary({required String from}) {
+    return 'From $from';
   }
 }
 
@@ -175,7 +166,6 @@ class _DepartureHero extends StatelessWidget {
                   Text(
                     detailLineOne,
                     textAlign: TextAlign.end,
-                    softWrap: false,
                     style: textTheme.bodySmall?.copyWith(
                       color: tokens.textMuted,
                     ),
@@ -185,7 +175,6 @@ class _DepartureHero extends StatelessWidget {
                     Text(
                       detailLineTwo!,
                       textAlign: TextAlign.end,
-                      softWrap: false,
                       style: textTheme.bodySmall?.copyWith(
                         color: tokens.textMuted,
                       ),

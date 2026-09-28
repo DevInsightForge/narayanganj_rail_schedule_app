@@ -193,43 +193,52 @@ class _StopCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text.rich(
-                TextSpan(
-                  style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),
-                  children: [
-                    const TextSpan(text: '${RailBoardTexts.plannedLabel} '),
-                    TextSpan(text: scheduledLabel, style: textTheme.labelLarge),
-                  ],
-                ),
-                textAlign: TextAlign.end,
-              ),
-              if (predicted != null) ...[
-                const SizedBox(height: 4),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
                 Text.rich(
                   TextSpan(
-                    style: textTheme.bodySmall?.copyWith(color: tokens.accent),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: tokens.textMuted,
+                    ),
                     children: [
-                      const TextSpan(
-                        text: '${RailBoardTexts.liveEstimateLabel} ',
-                      ),
+                      const TextSpan(text: '${RailBoardTexts.plannedLabel} '),
                       TextSpan(
-                        text: RailBoardCopy.formatTimeAmPm(
-                          '${predicted!.predictedAt.hour.toString().padLeft(2, '0')}:${predicted!.predictedAt.minute.toString().padLeft(2, '0')}',
-                        ),
-                        style: textTheme.labelLarge?.copyWith(
-                          color: tokens.accent,
-                        ),
+                        text: scheduledLabel,
+                        style: textTheme.labelLarge,
                       ),
                     ],
                   ),
                   textAlign: TextAlign.end,
                 ),
+                if (predicted != null) ...[
+                  const SizedBox(height: 4),
+                  Text.rich(
+                    TextSpan(
+                      style: textTheme.bodySmall?.copyWith(
+                        color: tokens.accent,
+                      ),
+                      children: [
+                        const TextSpan(
+                          text: '${RailBoardTexts.liveEstimateLabel} ',
+                        ),
+                        TextSpan(
+                          text: RailBoardCopy.formatTimeAmPm(
+                            '${predicted!.predictedAt.hour.toString().padLeft(2, '0')}:${predicted!.predictedAt.minute.toString().padLeft(2, '0')}',
+                          ),
+                          style: textTheme.labelLarge?.copyWith(
+                            color: tokens.accent,
+                          ),
+                        ),
+                      ],
+                    ),
+                    textAlign: TextAlign.end,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ],
       ),
