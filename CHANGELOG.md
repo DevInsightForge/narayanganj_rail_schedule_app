@@ -2,6 +2,18 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v2.1.3
+
+- Synchronized edge API models and requests with Cloudflare Worker overlay contracts (`GET /overlay?tripId={tripId}&stationId={stationId}`).
+- Adopted server-driven `isReportingAvailable` authority in community overlay to govern report eligibility, dropping client-side wait time threshold logic.
+- Stripped client-computed `delayMinutes` and `serviceDate` from report submission payloads, deferring calculation directly to edge service in BST.
+- Handled HTTP 409 station capacity limit responses from report submissions.
+- Fixed header sub-header text consistency across single-column and wide multi-column screen modes.
+- Expanded departure hero card width on wide displays to prevent station line-wrapping.
+- Relocated Important Travel Notice panel to Column 1 on wide desktop layouts.
+- Streamlined community insight card by removing redundant last-updated and confidence chips, with improved spacing below the delay status chip.
+- Consolidated development, architectural, testing, and release procedures directly into `README.md`.
+
 ## v2.1.2
 
 - Added system accessibility font and display size scaling support clamped safely between 0.85x and 1.35x.
