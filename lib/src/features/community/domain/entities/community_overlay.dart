@@ -17,6 +17,7 @@ class CommunityOverlay extends Equatable {
     this.lastReportedStation,
     this.lastReportedAt,
     this.freshnessSeconds = 0,
+    this.isReportingAvailable = false,
   });
 
   final String tripId;
@@ -28,6 +29,7 @@ class CommunityOverlay extends Equatable {
   final String? lastReportedStation;
   final int? lastReportedAt;
   final int freshnessSeconds;
+  final bool isReportingAvailable;
 
   String get sessionId => tripId;
 
@@ -78,6 +80,7 @@ class CommunityOverlay extends Equatable {
       lastReportedStation: json['lastReportedStation']?.toString(),
       lastReportedAt: (json['lastReportedAt'] as num?)?.toInt(),
       freshnessSeconds: freshnessSeconds,
+      isReportingAvailable: json['isReportingAvailable'] as bool? ?? false,
     );
   }
 
@@ -91,6 +94,7 @@ class CommunityOverlay extends Equatable {
     String? lastReportedStation,
     int? lastReportedAt,
     int? freshnessSeconds,
+    bool? isReportingAvailable,
   }) {
     return CommunityOverlay(
       tripId: tripId ?? this.tripId,
@@ -102,6 +106,7 @@ class CommunityOverlay extends Equatable {
       lastReportedStation: lastReportedStation ?? this.lastReportedStation,
       lastReportedAt: lastReportedAt ?? this.lastReportedAt,
       freshnessSeconds: freshnessSeconds ?? this.freshnessSeconds,
+      isReportingAvailable: isReportingAvailable ?? this.isReportingAvailable,
     );
   }
 
@@ -118,6 +123,7 @@ class CommunityOverlay extends Equatable {
     'lastReportedStation': lastReportedStation,
     'lastReportedAt': lastReportedAt,
     'freshnessSeconds': freshnessSeconds,
+    'isReportingAvailable': isReportingAvailable,
   };
 
   @override
@@ -131,5 +137,6 @@ class CommunityOverlay extends Equatable {
     lastReportedStation,
     lastReportedAt,
     freshnessSeconds,
+    isReportingAvailable,
   ];
 }

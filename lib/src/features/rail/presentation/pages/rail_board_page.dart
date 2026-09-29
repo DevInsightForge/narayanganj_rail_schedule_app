@@ -158,6 +158,8 @@ class _BoardPanels extends StatelessWidget {
                 const _DecisionSelector(showCommunity: false),
                 SizedBox(height: tokens.panelGap),
                 const _UpcomingSelector(),
+                SizedBox(height: tokens.panelGap),
+                const NoticePanel(),
               ],
             ),
           ),
@@ -198,8 +200,6 @@ class _WideRightColumn extends StatelessWidget {
               SizedBox(height: tokens.panelGap),
             ],
             const _TimelineSelector(),
-            SizedBox(height: tokens.panelGap),
-            const NoticePanel(),
           ],
         );
       },

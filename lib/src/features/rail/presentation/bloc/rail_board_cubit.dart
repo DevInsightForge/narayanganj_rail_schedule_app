@@ -167,6 +167,20 @@ class RailBoardCubit extends Cubit<RailBoardState> {
         return;
       }
 
+      if (result.status == ArrivalReportResultStatus.stationCapacityReached) {
+        _safeEmit(
+          state.copyWith(
+            report: state.report.copyWith(
+              status: RailReportSubmissionStatus.error,
+              actionReason: RailReportActionReason.stationCapacityReached,
+              submitEnabled: false,
+              feedbackMessage: RailBoardTexts.updatesUnavailable,
+            ),
+          ),
+        );
+        return;
+      }
+
       if (result.status == ArrivalReportResultStatus.cooldown) {
         _safeEmit(
           state.copyWith(
@@ -263,8 +277,6 @@ class RailBoardCubit extends Cubit<RailBoardState> {
     );
   }
 
-  static const _reportingWindowMinutes = 5;
-
   void _refreshReportAvailability() {
     final nextService = state.snapshot.nextService;
     if (!communityFeaturesEnabled || nextService == null) {
@@ -295,13 +307,13 @@ class RailBoardCubit extends Cubit<RailBoardState> {
       return;
     }
 
-    final isInRange = nextService.waitMinutes <= _reportingWindowMinutes;
+    final isAvailable = state.community.overlay?.isReportingAvailable ?? false;
     _safeEmit(
       state.copyWith(
         report: state.report.copyWith(
           visibility: RailReportVisibility.visible,
-          submitEnabled: isInRange,
-          actionReason: isInRange
+          submitEnabled: isAvailable,
+          actionReason: isAvailable
               ? RailReportActionReason.eligible
               : RailReportActionReason.beforeWindow,
         ),
@@ -360,7 +372,10 @@ class RailBoardCubit extends Cubit<RailBoardState> {
     );
 
     try {
-      final overlay = await _communityRepository.fetchOverlay(tripId: tripId);
+      final overlay = await _communityRepository.fetchOverlay(
+        tripId: tripId,
+        stationId: state.selection.boardingStationId,
+      );
       if (overlay == null) {
         _safeEmit(
           state.copyWith(
@@ -372,6 +387,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
             ),
           ),
         );
+        _refreshReportAvailability();
         return;
       }
 
@@ -402,6 +418,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
           ),
         ),
       );
+      _refreshReportAvailability();
     } catch (_) {
       _safeEmit(
         state.copyWith(
@@ -413,6 +430,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
           ),
         ),
       );
+      _refreshReportAvailability();
     }
   }
 

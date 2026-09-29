@@ -21,7 +21,7 @@ class FakeCommunityRepository implements CommunityRepository {
   @override
   Future<CommunityOverlay?> fetchOverlay({
     required String tripId,
-    String? serviceDate,
+    required String stationId,
   }) async {
     if (failFetch) {
       throw StateError('overlay_fetch_failed');
@@ -34,18 +34,11 @@ class FakeCommunityRepository implements CommunityRepository {
   Future<ArrivalReportResult> submitArrivalReport({
     required String tripId,
     required String stationId,
-    int? delayMinutes,
-    String? serviceDate,
   }) async {
     if (failSubmission) {
       throw StateError('report_submission_failed');
     }
-    submissions.add({
-      'tripId': tripId,
-      'stationId': stationId,
-      'delayMinutes': delayMinutes,
-      'serviceDate': serviceDate,
-    });
+    submissions.add({'tripId': tripId, 'stationId': stationId});
     return nextReportResult;
   }
 }

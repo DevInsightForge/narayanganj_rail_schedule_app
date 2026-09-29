@@ -180,17 +180,9 @@ class CommunityPanel extends StatelessWidget {
                   ),
                   accent: true,
                 ),
-                RailPill(
-                  label: RailBoardTexts.confidenceLabel,
-                  value: '${(status.confidence.score * 100).round()}%',
-                ),
-                RailPill(
-                  label: RailBoardTexts.lastUpdatedLabel,
-                  value: RailBoardTexts.freshnessLabel(status.freshnessSeconds),
-                ),
               ],
             ),
-            SizedBox(height: tokens.compactGap),
+            SizedBox(height: tokens.itemGap),
             Row(
               children: [
                 Container(

@@ -37,6 +37,7 @@ CommunityOverlay railBoardReportingOverlayResult({
   required String sessionId,
   required DateTime fetchedAt,
   required int freshnessSeconds,
+  bool isReportingAvailable = true,
 }) {
   return CommunityOverlay(
     tripId: sessionId,
@@ -50,6 +51,7 @@ CommunityOverlay railBoardReportingOverlayResult({
         fetchedAt.subtract(const Duration(minutes: 1)).millisecondsSinceEpoch ~/
         1000,
     freshnessSeconds: freshnessSeconds,
+    isReportingAvailable: isReportingAvailable,
   );
 }
 
@@ -86,7 +88,7 @@ class FlakyCommunityRepository implements CommunityRepository {
   @override
   Future<CommunityOverlay?> fetchOverlay({
     required String tripId,
-    String? serviceDate,
+    required String stationId,
   }) async {
     return null;
   }
@@ -95,18 +97,11 @@ class FlakyCommunityRepository implements CommunityRepository {
   Future<ArrivalReportResult> submitArrivalReport({
     required String tripId,
     required String stationId,
-    int? delayMinutes,
-    String? serviceDate,
   }) async {
     if (failSubmission) {
       throw StateError('offline');
     }
-    submitted.add({
-      'tripId': tripId,
-      'stationId': stationId,
-      'delayMinutes': delayMinutes,
-      'serviceDate': serviceDate,
-    });
+    submitted.add({'tripId': tripId, 'stationId': stationId});
     return reportResult;
   }
 }

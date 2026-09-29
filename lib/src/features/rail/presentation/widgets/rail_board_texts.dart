@@ -4,7 +4,7 @@ import '../bloc/rail_board_state.dart';
 
 class RailBoardTexts {
   static const appName = 'Narayanganj Commuter';
-  static const appVersion = '2.0.0';
+  static const appVersion = '2.1.2';
 
   // Loading states
   static const loadingBoardTitle = 'Loading your commuter board';

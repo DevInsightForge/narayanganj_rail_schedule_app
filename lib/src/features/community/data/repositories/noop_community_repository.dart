@@ -7,7 +7,7 @@ class NoOpCommunityRepository implements CommunityRepository {
   @override
   Future<CommunityOverlay?> fetchOverlay({
     required String tripId,
-    String? serviceDate,
+    required String stationId,
   }) async {
     return null;
   }
@@ -16,8 +16,6 @@ class NoOpCommunityRepository implements CommunityRepository {
   Future<ArrivalReportResult> submitArrivalReport({
     required String tripId,
     required String stationId,
-    int? delayMinutes,
-    String? serviceDate,
   }) async {
     return const ArrivalReportResult.error('Community features are disabled');
   }

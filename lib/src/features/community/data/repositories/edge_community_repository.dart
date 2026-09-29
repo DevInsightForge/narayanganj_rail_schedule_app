@@ -47,23 +47,20 @@ class EdgeCommunityRepository implements CommunityRepository {
   @override
   Future<CommunityOverlay?> fetchOverlay({
     required String tripId,
-    String? serviceDate,
+    required String stationId,
   }) async {
     final now = _nowProvider();
-    final query = StringBuffer('/overlay?tripId=$tripId');
-    if (serviceDate != null && serviceDate.isNotEmpty) {
-      query.write('&serviceDate=$serviceDate');
-    }
+    final path = '/overlay?tripId=$tripId&stationId=$stationId';
 
     try {
-      final response = await _client.get(query.toString());
+      final response = await _client.get(path);
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
         final overlay = CommunityOverlay.fromJson(json);
         if (overlay.freshness == Freshness.scheduled ||
             overlay.confidence.sampleCount == 0 ||
             overlay.lastReportedAt == null) {
-          return null;
+          return overlay;
         }
         final nowEpoch = now.millisecondsSinceEpoch ~/ 1000;
         final age = nowEpoch - overlay.lastReportedAt!;
@@ -80,8 +77,6 @@ class EdgeCommunityRepository implements CommunityRepository {
   Future<ArrivalReportResult> submitArrivalReport({
     required String tripId,
     required String stationId,
-    int? delayMinutes,
-    String? serviceDate,
   }) async {
     try {
       final deviceId = await _getOrCreateDeviceId();
@@ -90,16 +85,13 @@ class EdgeCommunityRepository implements CommunityRepository {
         'stationId': stationId,
         'deviceId': deviceId,
       };
-      if (delayMinutes != null) {
-        payload['delayMinutes'] = delayMinutes;
-      }
-      if (serviceDate != null && serviceDate.isNotEmpty) {
-        payload['serviceDate'] = serviceDate;
-      }
 
       final response = await _client.post('/reports', payload);
       if (response.statusCode == 202) {
         return const ArrivalReportResult.accepted();
+      }
+      if (response.statusCode == 409) {
+        return const ArrivalReportResult.stationCapacityReached();
       }
       if (response.statusCode == 429) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;

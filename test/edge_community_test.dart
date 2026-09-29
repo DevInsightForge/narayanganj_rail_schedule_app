@@ -60,6 +60,7 @@ void main() {
       final mockHttp = MockClient((request) async {
         expect(request.url.path, equals('/overlay'));
         expect(request.url.queryParameters['tripId'], equals('dhk-ngj-2'));
+        expect(request.url.queryParameters['stationId'], equals('dhaka'));
         return http.Response(
           jsonEncode({
             'tripId': 'dhk-ngj-2',
@@ -70,6 +71,7 @@ void main() {
             'confidence': {'score': 0.7, 'sampleCount': 2},
             'lastReportedStation': 'fatullah',
             'lastReportedAt': 1774602000,
+            'isReportingAvailable': true,
           }),
           200,
         );
@@ -86,11 +88,15 @@ void main() {
             DateTime.fromMillisecondsSinceEpoch(1774602060 * 1000),
       );
 
-      final overlay = await repo.fetchOverlay(tripId: 'dhk-ngj-2');
+      final overlay = await repo.fetchOverlay(
+        tripId: 'dhk-ngj-2',
+        stationId: 'dhaka',
+      );
       expect(overlay, isNotNull);
       expect(overlay!.delayMinutes, equals(7));
       expect(overlay.freshnessSeconds, equals(60));
       expect(overlay.freshnessState, equals(CommunityOverlayFreshness.fresh));
+      expect(overlay.isReportingAvailable, isTrue);
     });
 
     test('handles failure gracefully without throwing', () async {
@@ -105,7 +111,10 @@ void main() {
       );
       final repo = EdgeCommunityRepository(client: hmacClient);
 
-      final overlay = await repo.fetchOverlay(tripId: 'dhk-ngj-2');
+      final overlay = await repo.fetchOverlay(
+        tripId: 'dhk-ngj-2',
+        stationId: 'dhaka',
+      );
       expect(overlay, isNull);
     });
 
@@ -116,6 +125,8 @@ void main() {
         expect(body['tripId'], equals('dhk-ngj-2'));
         expect(body['stationId'], equals('chashara'));
         expect(body['deviceId'], isNotEmpty);
+        expect(body.containsKey('delayMinutes'), isFalse);
+        expect(body.containsKey('serviceDate'), isFalse);
         return http.Response(jsonEncode({'status': 'accepted'}), 202);
       });
 
@@ -131,6 +142,31 @@ void main() {
         stationId: 'chashara',
       );
       expect(result.status, equals(ArrivalReportResultStatus.accepted));
+    });
+
+    test('submits report and receives station cap reached (409)', () async {
+      final mockHttp = MockClient((request) async {
+        return http.Response(
+          jsonEncode({'error': 'Station report cap reached'}),
+          409,
+        );
+      });
+
+      final hmacClient = EdgeHmacClient(
+        baseUrl: baseUrl,
+        appSecret: testSecret,
+        client: mockHttp,
+      );
+      final repo = EdgeCommunityRepository(client: hmacClient);
+
+      final result = await repo.submitArrivalReport(
+        tripId: 'dhk-ngj-2',
+        stationId: 'chashara',
+      );
+      expect(
+        result.status,
+        equals(ArrivalReportResultStatus.stationCapacityReached),
+      );
     });
 
     test('submits report and receives cooldown (429)', () async {

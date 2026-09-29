@@ -223,7 +223,8 @@ void main() {
 
       await waitForRailBoardState(
         cubit,
-        (state) => state.status == RailBoardStatus.ready,
+        (state) =>
+            state.status == RailBoardStatus.ready && state.report.submitEnabled,
       );
 
       await cubit.submitArrivalReport();
