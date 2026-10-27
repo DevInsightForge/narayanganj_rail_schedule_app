@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/entities/rail_selection.dart';
-import 'package:narayanganj_rail_schedule/src/features/rail/domain/repositories/selection_repository.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail_board_service.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_cubit.dart';
 
 import 'support/bundled_schedule_fixture.dart';
 import 'support/community_fakes.dart';
+import 'support/rail_board_reporting_harness.dart';
 
 void main() {
   final bundledSchedule = loadBundledScheduleFixture();
@@ -13,7 +13,7 @@ void main() {
     test('loads bundled schedule on startup', () async {
       final cubit = RailBoardCubit(
         boardService: RailBoardService(schedule: bundledSchedule),
-        selectionRepository: _InMemorySelectionRepository(),
+        selectionRepository: InMemorySelectionRepository(),
         communityRepository: FakeCommunityRepository(),
       );
 
@@ -26,7 +26,7 @@ void main() {
     });
 
     test('restores persisted selection on startup', () async {
-      final repository = _InMemorySelectionRepository();
+      final repository = InMemorySelectionRepository();
       await repository.write(
         const RailSelection(
           direction: 'narayanganj_to_dhaka',
@@ -51,18 +51,4 @@ void main() {
       await cubit.close();
     });
   });
-}
-
-class _InMemorySelectionRepository implements SelectionRepository {
-  _InMemorySelectionRepository();
-
-  RailSelection? _selection;
-
-  @override
-  Future<RailSelection?> read() async => _selection;
-
-  @override
-  Future<void> write(RailSelection selection) async {
-    _selection = selection;
-  }
 }

@@ -161,6 +161,7 @@ class RailBoardService {
     required RailSelection selection,
     required DateTime now,
     int limit = 5,
+    int? knownDelayMinutes,
   }) {
     final nowMinutes = now.hour * 60 + now.minute;
     final upcomingServices =
@@ -171,13 +172,23 @@ class RailBoardService {
                 nowMinutes: nowMinutes,
                 boardingStationId: selection.boardingStationId,
                 destinationStationId: selection.destinationStationId,
+                knownDelayMinutes: knownDelayMinutes,
               ),
             )
             .whereType<RailServiceSnapshot>()
             .toList()
-          ..sort(
-            (left, right) => left.waitMinutes.compareTo(right.waitMinutes),
-          );
+          ..sort((left, right) {
+            if (left.isOverdue && !right.isOverdue) {
+              return -1;
+            }
+            if (!left.isOverdue && right.isOverdue) {
+              return 1;
+            }
+            if (left.isOverdue && right.isOverdue) {
+              return left.overdueMinutes.compareTo(right.overdueMinutes);
+            }
+            return left.waitMinutes.compareTo(right.waitMinutes);
+          });
 
     final limitedServices = upcomingServices
         .take(limit)
@@ -296,6 +307,7 @@ class RailBoardService {
     required int nowMinutes,
     required String boardingStationId,
     required String destinationStationId,
+    int? knownDelayMinutes,
   }) {
     final boardingIndex = scheduleView.stops.indexWhere(
       (stop) => stop.stationId == boardingStationId,
@@ -314,9 +326,44 @@ class RailBoardService {
     final destinationStop = scheduleView.stops[destinationIndex];
     final departureMinutes = _toMinutes(boardingStop.time);
     final arrivalMinutes = _toMinutes(destinationStop.time);
-    final waitMinutes = _durationMinutes(nowMinutes, departureMinutes);
     final travelMinutes = _durationMinutes(departureMinutes, arrivalMinutes);
 
+    var diff = departureMinutes - nowMinutes;
+    if (diff < -720) {
+      diff += _minutesPerDay;
+    } else if (diff > 720) {
+      diff -= _minutesPerDay;
+    }
+
+    final delay = (knownDelayMinutes != null && knownDelayMinutes > 0)
+        ? knownDelayMinutes
+        : 0;
+    final maxGraceWindow = 30 > delay + 10 ? 30 : delay + 10;
+
+    if (diff < 0) {
+      final elapsedMinutes = -diff;
+      if (elapsedMinutes <= maxGraceWindow) {
+        final remainingEstimatedWait = (delay > 0 && delay > elapsedMinutes)
+            ? delay - elapsedMinutes
+            : 0;
+        return RailServiceSnapshot(
+          trainNo: scheduleView.trainNo,
+          servicePeriod: scheduleView.servicePeriod,
+          departureTime: boardingStop.time,
+          arrivalTime: destinationStop.time,
+          waitMinutes: remainingEstimatedWait,
+          etaMinutes: remainingEstimatedWait + travelMinutes,
+          stops: scheduleView.stops.sublist(
+            boardingIndex,
+            destinationIndex + 1,
+          ),
+          isOverdue: true,
+          overdueMinutes: elapsedMinutes,
+        );
+      }
+    }
+
+    final waitMinutes = _durationMinutes(nowMinutes, departureMinutes);
     return RailServiceSnapshot(
       trainNo: scheduleView.trainNo,
       servicePeriod: scheduleView.servicePeriod,

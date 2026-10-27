@@ -188,10 +188,6 @@ class RailBoardState extends Equatable {
   bool get isLoading => status == RailBoardStatus.loading;
   bool get hasFailed => status == RailBoardStatus.failure;
   RailSelection get selection => view.selection;
-  List<RailSelectableOption> get directionOptions => view.directionOptions;
-  List<RailSelectableOption> get boardingStations => view.boardingStations;
-  List<RailSelectableOption> get destinationStations =>
-      view.destinationStations;
   RailBoardSnapshot get snapshot => view.snapshot;
   RailReportSubmissionStatus get reportSubmissionStatus => report.status;
   String? get reportFeedbackMessage => report.feedbackMessage;

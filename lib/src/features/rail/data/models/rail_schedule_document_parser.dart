@@ -97,53 +97,7 @@ class RailScheduleDocumentParser {
     Map<String, dynamic> document,
     List<RailDirection> directions,
   ) {
-    final legacyTrips = _parseLegacyTrips(document['trips']);
-    if (legacyTrips.isNotEmpty) {
-      return legacyTrips;
-    }
-
-    return _parseCompactTrips(document['tripsByDirection'], directions);
-  }
-
-  List<RailTrip> _parseLegacyTrips(dynamic value) {
-    if (value is! List) {
-      return const [];
-    }
-
-    return value
-        .whereType<Map>()
-        .map((entry) {
-          final stopTimes = (entry['stopTimes'] as List<dynamic>? ?? const [])
-              .map((time) => '$time')
-              .where((time) => time.isNotEmpty)
-              .toList(growable: false);
-
-          return RailTrip(
-            id: '${entry['id'] ?? ''}',
-            directionId: '${entry['directionId'] ?? ''}',
-            trainNo: entry['trainNo'] is num
-                ? (entry['trainNo'] as num).toInt()
-                : int.tryParse('${entry['trainNo'] ?? ''}') ?? -1,
-            servicePeriod:
-                '${entry['timeCategory'] ?? entry['servicePeriod'] ?? ''}',
-            stopTimes: stopTimes,
-          );
-        })
-        .where(
-          (trip) =>
-              trip.id.isNotEmpty &&
-              trip.directionId.isNotEmpty &&
-              trip.trainNo >= 0 &&
-              trip.servicePeriod.isNotEmpty &&
-              trip.stopTimes.isNotEmpty,
-        )
-        .toList(growable: false);
-  }
-
-  List<RailTrip> _parseCompactTrips(
-    dynamic value,
-    List<RailDirection> directions,
-  ) {
+    final value = document['tripsByDirection'];
     if (value is! Map) {
       return const [];
     }
@@ -168,8 +122,7 @@ class RailScheduleDocumentParser {
             .map((time) => '$time')
             .where((time) => time.isNotEmpty)
             .toList(growable: false);
-        final servicePeriod =
-            '${row['servicePeriod'] ?? row['timeCategory'] ?? ''}';
+        final servicePeriod = '${row['servicePeriod'] ?? ''}';
 
         trips.add(
           RailTrip(

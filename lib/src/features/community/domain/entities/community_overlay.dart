@@ -31,12 +31,6 @@ class CommunityOverlay extends Equatable {
   final int freshnessSeconds;
   final bool isReportingAvailable;
 
-  String get sessionId => tripId;
-
-  DateTime? get lastObservedAt => lastReportedAt != null
-      ? DateTime.fromMillisecondsSinceEpoch(lastReportedAt! * 1000)
-      : null;
-
   static const freshWindowSeconds = 180;
   static const maxUsableWindowSeconds = 1200;
 
@@ -59,21 +53,16 @@ class CommunityOverlay extends Equatable {
       score:
           (confRaw is Map ? confRaw['score'] as num? : null)?.toDouble() ?? 0.0,
       sampleCount:
-          (confRaw is Map
-                  ? (confRaw['sampleCount'] ?? confRaw['sampleSize']) as num?
-                  : null)
-              ?.toInt() ??
+          (confRaw is Map ? confRaw['sampleCount'] as num? : null)?.toInt() ??
           0,
     );
 
     return CommunityOverlay(
-      tripId: (json['tripId'] ?? json['sessionId'] ?? '').toString(),
+      tripId: (json['tripId'] ?? '').toString(),
       serviceDate: (json['serviceDate'] ?? '').toString(),
-      delayMinutes:
-          ((json['delayMinutes'] ?? json['delay_minutes']) as num?)?.toInt() ??
-          0,
+      delayMinutes: (json['delayMinutes'] as num?)?.toInt() ?? 0,
       delayStatus: DelayStatus.fromString(
-        (json['delayStatus'] ?? json['status'] ?? '').toString(),
+        (json['delayStatus'] ?? '').toString(),
       ),
       freshness: Freshness.fromString((json['freshness'] ?? '').toString()),
       confidence: confidence,
@@ -109,22 +98,6 @@ class CommunityOverlay extends Equatable {
       isReportingAvailable: isReportingAvailable ?? this.isReportingAvailable,
     );
   }
-
-  Map<String, dynamic> toJson() => {
-    'tripId': tripId,
-    'serviceDate': serviceDate,
-    'delayMinutes': delayMinutes,
-    'delayStatus': delayStatus.toApiString(),
-    'freshness': freshness.name,
-    'confidence': {
-      'score': confidence.score,
-      'sampleCount': confidence.sampleCount,
-    },
-    'lastReportedStation': lastReportedStation,
-    'lastReportedAt': lastReportedAt,
-    'freshnessSeconds': freshnessSeconds,
-    'isReportingAvailable': isReportingAvailable,
-  };
 
   @override
   List<Object?> get props => [

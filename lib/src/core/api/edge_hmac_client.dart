@@ -10,8 +10,8 @@ class EdgeHmacClient {
     this.userAgent = 'NarayanganjCommuterApp/2.0',
     this.timeout = const Duration(seconds: 10),
   }) : baseUrl = baseUrl.endsWith('/')
-            ? baseUrl.substring(0, baseUrl.length - 1)
-            : baseUrl,
+           ? baseUrl.substring(0, baseUrl.length - 1)
+           : baseUrl,
        _client = client ?? http.Client();
 
   final String baseUrl;
@@ -26,9 +26,10 @@ class EdgeHmacClient {
     String body = '',
     int? customTimestamp,
   }) {
-    final timestamp = (customTimestamp ??
-            (DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000))
-        .toString();
+    final timestamp =
+        (customTimestamp ??
+                (DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000))
+            .toString();
     final canonical =
         '${method.toUpperCase()}\n$pathWithQuery\n$timestamp\n$body';
     final hmac = Hmac(sha256, utf8.encode(appSecret));
@@ -59,17 +60,16 @@ class EdgeHmacClient {
       pathWithQuery: pathWithQuery,
       body: bodyStr,
     );
-    return _client
-        .post(uri, headers: headers, body: bodyStr)
-        .timeout(timeout);
+    return _client.post(uri, headers: headers, body: bodyStr).timeout(timeout);
   }
 
   static String toCanonicalTripId({
     required String directionId,
     required int trainNo,
   }) {
-    final prefix =
-        directionId == 'dhaka_to_narayanganj' ? 'dhk-ngj' : 'ngj-dhk';
+    final prefix = directionId == 'dhaka_to_narayanganj'
+        ? 'dhk-ngj'
+        : 'ngj-dhk';
     return '$prefix-$trainNo';
   }
 

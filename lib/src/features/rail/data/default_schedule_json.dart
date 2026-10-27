@@ -1,18 +1,6 @@
 const defaultScheduleJson = r'''
 {
     "version": "2026.03.27",
-    "operator": {
-        "id": "bangladesh-railway",
-        "name": "Bangladesh Railway"
-    },
-    "route": {
-        "id": "bd-dhk-ngj-commuter",
-        "code": "bd-dhk-ngj-commuter",
-        "effectiveDate": "2025-03-10",
-        "serviceDaysMask": 95,
-        "serviceDaysLabel": "Saturday to Thursday",
-        "sourceOfficiality": "high_confidence_image_source"
-    },
     "stations": [
         {
             "id": "dhaka",

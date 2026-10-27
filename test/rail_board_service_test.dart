@@ -60,5 +60,85 @@ void main() {
       expect(snapshot.nextService, isNotNull);
       expect(snapshot.nextService!.waitMinutes, greaterThan(0));
     });
+
+    test('retains train within grace window when departure has passed', () {
+      final selection = service.createSelection(
+        direction: 'dhaka_to_narayanganj',
+        boardingStationId: 'dhaka',
+        destinationStationId: 'narayanganj',
+      );
+
+      final snapshot = service.getSnapshot(
+        selection: selection,
+        now: DateTime(2026, 3, 27, 7, 10),
+      );
+
+      expect(snapshot.nextService, isNotNull);
+      expect(snapshot.nextService!.departureTime, equals('06:55'));
+      expect(snapshot.nextService!.isOverdue, isTrue);
+      expect(snapshot.nextService!.overdueMinutes, equals(15));
+      expect(snapshot.nextService!.waitMinutes, equals(0));
+    });
+
+    test(
+      'retires train after grace window expires and promotes next train',
+      () {
+        final selection = service.createSelection(
+          direction: 'dhaka_to_narayanganj',
+          boardingStationId: 'dhaka',
+          destinationStationId: 'narayanganj',
+        );
+
+        final snapshot = service.getSnapshot(
+          selection: selection,
+          now: DateTime(2026, 3, 27, 7, 30),
+        );
+
+        expect(snapshot.nextService, isNotNull);
+        expect(snapshot.nextService!.departureTime, equals('09:15'));
+        expect(snapshot.nextService!.isOverdue, isFalse);
+      },
+    );
+
+    test('extends grace window dynamically when delay is known', () {
+      final selection = service.createSelection(
+        direction: 'dhaka_to_narayanganj',
+        boardingStationId: 'dhaka',
+        destinationStationId: 'narayanganj',
+      );
+
+      final snapshot = service.getSnapshot(
+        selection: selection,
+        now: DateTime(2026, 3, 27, 7, 30),
+        knownDelayMinutes: 45,
+      );
+
+      expect(snapshot.nextService, isNotNull);
+      expect(snapshot.nextService!.departureTime, equals('06:55'));
+      expect(snapshot.nextService!.isOverdue, isTrue);
+      expect(snapshot.nextService!.overdueMinutes, equals(35));
+      expect(snapshot.nextService!.waitMinutes, equals(10));
+    });
+
+    test(
+      'retains train within grace window regardless of destination distance',
+      () {
+        final selection = service.createSelection(
+          direction: 'dhaka_to_narayanganj',
+          boardingStationId: 'dhaka',
+          destinationStationId: 'gendaria',
+        );
+
+        final snapshot = service.getSnapshot(
+          selection: selection,
+          now: DateTime(2026, 3, 27, 7, 10),
+        );
+
+        expect(snapshot.nextService, isNotNull);
+        expect(snapshot.nextService!.departureTime, equals('06:55'));
+        expect(snapshot.nextService!.isOverdue, isTrue);
+        expect(snapshot.nextService!.overdueMinutes, equals(15));
+      },
+    );
   });
 }

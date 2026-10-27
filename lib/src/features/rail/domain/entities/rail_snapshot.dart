@@ -39,6 +39,8 @@ class RailServiceSnapshot extends Equatable {
     required this.waitMinutes,
     required this.etaMinutes,
     required this.stops,
+    this.isOverdue = false,
+    this.overdueMinutes = 0,
   });
 
   final int trainNo;
@@ -48,6 +50,8 @@ class RailServiceSnapshot extends Equatable {
   final int waitMinutes;
   final int etaMinutes;
   final List<RailStopSnapshot> stops;
+  final bool isOverdue;
+  final int overdueMinutes;
 
   @override
   List<Object> get props => [
@@ -58,6 +62,8 @@ class RailServiceSnapshot extends Equatable {
     waitMinutes,
     etaMinutes,
     stops,
+    isOverdue,
+    overdueMinutes,
   ];
 }
 

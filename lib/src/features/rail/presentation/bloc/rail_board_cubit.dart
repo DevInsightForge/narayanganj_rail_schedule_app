@@ -6,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/api/edge_hmac_client.dart';
 import '../../../community/domain/entities/community_overlay.dart';
-import '../../../community/domain/entities/data_origin.dart';
 import '../../../community/domain/entities/predicted_stop_time.dart';
 import '../../../community/domain/repositories/community_repository.dart';
 import '../../application/models/rail_reporting.dart';
@@ -253,7 +252,15 @@ class RailBoardCubit extends Cubit<RailBoardState> {
     }
   }
 
-  RailBoardState _buildViewState(RailSelection selection) {
+  RailBoardState _buildViewState(
+    RailSelection selection, {
+    int? knownDelayMinutes,
+  }) {
+    final effectiveDelay =
+        knownDelayMinutes ??
+        (selection.direction == state.selection.direction
+            ? state.community.overlay?.delayMinutes
+            : null);
     return RailBoardState(
       status: RailBoardStatus.ready,
       errorMessage: null,
@@ -268,6 +275,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
         snapshot: _boardService.getSnapshot(
           selection: selection,
           now: _nowProvider(),
+          knownDelayMinutes: effectiveDelay,
         ),
       ),
       report: state.report,
@@ -315,7 +323,9 @@ class RailBoardCubit extends Cubit<RailBoardState> {
           submitEnabled: isAvailable,
           actionReason: isAvailable
               ? RailReportActionReason.eligible
-              : RailReportActionReason.beforeWindow,
+              : (nextService.isOverdue
+                    ? RailReportActionReason.afterWindow
+                    : RailReportActionReason.beforeWindow),
         ),
       ),
     );
@@ -379,6 +389,12 @@ class RailBoardCubit extends Cubit<RailBoardState> {
       if (overlay == null) {
         _safeEmit(
           state.copyWith(
+            view: state.view.copyWith(
+              snapshot: _boardService.getSnapshot(
+                selection: state.selection,
+                now: _nowProvider(),
+              ),
+            ),
             community: state.community.copyWith(
               insightStatus: RailCommunityInsightStatus.empty,
               clearOverlay: true,
@@ -398,15 +414,22 @@ class RailBoardCubit extends Cubit<RailBoardState> {
           ? RailCommunityInsightStatus.stale
           : RailCommunityInsightStatus.expired;
 
+      final updatedSnapshot = _boardService.getSnapshot(
+        selection: state.selection,
+        now: _nowProvider(),
+        knownDelayMinutes: overlay.delayMinutes,
+      );
+      final effectiveNextService = updatedSnapshot.nextService ?? nextService;
+
       final predictedStops = _buildPredictedStopTimes(
-        tripId: tripId,
-        nextService: nextService,
+        nextService: effectiveNextService,
         overlay: overlay,
         now: _nowProvider(),
       );
 
       _safeEmit(
         state.copyWith(
+          view: state.view.copyWith(snapshot: updatedSnapshot),
           community: state.community.copyWith(
             insightStatus: status,
             overlay: overlay,
@@ -422,6 +445,12 @@ class RailBoardCubit extends Cubit<RailBoardState> {
     } catch (_) {
       _safeEmit(
         state.copyWith(
+          view: state.view.copyWith(
+            snapshot: _boardService.getSnapshot(
+              selection: state.selection,
+              now: _nowProvider(),
+            ),
+          ),
           community: state.community.copyWith(
             insightStatus: RailCommunityInsightStatus.error,
             clearOverlay: true,
@@ -435,7 +464,6 @@ class RailBoardCubit extends Cubit<RailBoardState> {
   }
 
   List<PredictedStopTime> _buildPredictedStopTimes({
-    required String tripId,
     required RailServiceSnapshot nextService,
     required CommunityOverlay overlay,
     required DateTime now,
@@ -459,12 +487,8 @@ class RailBoardCubit extends Cubit<RailBoardState> {
             Duration(minutes: overlay.delayMinutes),
           );
           return PredictedStopTime(
-            sessionId: tripId,
             stationId: stop.stationId,
             predictedAt: predictedAt,
-            referenceStationId: nextService.stops.first.stationId,
-            origin: DataOrigin.inferred,
-            confidence: overlay.confidence,
             isPassed: predictedAt.isBefore(now),
           );
         })

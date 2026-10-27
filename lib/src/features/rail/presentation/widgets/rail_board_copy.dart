@@ -36,10 +36,6 @@ class RailBoardCopy {
     return 'In ${getDurationLabel(waitMinutes)}';
   }
 
-  static String getEtaLabel(int etaMinutes) {
-    return getDurationLabel(etaMinutes);
-  }
-
   static String getDecision(int waitMinutes) {
     if (waitMinutes <= 5) {
       return 'Run now';
@@ -51,6 +47,36 @@ class RailBoardCopy {
       return 'You can catch this';
     }
     return 'No need to rush';
+  }
+
+  static String getOverdueDecision() {
+    return 'Running late / Check platform';
+  }
+
+  static String getOverdueDepartureDetail({
+    required int overdueMinutes,
+    int? delayMinutes,
+    String? scheduledDepartureTime,
+  }) {
+    if (delayMinutes != null &&
+        delayMinutes > 0 &&
+        scheduledDepartureTime != null) {
+      final parts = scheduledDepartureTime.split(':');
+      final hour = int.tryParse(parts.isNotEmpty ? parts[0] : '0') ?? 0;
+      final minute = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
+      final totalEstMinutes = hour * 60 + minute + delayMinutes;
+      final estHour = (totalEstMinutes ~/ 60) % 24;
+      final estMin = totalEstMinutes % 60;
+      final estTimeStr =
+          '${estHour.toString().padLeft(2, '0')}:${estMin.toString().padLeft(2, '0')}';
+      final formattedEst = formatTimeAmPm(estTimeStr);
+      final remaining = delayMinutes - overdueMinutes;
+      if (remaining > 0) {
+        return 'Est. $formattedEst (in $remaining min)';
+      }
+      return 'Est. $formattedEst (arriving)';
+    }
+    return 'Scheduled $overdueMinutes min ago • Awaiting arrival';
   }
 
   static String getServicePeriodLabel(String period) {

@@ -45,7 +45,9 @@ class DecisionPanel extends StatelessWidget {
         children: [
           RailSectionHeader(
             eyebrow: RailBoardTexts.bestNextTrainEyebrow,
-            title: RailBoardCopy.getDecision(nextService.waitMinutes),
+            title: nextService.isOverdue
+                ? RailBoardCopy.getOverdueDecision()
+                : RailBoardCopy.getDecision(nextService.waitMinutes),
             subtitle: RailBoardTexts.bestNextTrainSubtitle(
               from: view.snapshot.selectedStationName,
               destination: view.snapshot.destinationStationName,
@@ -80,7 +82,13 @@ class DecisionPanel extends StatelessWidget {
               RailMetricTile(
                 label: RailBoardTexts.departsLabel,
                 value: RailBoardCopy.formatTimeAmPm(nextService.departureTime),
-                detail: RailBoardCopy.getWaitLabel(nextService.waitMinutes),
+                detail: nextService.isOverdue
+                    ? RailBoardCopy.getOverdueDepartureDetail(
+                        overdueMinutes: nextService.overdueMinutes,
+                        delayMinutes: community.overlay?.delayMinutes,
+                        scheduledDepartureTime: nextService.departureTime,
+                      )
+                    : RailBoardCopy.getWaitLabel(nextService.waitMinutes),
                 icon: Icons.login_rounded,
               ),
               RailMetricTile(

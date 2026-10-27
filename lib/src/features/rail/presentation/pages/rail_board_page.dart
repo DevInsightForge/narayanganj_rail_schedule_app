@@ -31,23 +31,19 @@ class RailBoardPage extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: MultiBlocListener(
-            listeners: [
-              BlocListener<RailBoardCubit, RailBoardState>(
-                listenWhen: (previous, current) =>
-                    previous.report.feedbackMessage !=
-                    current.report.feedbackMessage,
-                listener: (context, state) {
-                  final message = state.report.feedbackMessage;
-                  if (message == null || message.isEmpty) {
-                    return;
-                  }
-                  ScaffoldMessenger.of(context)
-                    ..hideCurrentSnackBar()
-                    ..showSnackBar(SnackBar(content: Text(message)));
-                },
-              ),
-            ],
+          child: BlocListener<RailBoardCubit, RailBoardState>(
+            listenWhen: (previous, current) =>
+                previous.report.feedbackMessage !=
+                current.report.feedbackMessage,
+            listener: (context, state) {
+              final message = state.report.feedbackMessage;
+              if (message == null || message.isEmpty) {
+                return;
+              }
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(SnackBar(content: Text(message)));
+            },
             child: BlocBuilder<RailBoardCubit, RailBoardState>(
               buildWhen: (previous, current) =>
                   previous.status != current.status ||

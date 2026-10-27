@@ -20,5 +20,32 @@ void main() {
         equals('PEAK HOUR'),
       );
     });
+
+    test('maps overdue decision and departure details', () {
+      expect(
+        RailBoardCopy.getOverdueDecision(),
+        equals('Running late / Check platform'),
+      );
+      expect(
+        RailBoardCopy.getOverdueDepartureDetail(overdueMinutes: 15),
+        equals('Scheduled 15 min ago • Awaiting arrival'),
+      );
+      expect(
+        RailBoardCopy.getOverdueDepartureDetail(
+          overdueMinutes: 10,
+          delayMinutes: 25,
+          scheduledDepartureTime: '06:55',
+        ),
+        equals('Est. 7:20 AM (in 15 min)'),
+      );
+      expect(
+        RailBoardCopy.getOverdueDepartureDetail(
+          overdueMinutes: 25,
+          delayMinutes: 25,
+          scheduledDepartureTime: '06:55',
+        ),
+        equals('Est. 7:20 AM (arriving)'),
+      );
+    });
   });
 }

@@ -57,124 +57,12 @@ class AppTheme {
       onError: _onPrimary,
     );
 
-    final base = ThemeData(
-      useMaterial3: true,
+    return _buildTheme(
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: _background,
-      fontFamily: 'Segoe UI',
-      dividerColor: _divider,
-      splashFactory: InkSparkle.splashFactory,
-    );
-
-    return base.copyWith(
-      cardColor: _surface,
-      textTheme: base.textTheme.copyWith(
-        displayLarge: const TextStyle(
-          fontSize: 48,
-          height: 1,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -1.2,
-          color: _textPrimary,
-        ),
-        displaySmall: const TextStyle(
-          fontSize: 36,
-          height: 1.05,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -0.8,
-          color: _textPrimary,
-        ),
-        headlineSmall: const TextStyle(
-          fontSize: 24,
-          height: 1.1,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -0.5,
-          color: _textPrimary,
-        ),
-        headlineMedium: const TextStyle(
-          fontSize: 22,
-          height: 1.1,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.4,
-          color: _textPrimary,
-        ),
-        titleLarge: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.2,
-          color: _textPrimary,
-        ),
-        titleMedium: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.1,
-          color: _textPrimary,
-        ),
-        bodyLarge: const TextStyle(
-          fontSize: 15,
-          height: 1.35,
-          fontWeight: FontWeight.w500,
-          color: _textPrimary,
-        ),
-        bodyMedium: const TextStyle(
-          fontSize: 15,
-          height: 1.35,
-          fontWeight: FontWeight.w500,
-          color: _textPrimary,
-        ),
-        bodySmall: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.3,
-          color: _textSecondary,
-        ),
-        labelMedium: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.5,
-          color: _textSecondary,
-        ),
-        labelLarge: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0,
-          color: _textPrimary,
-        ),
-      ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: _textPrimary,
-        surfaceTintColor: Colors.transparent,
-      ),
-      chipTheme: base.chipTheme.copyWith(
-        backgroundColor: _surfaceMuted,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: _divider),
-        ),
-        labelStyle: const TextStyle(
-          color: _textPrimary,
-          fontWeight: FontWeight.w700,
-          fontSize: 14,
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(0, 42),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(0, 42),
-          side: const BorderSide(color: _divider),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      ),
+      scaffoldBackground: _background,
+      textPrimary: _textPrimary,
+      textSecondary: _textSecondary,
+      divider: _divider,
     );
   }
 
@@ -204,103 +92,119 @@ class AppTheme {
       onError: _darkOnPrimary,
     );
 
+    return _buildTheme(
+      colorScheme: colorScheme,
+      scaffoldBackground: _darkBackground,
+      textPrimary: _darkTextPrimary,
+      textSecondary: _darkTextSecondary,
+      divider: _darkDivider,
+    );
+  }
+
+  static ThemeData _buildTheme({
+    required ColorScheme colorScheme,
+    required Color scaffoldBackground,
+    required Color textPrimary,
+    required Color textSecondary,
+    required Color divider,
+  }) {
     final base = ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: _darkBackground,
+      scaffoldBackgroundColor: scaffoldBackground,
       fontFamily: 'Segoe UI',
-      dividerColor: _darkDivider,
+      dividerColor: divider,
       splashFactory: InkSparkle.splashFactory,
     );
 
     return base.copyWith(
-      cardColor: _darkSurface,
+      cardColor: colorScheme.surface,
       textTheme: base.textTheme.copyWith(
-        displayLarge: const TextStyle(
+        displayLarge: TextStyle(
           fontSize: 48,
           height: 1,
           fontWeight: FontWeight.w800,
           letterSpacing: -1.2,
-          color: _darkTextPrimary,
+          color: textPrimary,
         ),
-        displaySmall: const TextStyle(
+        displaySmall: TextStyle(
           fontSize: 36,
           height: 1.05,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.8,
-          color: _darkTextPrimary,
+          color: textPrimary,
         ),
-        headlineSmall: const TextStyle(
+        headlineSmall: TextStyle(
           fontSize: 24,
           height: 1.1,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.5,
-          color: _darkTextPrimary,
+          color: textPrimary,
         ),
-        headlineMedium: const TextStyle(
+        headlineMedium: TextStyle(
           fontSize: 22,
           height: 1.1,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.4,
-          color: _darkTextPrimary,
+          color: textPrimary,
         ),
-        titleLarge: const TextStyle(
+        titleLarge: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.2,
-          color: _darkTextPrimary,
+          color: textPrimary,
         ),
-        titleMedium: const TextStyle(
+        titleMedium: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.1,
-          color: _darkTextPrimary,
+          color: textPrimary,
         ),
-        bodyLarge: const TextStyle(
+        bodyLarge: TextStyle(
           fontSize: 15,
           height: 1.35,
           fontWeight: FontWeight.w500,
-          color: _darkTextPrimary,
+          color: textPrimary,
         ),
-        bodyMedium: const TextStyle(
+        bodyMedium: TextStyle(
           fontSize: 15,
           height: 1.35,
           fontWeight: FontWeight.w500,
-          color: _darkTextPrimary,
+          color: textPrimary,
         ),
-        bodySmall: const TextStyle(
+        bodySmall: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.3,
-          color: _darkTextSecondary,
+          color: textSecondary,
         ),
-        labelMedium: const TextStyle(
+        labelMedium: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5,
-          color: _darkTextSecondary,
+          color: textSecondary,
         ),
-        labelLarge: const TextStyle(
+        labelLarge: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w700,
           letterSpacing: 0,
-          color: _darkTextPrimary,
+          color: textPrimary,
         ),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: _darkTextPrimary,
+        foregroundColor: textPrimary,
         surfaceTintColor: Colors.transparent,
       ),
       chipTheme: base.chipTheme.copyWith(
-        backgroundColor: _darkSurfaceMuted,
+        backgroundColor: colorScheme.surfaceContainer,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: _darkDivider),
+          side: BorderSide(color: divider),
         ),
-        labelStyle: const TextStyle(
-          color: _darkTextPrimary,
+        labelStyle: TextStyle(
+          color: textPrimary,
           fontWeight: FontWeight.w700,
           fontSize: 14,
         ),
@@ -316,7 +220,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(0, 42),
-          side: const BorderSide(color: _darkDivider),
+          side: BorderSide(color: divider),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),

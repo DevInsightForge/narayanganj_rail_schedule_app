@@ -19,7 +19,7 @@ RailBoardCubit buildRailBoardReportingCubit({
 }) {
   return RailBoardCubit(
     boardService: RailBoardService(schedule: bundledSchedule),
-    selectionRepository: _InMemorySelectionRepository(
+    selectionRepository: InMemorySelectionRepository(
       const RailSelection(
         direction: 'dhaka_to_narayanganj',
         boardingStationId: 'dhaka',
@@ -66,8 +66,8 @@ Future<RailBoardState> waitForRailBoardState(
   return cubit.stream.firstWhere(predicate);
 }
 
-class _InMemorySelectionRepository implements SelectionRepository {
-  _InMemorySelectionRepository(this._selection);
+class InMemorySelectionRepository implements SelectionRepository {
+  InMemorySelectionRepository([this._selection]);
 
   RailSelection? _selection;
 
@@ -77,31 +77,5 @@ class _InMemorySelectionRepository implements SelectionRepository {
   @override
   Future<void> write(RailSelection selection) async {
     _selection = selection;
-  }
-}
-
-class FlakyCommunityRepository implements CommunityRepository {
-  bool failSubmission = true;
-  ArrivalReportResult reportResult = const ArrivalReportResult.accepted();
-  final List<Map<String, dynamic>> submitted = [];
-
-  @override
-  Future<CommunityOverlay?> fetchOverlay({
-    required String tripId,
-    required String stationId,
-  }) async {
-    return null;
-  }
-
-  @override
-  Future<ArrivalReportResult> submitArrivalReport({
-    required String tripId,
-    required String stationId,
-  }) async {
-    if (failSubmission) {
-      throw StateError('offline');
-    }
-    submitted.add({'tripId': tripId, 'stationId': stationId});
-    return reportResult;
   }
 }

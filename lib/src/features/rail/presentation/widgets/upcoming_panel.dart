@@ -49,9 +49,13 @@ class UpcomingPanel extends StatelessWidget {
                     arrivalLabel: RailBoardCopy.formatTimeAmPm(
                       alternatives[i].arrivalTime,
                     ),
-                    waitLabel: RailBoardCopy.getWaitLabel(
-                      alternatives[i].waitMinutes,
-                    ),
+                    waitLabel: alternatives[i].isOverdue
+                        ? RailBoardCopy.getOverdueDepartureDetail(
+                            overdueMinutes: alternatives[i].overdueMinutes,
+                          )
+                        : RailBoardCopy.getWaitLabel(
+                            alternatives[i].waitMinutes,
+                          ),
                     durationLabel: RailBoardCopy.getDurationLabel(
                       alternatives[i].etaMinutes - alternatives[i].waitMinutes,
                     ),

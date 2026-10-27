@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_overlay.dart';
-import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/data_origin.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/delay_status.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/freshness.dart';
 import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/predicted_stop_time.dart';
@@ -44,12 +43,8 @@ void main() {
           snapshot: snapshot,
           predictedStopTimes: [
             PredictedStopTime(
-              sessionId: 'session-1',
               stationId: 'narayanganj',
               predictedAt: DateTime(2026, 3, 28, 5, 18),
-              referenceStationId: 'dhaka',
-              origin: DataOrigin.inferred,
-              confidence: const ReportConfidence(score: 0.65, sampleCount: 2),
             ),
           ],
         ),
@@ -321,30 +316,18 @@ void main() {
           snapshot: snapshot,
           predictedStopTimes: [
             PredictedStopTime(
-              sessionId: 'session-1',
               stationId: 'dhaka',
               predictedAt: DateTime(2026, 3, 28, 4, 20),
-              referenceStationId: 'dhaka',
-              origin: DataOrigin.inferred,
-              confidence: const ReportConfidence(score: 0.8, sampleCount: 3),
               isPassed: true,
             ),
             PredictedStopTime(
-              sessionId: 'session-1',
               stationId: 'gandaria',
               predictedAt: DateTime(2026, 3, 28, 4, 35),
-              referenceStationId: 'dhaka',
-              origin: DataOrigin.inferred,
-              confidence: const ReportConfidence(score: 0.8, sampleCount: 3),
               isPassed: false,
             ),
             PredictedStopTime(
-              sessionId: 'session-1',
               stationId: 'narayanganj',
               predictedAt: DateTime(2026, 3, 28, 5, 18),
-              referenceStationId: 'dhaka',
-              origin: DataOrigin.inferred,
-              confidence: const ReportConfidence(score: 0.8, sampleCount: 3),
               isPassed: false,
             ),
           ],

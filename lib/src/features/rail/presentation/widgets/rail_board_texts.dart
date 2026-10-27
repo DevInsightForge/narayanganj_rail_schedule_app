@@ -6,12 +6,10 @@ class RailBoardTexts {
   static const appName = 'Narayanganj Commuter';
   static const appVersion = '2.1.3';
 
-  // Loading states
   static const loadingBoardTitle = 'Loading your commuter board';
   static const loadingBoardMessage =
       'Please wait while we load your saved route and latest timetable.';
 
-  // Error / unavailable states
   static const boardUnavailableTitle = 'Board is currently unavailable';
   static const boardUnavailableMessage =
       'Please check your internet connection and try again.';
@@ -30,13 +28,11 @@ class RailBoardTexts {
   static const stopByStopUnavailableMessage =
       'Please select a specific train to see its complete stop list and live estimates.';
 
-  // Success / status labels
   static const bestNextTrainEyebrow = 'Best next train';
   static const moreOptionsEyebrow = 'More options';
   static const routeStopsEyebrow = 'Route stops';
   static const scheduledStopsTitle = 'Scheduled stops and live estimates';
 
-  // Core labels
   static const tripLabel = 'Trip';
   static const trainLabel = 'Train';
   static const serviceLabel = 'Service';
@@ -44,11 +40,8 @@ class RailBoardTexts {
   static const rideLabel = 'Ride';
   static const rideTimeDetail = 'Ride time';
   static const arrivesLabel = 'Arrives';
-  static const confidenceLabel = 'How sure are we';
-  static const lastUpdatedLabel = 'Last updated';
   static const delayStatusLabel = 'Delay status';
 
-  // Community / rider updates
   static const liveRiderUpdatesEyebrow = 'COMMUNITY UPDATES';
   static const communityUpdateShared = 'Arrival shared with commuters';
   static const sendingUpdate = 'Sharing your report with commuters...';
@@ -82,7 +75,6 @@ class RailBoardTexts {
       ? 'Report received. Please wait ${retryAfterSeconds}s before submitting again.'
       : 'Report received. Please wait a moment before submitting again.';
 
-  // Route & stops
   static const routeDirectionLabel = 'Route direction';
   static const boardFromLabel = 'Board from';
   static const goToLabel = 'Go to';
@@ -101,7 +93,6 @@ class RailBoardTexts {
     return 'Follow the complete stop sequence for train $trainNo from your boarding station to your destination.';
   }
 
-  // Timetable / empty states
   static const timetableReadyMessage =
       'Your timetable view is ready. Please choose a direction to see the next departure and other options.';
   static const timetableChooseRouteMessage =
@@ -125,7 +116,6 @@ class RailBoardTexts {
     return 'Train $trainNo';
   }
 
-  // Later departures
   static const laterDeparturesTitle = 'Later departures';
 
   static String laterDeparturesSubtitle(int count) {
@@ -134,7 +124,6 @@ class RailBoardTexts {
         : 'There are $count later departures available in case you miss the next train.';
   }
 
-  // About / legal / footer
   static const aboutIntro = 'About, privacy and terms';
   static const aboutButton = 'About';
   static const aboutSheetEyebrow = 'About this app';
@@ -165,7 +154,6 @@ class RailBoardTexts {
   static const footerAboutParagraphTwo =
       'Optional rider updates from fellow commuters provide additional real-time context about possible delays, but they do not replace the official published timetable.';
 
-  // Dynamic helpers
   static String communityHeadline(RailCommunityInsightStatus status) {
     return switch (status) {
       RailCommunityInsightStatus.loading => liveRiderUpdatesLoading,
@@ -226,9 +214,5 @@ class RailBoardTexts {
 
   static String reportsCountLabel(int count) {
     return count == 1 ? '1 report' : '$count reports';
-  }
-
-  static String cooldownWaitLabel(int seconds) {
-    return 'Cooldown: wait ${seconds}s';
   }
 }

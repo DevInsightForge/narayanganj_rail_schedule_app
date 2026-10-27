@@ -5,39 +5,7 @@ void main() {
   group('RailScheduleDocumentParser', () {
     final parser = RailScheduleDocumentParser();
 
-    test('parses valid minimal schedule document', () {
-      final document = {
-        'version': '2026.03.27',
-        'stations': [
-          {'id': 'a', 'code': 'a', 'name': 'A'},
-          {'id': 'b', 'code': 'b', 'name': 'B'},
-        ],
-        'directions': [
-          {
-            'id': 'a_to_b',
-            'directionKey': 'a_to_b',
-            'prefix': 'ab',
-            'label': 'A to B',
-            'isForward': true,
-          },
-        ],
-        'trips': [
-          {
-            'id': 't1',
-            'directionId': 'a_to_b',
-            'trainNo': 1,
-            'servicePeriod': 'morning',
-            'stopTimes': ['06:00', '06:15'],
-          },
-        ],
-      };
-
-      final parsed = parser.parse(document);
-      expect(parsed.version, equals('2026.03.27'));
-      expect(parsed.stations.length, equals(2));
-    });
-
-    test('parses compact tripsByDirection document', () {
+    test('parses valid schedule document', () {
       final document = {
         'version': '2026.03.27',
         'stations': [
@@ -65,6 +33,8 @@ void main() {
       };
 
       final parsed = parser.parse(document);
+      expect(parsed.version, equals('2026.03.27'));
+      expect(parsed.stations.length, equals(2));
       expect(parsed.trips.length, equals(1));
       expect(parsed.trips.first.id, equals('a_to_b:01'));
       expect(parsed.trips.first.directionId, equals('a_to_b'));
@@ -90,15 +60,15 @@ void main() {
             'isForward': true,
           },
         ],
-        'trips': [
-          {
-            'id': 't1',
-            'directionId': 'a_to_b',
-            'trainNo': 1,
-            'servicePeriod': 'morning',
-            'stopTimes': ['06:00'],
-          },
-        ],
+        'tripsByDirection': {
+          'a_to_b': [
+            {
+              'trainNo': 1,
+              'servicePeriod': 'morning',
+              'stopTimes': ['06:00'],
+            },
+          ],
+        },
       };
 
       expect(() => parser.parse(document), throwsFormatException);

@@ -16,14 +16,4 @@ enum DelayStatus {
       _ => DelayStatus.onTime,
     };
   }
-
-  String toApiString() {
-    return switch (this) {
-      DelayStatus.early => 'early',
-      DelayStatus.onTime => 'on_time',
-      DelayStatus.minorDelay => 'minor_delay',
-      DelayStatus.majorDelay => 'major_delay',
-      DelayStatus.severeDelay => 'severe_delay',
-    };
-  }
 }

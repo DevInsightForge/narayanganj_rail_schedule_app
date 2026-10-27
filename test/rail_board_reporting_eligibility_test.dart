@@ -308,5 +308,53 @@ void main() {
       expect(errorState.reportFeedbackMessage, contains('Unable to submit'));
       await cubit.close();
     });
+
+    test(
+      'enables late arrival reporting for overdue train within grace window and submits successfully',
+      () async {
+        final repo = FakeCommunityRepository();
+        repo.setOverlay(
+          'dhk-ngj-2',
+          railBoardReportingOverlayResult(
+            sessionId: 'dhk-ngj-2',
+            fetchedAt: DateTime(2026, 3, 28, 4, 40),
+            freshnessSeconds: 15,
+            isReportingAvailable: true,
+          ),
+        );
+
+        final cubit = buildRailBoardReportingCubit(
+          bundledSchedule: bundledSchedule,
+          communityRepository: repo,
+          nowProvider: () => DateTime(2026, 3, 28, 4, 40),
+        );
+
+        final state = await waitForRailBoardState(
+          cubit,
+          (state) =>
+              state.status == RailBoardStatus.ready &&
+              state.report.actionReason == RailReportActionReason.eligible,
+        );
+
+        expect(state.snapshot.nextService, isNotNull);
+        expect(state.snapshot.nextService!.trainNo, equals(2));
+        expect(state.snapshot.nextService!.isOverdue, isTrue);
+        expect(state.snapshot.nextService!.overdueMinutes, equals(10));
+        expect(state.report.submitEnabled, isTrue);
+
+        await cubit.submitArrivalReport();
+
+        final successState = await waitForRailBoardState(
+          cubit,
+          (state) =>
+              state.reportSubmissionStatus ==
+              RailReportSubmissionStatus.success,
+        );
+        expect(successState.report.hasReportedCurrentSession, isTrue);
+        expect(repo.submissions, hasLength(1));
+        expect(repo.submissions.first['tripId'], equals('dhk-ngj-2'));
+        await cubit.close();
+      },
+    );
   });
 }
