@@ -3,6 +3,7 @@ import '../core/api/edge_hmac_client.dart';
 import '../features/community/data/repositories/edge_community_repository.dart';
 import '../features/community/data/repositories/noop_community_repository.dart';
 import '../features/community/domain/repositories/community_repository.dart';
+import '../features/rail/application/services/widget_sync_service.dart';
 import '../features/rail/data/repositories/bundled_schedule_source.dart';
 import '../features/rail/data/repositories/shared_preferences_selection_repository.dart';
 import '../features/rail/domain/entities/rail_schedule.dart';
@@ -17,6 +18,7 @@ class AppComposition {
     EdgeHmacClient? edgeClient,
     SelectionRepository? selectionRepository,
     CommunityRepository? communityRepository,
+    WidgetSyncService? widgetSyncService,
   }) : apiConfig = apiConfig ?? ApiConfig.fromEnv(),
        selectionRepository =
            selectionRepository ?? SharedPreferencesSelectionRepository(),
@@ -25,12 +27,14 @@ class AppComposition {
            _buildCommunityRepository(
              apiConfig ?? ApiConfig.fromEnv(),
              edgeClient,
-           );
+           ),
+       widgetSyncService = widgetSyncService ?? AndroidWidgetSyncService();
 
   final RailSchedule bundledSchedule;
   final ApiConfig apiConfig;
   final SelectionRepository selectionRepository;
   final CommunityRepository communityRepository;
+  final WidgetSyncService widgetSyncService;
 
   static Future<AppComposition> initialize({ApiConfig? apiConfig}) async {
     final resolvedConfig = apiConfig ?? ApiConfig.fromEnv();
@@ -43,6 +47,7 @@ class AppComposition {
       boardService: RailBoardService(schedule: bundledSchedule),
       selectionRepository: selectionRepository,
       communityRepository: communityRepository,
+      widgetSyncService: widgetSyncService,
       communityFeaturesEnabled: apiConfig.enabled,
     );
   }

@@ -113,6 +113,8 @@ class RailBoardReportState extends Equatable {
     this.visibility = RailReportVisibility.hidden,
     this.submitEnabled = false,
     this.hasReportedCurrentSession = false,
+    this.focusRequestId = 0,
+    this.focusedTrainNo,
   });
 
   final RailReportSubmissionStatus status;
@@ -121,6 +123,8 @@ class RailBoardReportState extends Equatable {
   final RailReportVisibility visibility;
   final bool submitEnabled;
   final bool hasReportedCurrentSession;
+  final int focusRequestId;
+  final int? focusedTrainNo;
 
   bool get isActionVisible => visibility == RailReportVisibility.visible;
   bool get isSubmissionLocked =>
@@ -135,7 +139,10 @@ class RailBoardReportState extends Equatable {
     RailReportVisibility? visibility,
     bool? submitEnabled,
     bool? hasReportedCurrentSession,
+    int? focusRequestId,
+    int? focusedTrainNo,
     bool clearFeedback = false,
+    bool clearFocusedTrainNo = false,
   }) {
     return RailBoardReportState(
       status: status ?? this.status,
@@ -147,6 +154,10 @@ class RailBoardReportState extends Equatable {
       submitEnabled: submitEnabled ?? this.submitEnabled,
       hasReportedCurrentSession:
           hasReportedCurrentSession ?? this.hasReportedCurrentSession,
+      focusRequestId: focusRequestId ?? this.focusRequestId,
+      focusedTrainNo: clearFocusedTrainNo
+          ? null
+          : focusedTrainNo ?? this.focusedTrainNo,
     );
   }
 
@@ -158,6 +169,8 @@ class RailBoardReportState extends Equatable {
     visibility,
     submitEnabled,
     hasReportedCurrentSession,
+    focusRequestId,
+    focusedTrainNo,
   ];
 }
 

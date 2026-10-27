@@ -85,9 +85,11 @@ void main() {
         (state) => state.status == RailBoardStatus.ready,
       );
 
-      final upcoming = state.snapshot.upcomingServices;
-      if (upcoming.length > 1) {
-        final secondTrainNo = upcoming[1].trainNo;
+      final nonOverdue = state.snapshot.upcomingServices
+          .where((service) => !service.isOverdue)
+          .toList();
+      if (nonOverdue.length > 1) {
+        final secondTrainNo = nonOverdue[1].trainNo;
         cubit.previewService(secondTrainNo);
         expect(cubit.state.view.previewTrainNo, equals(secondTrainNo));
         expect(cubit.state.view.activeService?.trainNo, equals(secondTrainNo));
@@ -97,7 +99,7 @@ void main() {
         expect(cubit.state.view.previewTrainNo, isNull);
         expect(
           cubit.state.view.activeService?.trainNo,
-          equals(state.snapshot.nextService?.trainNo),
+          equals(state.snapshot.nextDepartureService?.trainNo),
         );
         expect(cubit.state.view.isPreviewingUpcoming, isFalse);
       }

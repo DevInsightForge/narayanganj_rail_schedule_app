@@ -237,4 +237,22 @@ class RailBoardTexts {
   static const downstreamStopLabel = 'After your destination';
   static const scheduledPrefix = 'Sched.';
   static const estimatedPrefix = 'Est.';
+
+  static const reportLinkInvalid = 'Unable to open report: invalid train link.';
+  static const reportLinkRouteChanged =
+      'Route changed since widget update. Showing current board.';
+
+  static String reportLinkExpiredForTrain(int trainNo) =>
+      'Train #$trainNo is no longer in the reporting window.';
+
+  static String reportLinkUnavailableForTrain(int trainNo) =>
+      'Arrival reporting is currently unavailable for Train #$trainNo.';
+
+  static String reportAlreadySubmittedForTrain(
+    int trainNo,
+    String stationName,
+  ) => 'Arrival already reported for Train #$trainNo at $stationName.';
+
+  static String reportPromptForTrain(int trainNo, String stationName) =>
+      'Ready to report Train #$trainNo at $stationName. Tap Report Arrival to confirm.';
 }

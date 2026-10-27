@@ -14,8 +14,36 @@ import '../widgets/rail_board_texts.dart';
 import '../widgets/timeline_panel.dart';
 import '../widgets/upcoming_panel.dart';
 
-class RailBoardPage extends StatelessWidget {
+class RailBoardPage extends StatefulWidget {
   const RailBoardPage({super.key});
+
+  @override
+  State<RailBoardPage> createState() => _RailBoardPageState();
+}
+
+class _RailBoardPageState extends State<RailBoardPage> {
+  final GlobalKey _decisionSectionKey = GlobalKey();
+
+  void _scrollToReportSection() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final targetContext = _decisionSectionKey.currentContext;
+      if (targetContext == null) {
+        return;
+      }
+      final disableAnimations =
+          MediaQuery.maybeOf(targetContext)?.disableAnimations ?? false;
+      Scrollable.ensureVisible(
+        targetContext,
+        duration: disableAnimations
+            ? Duration.zero
+            : const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,8 +62,12 @@ class RailBoardPage extends StatelessWidget {
           child: BlocListener<RailBoardCubit, RailBoardState>(
             listenWhen: (previous, current) =>
                 previous.report.feedbackMessage !=
-                current.report.feedbackMessage,
+                    current.report.feedbackMessage ||
+                previous.report.focusRequestId != current.report.focusRequestId,
             listener: (context, state) {
+              if (state.report.focusedTrainNo != null) {
+                _scrollToReportSection();
+              }
               final message = state.report.feedbackMessage;
               if (message == null || message.isEmpty) {
                 return;
@@ -77,7 +109,10 @@ class RailBoardPage extends StatelessWidget {
                   );
                 }
 
-                return _ReadyBoardContent(tokens: tokens);
+                return _ReadyBoardContent(
+                  tokens: tokens,
+                  decisionSectionKey: _decisionSectionKey,
+                );
               },
             ),
           ),
@@ -108,9 +143,13 @@ class _BoardScaffold extends StatelessWidget {
 }
 
 class _ReadyBoardContent extends StatelessWidget {
-  const _ReadyBoardContent({required this.tokens});
+  const _ReadyBoardContent({
+    required this.tokens,
+    required this.decisionSectionKey,
+  });
 
   final RailBoardTokens tokens;
+  final GlobalKey decisionSectionKey;
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +164,10 @@ class _ReadyBoardContent extends StatelessWidget {
             children: [
               const _HeaderSelector(),
               SizedBox(height: tokens.panelGap),
-              _BoardPanels(tokens: tokens),
+              _BoardPanels(
+                tokens: tokens,
+                decisionSectionKey: decisionSectionKey,
+              ),
               SizedBox(height: tokens.panelGap),
               const FooterPanel(),
             ],
@@ -137,9 +179,10 @@ class _ReadyBoardContent extends StatelessWidget {
 }
 
 class _BoardPanels extends StatelessWidget {
-  const _BoardPanels({required this.tokens});
+  const _BoardPanels({required this.tokens, required this.decisionSectionKey});
 
   final RailBoardTokens tokens;
+  final GlobalKey decisionSectionKey;
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +194,10 @@ class _BoardPanels extends StatelessWidget {
             flex: 6,
             child: Column(
               children: [
-                const _DecisionSelector(showCommunity: false),
+                _DecisionSelector(
+                  key: decisionSectionKey,
+                  showCommunity: false,
+                ),
                 SizedBox(height: tokens.panelGap),
                 const _UpcomingSelector(),
                 SizedBox(height: tokens.panelGap),
@@ -167,7 +213,7 @@ class _BoardPanels extends StatelessWidget {
 
     return Column(
       children: [
-        const _DecisionSelector(showCommunity: true),
+        _DecisionSelector(key: decisionSectionKey, showCommunity: true),
         SizedBox(height: tokens.panelGap),
         const _TimelineSelector(),
         SizedBox(height: tokens.panelGap),
@@ -216,7 +262,7 @@ class _HeaderSelector extends StatelessWidget {
 }
 
 class _DecisionSelector extends StatelessWidget {
-  const _DecisionSelector({this.showCommunity = true});
+  const _DecisionSelector({super.key, this.showCommunity = true});
 
   final bool showCommunity;
 

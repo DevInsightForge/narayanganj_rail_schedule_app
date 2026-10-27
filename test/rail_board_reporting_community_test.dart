@@ -286,38 +286,43 @@ void main() {
       await cubit.close();
     });
 
-    test('keeps destination selection when overlay response completes', () async {
-      final communityRepository = _DelayedCommunityRepository();
-      final cubit = buildRailBoardReportingCubit(
-        bundledSchedule: bundledSchedule,
-        communityRepository: communityRepository,
-        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
-      );
+    test(
+      'keeps destination selection when overlay response completes',
+      () async {
+        final communityRepository = _DelayedCommunityRepository();
+        final cubit = buildRailBoardReportingCubit(
+          bundledSchedule: bundledSchedule,
+          communityRepository: communityRepository,
+          nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+        );
 
-      await waitForRailBoardState(
-        cubit,
-        (state) =>
-            state.status == RailBoardStatus.ready &&
-            state.communityInsightStatus == RailCommunityInsightStatus.loading,
-      );
-      await cubit.changeDestination('gendaria');
+        await waitForRailBoardState(
+          cubit,
+          (state) =>
+              state.status == RailBoardStatus.ready &&
+              state.communityInsightStatus ==
+                  RailCommunityInsightStatus.loading,
+        );
+        await cubit.changeDestination('gendaria');
 
-      communityRepository.oldSession.complete(
-        railBoardReportingOverlayResult(
-          sessionId: 'dhk-ngj-2',
-          fetchedAt: DateTime(2026, 3, 28, 4, 25),
-          freshnessSeconds: 30,
-        ),
-      );
-      await waitForRailBoardState(
-        cubit,
-        (state) => state.communityInsightStatus == RailCommunityInsightStatus.ready,
-      );
+        communityRepository.oldSession.complete(
+          railBoardReportingOverlayResult(
+            sessionId: 'dhk-ngj-2',
+            fetchedAt: DateTime(2026, 3, 28, 4, 25),
+            freshnessSeconds: 30,
+          ),
+        );
+        await waitForRailBoardState(
+          cubit,
+          (state) =>
+              state.communityInsightStatus == RailCommunityInsightStatus.ready,
+        );
 
-      expect(cubit.state.selection.destinationStationId, 'gendaria');
-      expect(cubit.state.snapshot.destinationStationName, 'Gendaria');
-      await cubit.close();
-    });
+        expect(cubit.state.selection.destinationStationId, 'gendaria');
+        expect(cubit.state.snapshot.destinationStationName, 'Gendaria');
+        await cubit.close();
+      },
+    );
 
     test(
       'skips community reporting and insights when community features are disabled',

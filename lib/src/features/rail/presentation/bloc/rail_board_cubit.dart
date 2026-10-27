@@ -8,7 +8,9 @@ import '../../../../core/api/edge_hmac_client.dart';
 import '../../../community/domain/entities/community_overlay.dart';
 import '../../../community/domain/entities/predicted_stop_time.dart';
 import '../../../community/domain/repositories/community_repository.dart';
+import '../../application/models/rail_report_deep_link.dart';
 import '../../application/models/rail_reporting.dart';
+import '../../application/services/widget_sync_service.dart';
 import '../../domain/entities/rail_selection.dart';
 import '../../domain/entities/rail_snapshot.dart';
 import '../../domain/repositories/selection_repository.dart';
@@ -21,12 +23,14 @@ class RailBoardCubit extends Cubit<RailBoardState> {
     required RailBoardService boardService,
     required SelectionRepository selectionRepository,
     required CommunityRepository communityRepository,
+    WidgetSyncService? widgetSyncService,
     this.communityFeaturesEnabled = true,
     bool enableTicker = true,
     DateTime Function()? nowProvider,
   }) : _boardService = boardService,
        _selectionRepository = selectionRepository,
        _communityRepository = communityRepository,
+       _widgetSyncService = widgetSyncService ?? const NoOpWidgetSyncService(),
        _nowProvider = nowProvider ?? DateTime.now,
        super(const RailBoardState()) {
     unawaited(start());
@@ -40,10 +44,13 @@ class RailBoardCubit extends Cubit<RailBoardState> {
   final RailBoardService _boardService;
   final SelectionRepository _selectionRepository;
   final CommunityRepository _communityRepository;
+  final WidgetSyncService _widgetSyncService;
   final bool communityFeaturesEnabled;
   final DateTime Function() _nowProvider;
   Timer? _timer;
   int _communityRequestId = 0;
+  bool _isStarting = false;
+  RailReportDeepLink? _pendingReportDeepLink;
 
   static const _fallbackErrorMessage =
       'Unable to load schedule data. Please try again.';
@@ -53,9 +60,151 @@ class RailBoardCubit extends Cubit<RailBoardState> {
       return;
     }
     emit(nextState);
+    if (nextState.status == RailBoardStatus.ready) {
+      unawaited(_widgetSyncService.syncBoardState(nextState));
+    }
+  }
+
+  Future<void> syncWidgets({bool force = false}) async {
+    if (isClosed || state.status != RailBoardStatus.ready) {
+      return;
+    }
+    await _widgetSyncService.syncBoardState(state, force: force);
+  }
+
+  Future<void> handleWidgetLaunchUri(Uri? uri) async {
+    if (isClosed) {
+      return;
+    }
+    final deepLink = RailReportDeepLink.parse(uri);
+    if (!deepLink.isReportAttempt) {
+      return;
+    }
+    if (_isStarting || state.status != RailBoardStatus.ready) {
+      _pendingReportDeepLink = deepLink;
+      return;
+    }
+    _resolveReportDeepLink(deepLink);
+  }
+
+  void _resolveReportDeepLink(RailReportDeepLink deepLink) {
+    if (isClosed || state.status != RailBoardStatus.ready) {
+      return;
+    }
+
+    final nextFocusId = state.report.focusRequestId + 1;
+    if (deepLink.kind == RailDeepLinkKind.invalidReport) {
+      _safeEmit(
+        state.copyWith(
+          report: state.report.copyWith(
+            focusRequestId: nextFocusId,
+            clearFocusedTrainNo: true,
+            feedbackMessage: RailBoardTexts.reportLinkInvalid,
+          ),
+        ),
+      );
+      return;
+    }
+
+    final targetDirection = deepLink.direction;
+    final targetBoarding = deepLink.boardingStationId;
+    final targetTrainNo = deepLink.trainNo;
+
+    if (targetDirection == null ||
+        targetBoarding == null ||
+        targetTrainNo == null ||
+        state.selection.direction != targetDirection ||
+        state.selection.boardingStationId != targetBoarding) {
+      _safeEmit(
+        state.copyWith(
+          report: state.report.copyWith(
+            focusRequestId: nextFocusId,
+            clearFocusedTrainNo: true,
+            feedbackMessage: RailBoardTexts.reportLinkRouteChanged,
+          ),
+        ),
+      );
+      return;
+    }
+
+    final retainedService = state.snapshot.nextService;
+    if (retainedService == null || retainedService.trainNo != targetTrainNo) {
+      _safeEmit(
+        state.copyWith(
+          report: state.report.copyWith(
+            focusRequestId: nextFocusId,
+            clearFocusedTrainNo: true,
+            feedbackMessage: RailBoardTexts.reportLinkExpiredForTrain(
+              targetTrainNo,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final stationName = state.snapshot.selectedStationName;
+    if (state.report.hasReportedCurrentSession ||
+        state.report.status == RailReportSubmissionStatus.success) {
+      _safeEmit(
+        state.copyWith(
+          report: state.report.copyWith(
+            focusRequestId: nextFocusId,
+            focusedTrainNo: targetTrainNo,
+            feedbackMessage: RailBoardTexts.reportAlreadySubmittedForTrain(
+              targetTrainNo,
+              stationName,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final expectedTripId = EdgeHmacClient.toCanonicalTripId(
+      directionId: state.selection.direction,
+      trainNo: retainedService.trainNo,
+    );
+    final overlay = state.community.overlay;
+    final serverEligible =
+        communityFeaturesEnabled &&
+        state.report.isActionVisible &&
+        state.report.submitEnabled &&
+        overlay != null &&
+        overlay.tripId == expectedTripId &&
+        overlay.isReportingAvailable;
+
+    if (!serverEligible) {
+      _safeEmit(
+        state.copyWith(
+          report: state.report.copyWith(
+            focusRequestId: nextFocusId,
+            focusedTrainNo: targetTrainNo,
+            feedbackMessage: RailBoardTexts.reportLinkUnavailableForTrain(
+              targetTrainNo,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    _safeEmit(
+      state.copyWith(
+        report: state.report.copyWith(
+          focusRequestId: nextFocusId,
+          focusedTrainNo: targetTrainNo,
+          feedbackMessage: RailBoardTexts.reportPromptForTrain(
+            targetTrainNo,
+            stationName,
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> start({bool showLoading = true}) async {
+    _isStarting = true;
     if (showLoading) {
       _safeEmit(
         state.copyWith(status: RailBoardStatus.loading, clearError: true),
@@ -78,6 +227,13 @@ class RailBoardCubit extends Cubit<RailBoardState> {
           errorMessage: _fallbackErrorMessage,
         ),
       );
+    } finally {
+      _isStarting = false;
+      final pending = _pendingReportDeepLink;
+      _pendingReportDeepLink = null;
+      if (pending != null && state.status == RailBoardStatus.ready) {
+        _resolveReportDeepLink(pending);
+      }
     }
   }
 

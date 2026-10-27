@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_compact_label">Next Train (Compact)</string>
+    <string name="widget_compact_description">Shows the next scheduled train for your saved route.</string>
+    <string name="widget_expanded_label">Next Train &amp; Report (Expanded)</string>
+    <string name="widget_expanded_description">Shows the next scheduled train, arrival time, and late-arrival report handoff.</string>
+</resources>
