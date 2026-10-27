@@ -10,11 +10,13 @@ import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/footer_panel.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/header_panel.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/notice_panel.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/rail_board_texts.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/timeline_panel.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/upcoming_panel.dart';
 
 import 'support/bundled_schedule_fixture.dart';
 import 'support/community_fakes.dart';
+import 'support/rail_board_reporting_harness.dart';
 
 void main() {
   testWidgets('compact and wide layouts keep the same panel stack', (
@@ -70,6 +72,64 @@ void main() {
       await wide.close();
     },
   );
+
+  testWidgets('late report action appears once in compact and wide layouts', (
+    tester,
+  ) async {
+    for (final size in [const Size(320, 640), const Size(1280, 900)]) {
+      final repository = FakeCommunityRepository();
+      repository.setOverlay(
+        'dhk-ngj-4',
+        railBoardReportingOverlayResult(
+          sessionId: 'dhk-ngj-4',
+          fetchedAt: DateTime(2026, 3, 27, 7, 10),
+          freshnessSeconds: 20,
+        ),
+      );
+      final cubit = RailBoardCubit(
+        boardService: RailBoardService(schedule: loadBundledScheduleFixture()),
+        selectionRepository: _InMemorySelectionRepository(
+          const RailSelection(
+            direction: 'dhaka_to_narayanganj',
+            boardingStationId: 'dhaka',
+            destinationStationId: 'narayanganj',
+          ),
+        ),
+        communityRepository: repository,
+        enableTicker: false,
+        nowProvider: () => DateTime(2026, 3, 27, 7, 10),
+      );
+      await waitForRailBoardState(
+        cubit,
+        (state) => state.report.submitEnabled,
+      ).timeout(const Duration(seconds: 10));
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData(
+            size: size,
+            textScaler: size.width < 360
+                ? const TextScaler.linear(1.35)
+                : TextScaler.noScaling,
+          ),
+          child: MaterialApp(
+            home: BlocProvider.value(
+              value: cubit,
+              child: const RailBoardPage(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(
+        find.byTooltip(RailBoardTexts.reportArrivalForTrain(4)),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      await cubit.close();
+    }
+  });
 }
 
 Future<RailBoardCubit> _pumpBoard(WidgetTester tester, Size size) async {

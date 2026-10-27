@@ -50,3 +50,5 @@ app.*.map.json
 # Local environment
 .env
 planning.md
+# Widget Preview related
+.widget_preview/

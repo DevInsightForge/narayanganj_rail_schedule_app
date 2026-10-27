@@ -50,5 +50,78 @@ void main() {
       expect(state.selection.destinationStationId, equals('dhaka'));
       await cubit.close();
     });
+
+    test('swaps direction and stations smoothly', () async {
+      final repository = InMemorySelectionRepository();
+      final cubit = RailBoardCubit(
+        boardService: RailBoardService(schedule: bundledSchedule),
+        selectionRepository: repository,
+        communityRepository: FakeCommunityRepository(),
+      );
+
+      await cubit.stream.firstWhere(
+        (state) => state.status == RailBoardStatus.ready,
+      );
+
+      await cubit.changeDirection('dhaka_to_narayanganj');
+      await cubit.changeBoarding('dhaka');
+      await cubit.changeDestination('chashara');
+      await cubit.swapDirectionAndStations();
+
+      expect(cubit.state.selection.direction, equals('narayanganj_to_dhaka'));
+      expect(cubit.state.selection.boardingStationId, equals('chashara'));
+      expect(cubit.state.selection.destinationStationId, equals('dhaka'));
+      await cubit.close();
+    });
+
+    test('previews upcoming train and resets cleanly', () async {
+      final cubit = RailBoardCubit(
+        boardService: RailBoardService(schedule: bundledSchedule),
+        selectionRepository: InMemorySelectionRepository(),
+        communityRepository: FakeCommunityRepository(),
+      );
+
+      final state = await cubit.stream.firstWhere(
+        (state) => state.status == RailBoardStatus.ready,
+      );
+
+      final upcoming = state.snapshot.upcomingServices;
+      if (upcoming.length > 1) {
+        final secondTrainNo = upcoming[1].trainNo;
+        cubit.previewService(secondTrainNo);
+        expect(cubit.state.view.previewTrainNo, equals(secondTrainNo));
+        expect(cubit.state.view.activeService?.trainNo, equals(secondTrainNo));
+        expect(cubit.state.view.isPreviewingUpcoming, isTrue);
+
+        cubit.previewService(null);
+        expect(cubit.state.view.previewTrainNo, isNull);
+        expect(
+          cubit.state.view.activeService?.trainNo,
+          equals(state.snapshot.nextService?.trainNo),
+        );
+        expect(cubit.state.view.isPreviewingUpcoming, isFalse);
+      }
+
+      await cubit.close();
+    });
+
+    test('toggles timeline expansion state', () async {
+      final cubit = RailBoardCubit(
+        boardService: RailBoardService(schedule: bundledSchedule),
+        selectionRepository: InMemorySelectionRepository(),
+        communityRepository: FakeCommunityRepository(),
+      );
+
+      await cubit.stream.firstWhere(
+        (state) => state.status == RailBoardStatus.ready,
+      );
+
+      expect(cubit.state.view.isTimelineCollapsed, isFalse);
+      cubit.toggleTimelineExpansion();
+      expect(cubit.state.view.isTimelineCollapsed, isTrue);
+      cubit.toggleTimelineExpansion();
+      expect(cubit.state.view.isTimelineCollapsed, isFalse);
+      await cubit.close();
+    });
   });
 }

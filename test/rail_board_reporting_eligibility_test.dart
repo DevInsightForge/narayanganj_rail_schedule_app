@@ -313,6 +313,7 @@ void main() {
       'enables late arrival reporting for overdue train within grace window and submits successfully',
       () async {
         final repo = FakeCommunityRepository();
+        var now = DateTime(2026, 3, 28, 4, 40);
         repo.setOverlay(
           'dhk-ngj-2',
           railBoardReportingOverlayResult(
@@ -326,7 +327,7 @@ void main() {
         final cubit = buildRailBoardReportingCubit(
           bundledSchedule: bundledSchedule,
           communityRepository: repo,
-          nowProvider: () => DateTime(2026, 3, 28, 4, 40),
+          nowProvider: () => now,
         );
 
         final state = await waitForRailBoardState(
@@ -353,6 +354,15 @@ void main() {
         expect(successState.report.hasReportedCurrentSession, isTrue);
         expect(repo.submissions, hasLength(1));
         expect(repo.submissions.first['tripId'], equals('dhk-ngj-2'));
+
+        now = DateTime(2026, 3, 28, 5, 20);
+        await cubit.tick();
+
+        expect(cubit.state.snapshot.nextService, isNotNull);
+        expect(cubit.state.snapshot.nextService!.trainNo, isNot(2));
+        expect(cubit.state.report.hasReportedCurrentSession, isFalse);
+        expect(cubit.state.report.status, RailReportSubmissionStatus.idle);
+        expect(cubit.state.report.feedbackMessage, isNull);
         await cubit.close();
       },
     );

@@ -353,10 +353,7 @@ class RailBoardService {
           arrivalTime: destinationStop.time,
           waitMinutes: remainingEstimatedWait,
           etaMinutes: remainingEstimatedWait + travelMinutes,
-          stops: scheduleView.stops.sublist(
-            boardingIndex,
-            destinationIndex + 1,
-          ),
+          stops: scheduleView.stops,
           isOverdue: true,
           overdueMinutes: elapsedMinutes,
         );
@@ -371,7 +368,7 @@ class RailBoardService {
       arrivalTime: destinationStop.time,
       waitMinutes: waitMinutes,
       etaMinutes: waitMinutes + travelMinutes,
-      stops: scheduleView.stops.sublist(boardingIndex, destinationIndex + 1),
+      stops: scheduleView.stops,
     );
   }
 

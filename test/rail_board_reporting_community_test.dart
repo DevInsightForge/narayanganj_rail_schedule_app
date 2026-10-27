@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:narayanganj_rail_schedule/src/features/community/domain/entities/community_overlay.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/application/models/rail_reporting.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_cubit.dart';
 
@@ -243,6 +246,79 @@ void main() {
       await cubit.close();
     });
 
+    test('ignores overlay response after report session changes', () async {
+      final communityRepository = _DelayedCommunityRepository();
+      final cubit = buildRailBoardReportingCubit(
+        bundledSchedule: bundledSchedule,
+        communityRepository: communityRepository,
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+      );
+
+      await waitForRailBoardState(
+        cubit,
+        (state) =>
+            state.status == RailBoardStatus.ready &&
+            state.communityInsightStatus == RailCommunityInsightStatus.loading,
+      );
+      await cubit.changeBoarding('gendaria');
+
+      expect(cubit.state.selection.boardingStationId, 'gendaria');
+      expect(
+        cubit.state.communityInsightStatus,
+        RailCommunityInsightStatus.empty,
+      );
+
+      communityRepository.oldSession.complete(
+        railBoardReportingOverlayResult(
+          sessionId: 'dhk-ngj-2',
+          fetchedAt: DateTime(2026, 3, 28, 4, 25),
+          freshnessSeconds: 30,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.selection.boardingStationId, 'gendaria');
+      expect(cubit.state.overlay, isNull);
+      expect(
+        cubit.state.communityInsightStatus,
+        RailCommunityInsightStatus.empty,
+      );
+      await cubit.close();
+    });
+
+    test('keeps destination selection when overlay response completes', () async {
+      final communityRepository = _DelayedCommunityRepository();
+      final cubit = buildRailBoardReportingCubit(
+        bundledSchedule: bundledSchedule,
+        communityRepository: communityRepository,
+        nowProvider: () => DateTime(2026, 3, 28, 4, 25),
+      );
+
+      await waitForRailBoardState(
+        cubit,
+        (state) =>
+            state.status == RailBoardStatus.ready &&
+            state.communityInsightStatus == RailCommunityInsightStatus.loading,
+      );
+      await cubit.changeDestination('gendaria');
+
+      communityRepository.oldSession.complete(
+        railBoardReportingOverlayResult(
+          sessionId: 'dhk-ngj-2',
+          fetchedAt: DateTime(2026, 3, 28, 4, 25),
+          freshnessSeconds: 30,
+        ),
+      );
+      await waitForRailBoardState(
+        cubit,
+        (state) => state.communityInsightStatus == RailCommunityInsightStatus.ready,
+      );
+
+      expect(cubit.state.selection.destinationStationId, 'gendaria');
+      expect(cubit.state.snapshot.destinationStationName, 'Gendaria');
+      await cubit.close();
+    });
+
     test(
       'skips community reporting and insights when community features are disabled',
       () async {
@@ -272,4 +348,20 @@ void main() {
       },
     );
   });
+}
+
+class _DelayedCommunityRepository extends FakeCommunityRepository {
+  final Completer<CommunityOverlay?> oldSession =
+      Completer<CommunityOverlay?>();
+
+  @override
+  Future<CommunityOverlay?> fetchOverlay({
+    required String tripId,
+    required String stationId,
+  }) {
+    if (stationId == 'dhaka') {
+      return oldSession.future;
+    }
+    return Future<CommunityOverlay?>.value();
+  }
 }

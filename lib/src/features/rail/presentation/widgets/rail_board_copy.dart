@@ -82,4 +82,17 @@ class RailBoardCopy {
   static String getServicePeriodLabel(String period) {
     return period.split('_').join(' ').toUpperCase();
   }
+
+  static String addMinutesToTime24(String time24, int deltaMinutes) {
+    final parts = time24.split(':');
+    final hour = int.tryParse(parts.isNotEmpty ? parts[0] : '0') ?? 0;
+    final minute = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
+    var totalMinutes = (hour * 60 + minute + deltaMinutes) % (24 * 60);
+    if (totalMinutes < 0) {
+      totalMinutes += 24 * 60;
+    }
+    final nextHour = (totalMinutes ~/ 60).toString().padLeft(2, '0');
+    final nextMinute = (totalMinutes % 60).toString().padLeft(2, '0');
+    return '$nextHour:$nextMinute';
+  }
 }

@@ -37,6 +37,8 @@ class RailBoardViewState extends Equatable {
       upcomingServices: [],
       scheduleVersion: '',
     ),
+    this.previewTrainNo,
+    this.isTimelineCollapsed = false,
   });
 
   final RailSelection selection;
@@ -44,6 +46,29 @@ class RailBoardViewState extends Equatable {
   final List<RailSelectableOption> boardingStations;
   final List<RailSelectableOption> destinationStations;
   final RailBoardSnapshot snapshot;
+  final int? previewTrainNo;
+  final bool isTimelineCollapsed;
+
+  RailServiceSnapshot? get activeService {
+    final nextDepartureService = snapshot.nextDepartureService;
+    if (previewTrainNo != null &&
+        previewTrainNo != nextDepartureService?.trainNo) {
+      for (final service in snapshot.upcomingServices) {
+        if (!service.isOverdue && service.trainNo == previewTrainNo) {
+          return service;
+        }
+      }
+    }
+    return nextDepartureService ?? snapshot.nextService;
+  }
+
+  bool get isPreviewingUpcoming =>
+      previewTrainNo != null &&
+      snapshot.nextDepartureService != null &&
+      previewTrainNo != snapshot.nextDepartureService!.trainNo &&
+      snapshot.upcomingServices.any(
+        (service) => !service.isOverdue && service.trainNo == previewTrainNo,
+      );
 
   RailBoardViewState copyWith({
     RailSelection? selection,
@@ -51,6 +76,9 @@ class RailBoardViewState extends Equatable {
     List<RailSelectableOption>? boardingStations,
     List<RailSelectableOption>? destinationStations,
     RailBoardSnapshot? snapshot,
+    int? previewTrainNo,
+    bool clearPreviewTrainNo = false,
+    bool? isTimelineCollapsed,
   }) {
     return RailBoardViewState(
       selection: selection ?? this.selection,
@@ -58,6 +86,10 @@ class RailBoardViewState extends Equatable {
       boardingStations: boardingStations ?? this.boardingStations,
       destinationStations: destinationStations ?? this.destinationStations,
       snapshot: snapshot ?? this.snapshot,
+      previewTrainNo: clearPreviewTrainNo
+          ? null
+          : (previewTrainNo ?? this.previewTrainNo),
+      isTimelineCollapsed: isTimelineCollapsed ?? this.isTimelineCollapsed,
     );
   }
 
@@ -68,6 +100,8 @@ class RailBoardViewState extends Equatable {
     boardingStations,
     destinationStations,
     snapshot,
+    previewTrainNo,
+    isTimelineCollapsed,
   ];
 }
 

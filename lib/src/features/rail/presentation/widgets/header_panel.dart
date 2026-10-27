@@ -25,13 +25,35 @@ class HeaderPanel extends StatelessWidget {
         children: [
           HeaderPanelHero(view: view),
           SizedBox(height: tokens.sectionGap),
-          HeaderSelectionStrip(
-            label: RailBoardTexts.routeDirectionLabel,
-            options: view.directionOptions,
-            value: view.selection.direction,
-            scrollable: false,
-            onPressed: (value) =>
-                context.read<RailBoardCubit>().changeDirection(value),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: HeaderSelectionStrip(
+                  label: RailBoardTexts.routeDirectionLabel,
+                  options: view.directionOptions,
+                  value: view.selection.direction,
+                  scrollable: false,
+                  onPressed: (value) =>
+                      context.read<RailBoardCubit>().changeDirection(value),
+                ),
+              ),
+              SizedBox(width: tokens.compactGap),
+              IconButton.filledTonal(
+                tooltip: RailBoardTexts.swapRouteTooltip,
+                onPressed: () {
+                  context.read<RailBoardCubit>().swapDirectionAndStations();
+                },
+                style: IconButton.styleFrom(
+                  backgroundColor: tokens.primarySurface,
+                  foregroundColor: tokens.accent,
+                  side: BorderSide(color: tokens.border),
+                  minimumSize: const Size(36, 34),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+              ),
+            ],
           ),
           SizedBox(height: tokens.itemGap),
           HeaderSelectionStrip(

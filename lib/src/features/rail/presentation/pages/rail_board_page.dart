@@ -251,13 +251,27 @@ class _CommunitySelector extends StatelessWidget {
     return BlocSelector<
       RailBoardCubit,
       RailBoardState,
-      ({RailBoardReportState report, RailBoardCommunityState community})
+      ({
+        RailBoardReportState report,
+        RailBoardCommunityState community,
+        int? serviceTrainNo,
+        bool showReportAction,
+      })
     >(
-      selector: (state) => (report: state.report, community: state.community),
+      selector: (state) => (
+        report: state.report,
+        community: state.community,
+        serviceTrainNo: state.view.snapshot.nextService?.trainNo,
+        showReportAction:
+            !(state.view.snapshot.nextService?.isOverdue == true &&
+                state.report.isActionVisible),
+      ),
       builder: (context, slice) => CommunityPanel(
         report: slice.report,
         community: slice.community,
         isStandalone: true,
+        serviceTrainNo: slice.serviceTrainNo,
+        showReportAction: slice.showReportAction,
         onPressed: () => context.read<RailBoardCubit>().submitArrivalReport(),
       ),
     );
@@ -272,15 +286,32 @@ class _TimelineSelector extends StatelessWidget {
     return BlocSelector<
       RailBoardCubit,
       RailBoardState,
-      ({RailBoardSnapshot snapshot, List<PredictedStopTime> predictedStopTimes})
+      ({
+        RailBoardSnapshot snapshot,
+        List<PredictedStopTime> predictedStopTimes,
+        RailServiceSnapshot? previewService,
+        bool isCollapsed,
+        String boardingStationId,
+        String destinationStationId,
+      })
     >(
       selector: (state) => (
         snapshot: state.view.snapshot,
         predictedStopTimes: state.community.predictedStopTimes,
+        previewService: state.view.isPreviewingUpcoming
+            ? state.view.activeService
+            : null,
+        isCollapsed: state.view.isTimelineCollapsed,
+        boardingStationId: state.view.selection.boardingStationId,
+        destinationStationId: state.view.selection.destinationStationId,
       ),
       builder: (context, slice) => TimelinePanel(
         snapshot: slice.snapshot,
         predictedStopTimes: slice.predictedStopTimes,
+        previewService: slice.previewService,
+        isCollapsed: slice.isCollapsed,
+        boardingStationId: slice.boardingStationId,
+        destinationStationId: slice.destinationStationId,
       ),
     );
   }
@@ -291,9 +322,28 @@ class _UpcomingSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<RailBoardCubit, RailBoardState, RailBoardSnapshot>(
-      selector: (state) => state.view.snapshot,
-      builder: (context, snapshot) => UpcomingPanel(snapshot: snapshot),
+    return BlocSelector<
+      RailBoardCubit,
+      RailBoardState,
+      ({
+        RailBoardSnapshot snapshot,
+        int? previewTrainNo,
+        String boardingStationId,
+        String destinationStationId,
+      })
+    >(
+      selector: (state) => (
+        snapshot: state.view.snapshot,
+        previewTrainNo: state.view.previewTrainNo,
+        boardingStationId: state.view.selection.boardingStationId,
+        destinationStationId: state.view.selection.destinationStationId,
+      ),
+      builder: (context, slice) => UpcomingPanel(
+        snapshot: slice.snapshot,
+        previewTrainNo: slice.previewTrainNo,
+        boardingStationId: slice.boardingStationId,
+        destinationStationId: slice.destinationStationId,
+      ),
     );
   }
 }

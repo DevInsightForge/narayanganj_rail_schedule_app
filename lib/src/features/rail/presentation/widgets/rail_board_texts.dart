@@ -29,6 +29,10 @@ class RailBoardTexts {
       'Please select a specific train to see its complete stop list and live estimates.';
 
   static const bestNextTrainEyebrow = 'Best next train';
+  static const nextBoardableEyebrow = 'NEXT BOARDABLE';
+  static const previousTrainLabel = 'Previous train';
+  static const noUpcomingDepartureMessage =
+      'There are no upcoming departures for this route.';
   static const moreOptionsEyebrow = 'More options';
   static const routeStopsEyebrow = 'Route stops';
   static const scheduledStopsTitle = 'Scheduled stops and live estimates';
@@ -43,6 +47,13 @@ class RailBoardTexts {
   static const delayStatusLabel = 'Delay status';
 
   static const liveRiderUpdatesEyebrow = 'COMMUNITY UPDATES';
+
+  static String liveUpdatesForTrain(int trainNo) =>
+      '$liveRiderUpdatesEyebrow · TRAIN #$trainNo';
+
+  static String reportArrivalForTrain(int trainNo) =>
+      'Report arrival for train #$trainNo';
+  static const reportArrivalAction = 'Report Arrival';
   static const communityUpdateShared = 'Arrival shared with commuters';
   static const sendingUpdate = 'Sharing your report with commuters...';
   static const shareArrivalUpdate = 'Share train arrival with commuters';
@@ -50,6 +61,7 @@ class RailBoardTexts {
   static const updateSent = 'Thank you for updating commuters!';
   static const arrivalSharedThankYou = 'Arrival shared • Thank you!';
   static const reportingClosedNow = 'Reporting opens near departure';
+  static const reportingWindowClosed = 'Reporting window has closed';
 
   static const liveRiderUpdatesLoading = 'Checking community updates...';
   static const liveRiderUpdatesReady = 'Live community delay update';
@@ -179,15 +191,15 @@ class RailBoardTexts {
     return switch (status) {
       RailReportSubmissionStatus.submitting => sendingUpdate,
       RailReportSubmissionStatus.error => switch (actionReason) {
-        RailReportActionReason.beforeWindow ||
-        RailReportActionReason.afterWindow => reportingClosedNow,
+        RailReportActionReason.beforeWindow => reportingClosedNow,
+        RailReportActionReason.afterWindow => reportingWindowClosed,
         RailReportActionReason.stationCapacityReached => updatesUnavailable,
         _ => submitEnabled ? shareArrivalUpdate : updatesUnavailable,
       },
       RailReportSubmissionStatus.success => updateSent,
       RailReportSubmissionStatus.idle => switch (actionReason) {
-        RailReportActionReason.beforeWindow ||
-        RailReportActionReason.afterWindow => reportingClosedNow,
+        RailReportActionReason.beforeWindow => reportingClosedNow,
+        RailReportActionReason.afterWindow => reportingWindowClosed,
         RailReportActionReason.stationCapacityReached => updatesUnavailable,
         _ => submitEnabled ? shareArrivalUpdate : updatesUnavailable,
       },
@@ -215,4 +227,14 @@ class RailBoardTexts {
   static String reportsCountLabel(int count) {
     return count == 1 ? '1 report' : '$count reports';
   }
+
+  static const swapRouteTooltip = 'Swap direction and stations';
+  static const previewingTrainLabel = 'Previewing train';
+  static const backToNextTrainAction = 'Show next train';
+  static const collapseTimelineLabel = 'Collapse stops';
+  static const expandTimelineLabel = 'Show all stops';
+  static const upstreamStopLabel = 'Upstream stop';
+  static const downstreamStopLabel = 'After your destination';
+  static const scheduledPrefix = 'Sched.';
+  static const estimatedPrefix = 'Est.';
 }

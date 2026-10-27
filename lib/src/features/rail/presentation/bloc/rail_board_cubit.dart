@@ -43,6 +43,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
   final bool communityFeaturesEnabled;
   final DateTime Function() _nowProvider;
   Timer? _timer;
+  int _communityRequestId = 0;
 
   static const _fallbackErrorMessage =
       'Unable to load schedule data. Please try again.';
@@ -105,12 +106,76 @@ class RailBoardCubit extends Cubit<RailBoardState> {
     await _applySelection(selection);
   }
 
+  Future<void> swapDirectionAndStations() async {
+    final currentSelection = state.selection;
+    final targetDirection = currentSelection.direction == 'dhaka_to_narayanganj'
+        ? 'narayanganj_to_dhaka'
+        : 'dhaka_to_narayanganj';
+
+    final currentBoarding = currentSelection.boardingStationId;
+    final currentDestination = currentSelection.destinationStationId;
+
+    final targetBoardingOptions = _boardService.getBoardingOptions(
+      targetDirection,
+    );
+    final targetBoardingValid = targetBoardingOptions.any(
+      (opt) => opt.value == currentDestination && !opt.disabled,
+    );
+    final targetBoarding = targetBoardingValid
+        ? currentDestination
+        : targetBoardingOptions.firstWhere((opt) => !opt.disabled).value;
+
+    final targetDestinationOptions = _boardService.getDestinationOptions(
+      targetDirection,
+      targetBoarding,
+    );
+    final targetDestValid = targetDestinationOptions.any(
+      (opt) => opt.value == currentBoarding && !opt.disabled,
+    );
+    final targetDestination = targetDestValid
+        ? currentBoarding
+        : targetDestinationOptions.firstWhere((opt) => !opt.disabled).value;
+
+    final newSelection = RailSelection(
+      direction: targetDirection,
+      boardingStationId: targetBoarding,
+      destinationStationId: targetDestination,
+    );
+    await _applySelection(newSelection);
+  }
+
+  void previewService(int? trainNo) {
+    if (state.view.previewTrainNo == trainNo) {
+      return;
+    }
+    _safeEmit(
+      state.copyWith(
+        view: state.view.copyWith(
+          previewTrainNo: trainNo,
+          clearPreviewTrainNo: trainNo == null,
+        ),
+      ),
+    );
+  }
+
+  void toggleTimelineExpansion() {
+    _safeEmit(
+      state.copyWith(
+        view: state.view.copyWith(
+          isTimelineCollapsed: !state.view.isTimelineCollapsed,
+        ),
+      ),
+    );
+  }
+
   Future<void> tick() async {
     if (state.status != RailBoardStatus.ready) {
       return;
     }
 
-    _safeEmit(_buildViewState(state.selection));
+    final previousSession = _reportSessionIdentity(state);
+    final refreshedState = _buildViewState(state.selection);
+    _safeEmit(_resetSessionIfChanged(refreshedState, previousSession));
     _ageCommunityOverlay(elapsedSeconds: 30);
     _refreshReportAvailability();
 
@@ -127,6 +192,8 @@ class RailBoardCubit extends Cubit<RailBoardState> {
       return;
     }
 
+    final reportSession = _reportSessionIdentity(state);
+    final selectedStationName = state.snapshot.selectedStationName;
     _safeEmit(
       state.copyWith(
         report: state.report.copyWith(
@@ -147,6 +214,9 @@ class RailBoardCubit extends Cubit<RailBoardState> {
         tripId: tripId,
         stationId: state.selection.boardingStationId,
       );
+      if (isClosed || reportSession != _reportSessionIdentity(state)) {
+        return;
+      }
 
       if (result.status == ArrivalReportResultStatus.accepted) {
         _safeEmit(
@@ -157,7 +227,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
               hasReportedCurrentSession: true,
               submitEnabled: false,
               feedbackMessage: RailBoardTexts.arrivalConfirmedAt(
-                state.snapshot.selectedStationName,
+                selectedStationName,
               ),
             ),
           ),
@@ -207,6 +277,9 @@ class RailBoardCubit extends Cubit<RailBoardState> {
         ),
       );
     } catch (_) {
+      if (isClosed || reportSession != _reportSessionIdentity(state)) {
+        return;
+      }
       _safeEmit(
         state.copyWith(
           report: state.report.copyWith(
@@ -222,24 +295,21 @@ class RailBoardCubit extends Cubit<RailBoardState> {
     RailSelection selection, {
     bool forceCommunityRefresh = false,
   }) async {
-    final prevDirection = state.selection.direction;
-    final prevTrainNo = state.snapshot.nextService?.trainNo;
+    final previousSession = _reportSessionIdentity(state);
 
     try {
       await _selectionRepository.write(selection);
-      _safeEmit(_buildViewState(selection));
+      final refreshedState = _buildViewState(selection);
+      final sessionChanged =
+          previousSession != _reportSessionIdentity(refreshedState);
+      _safeEmit(_resetSessionIfChanged(refreshedState, previousSession));
       _refreshReportAvailability();
 
       if (!communityFeaturesEnabled) {
         return;
       }
 
-      final nextDirection = state.selection.direction;
-      final nextTrainNo = state.snapshot.nextService?.trainNo;
-      final trainContextChanged =
-          prevDirection != nextDirection || prevTrainNo != nextTrainNo;
-
-      if (trainContextChanged || forceCommunityRefresh) {
+      if (sessionChanged || forceCommunityRefresh) {
         await _refreshCommunityOverlay();
       }
     } catch (_) {
@@ -258,9 +328,11 @@ class RailBoardCubit extends Cubit<RailBoardState> {
   }) {
     final effectiveDelay =
         knownDelayMinutes ??
-        (selection.direction == state.selection.direction
+        (selection.direction == state.selection.direction &&
+                selection.boardingStationId == state.selection.boardingStationId
             ? state.community.overlay?.delayMinutes
             : null);
+    final previousView = state.view;
     return RailBoardState(
       status: RailBoardStatus.ready,
       errorMessage: null,
@@ -277,10 +349,41 @@ class RailBoardCubit extends Cubit<RailBoardState> {
           now: _nowProvider(),
           knownDelayMinutes: effectiveDelay,
         ),
+        previewTrainNo: selection.direction == previousView.selection.direction
+            ? previousView.previewTrainNo
+            : null,
+        isTimelineCollapsed: previousView.isTimelineCollapsed,
       ),
       report: state.report,
       community: state.community.copyWith(
         featuresEnabled: communityFeaturesEnabled,
+      ),
+    );
+  }
+
+  String _reportSessionIdentity(RailBoardState candidate) {
+    final now = _nowProvider();
+    final serviceDate =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final trainNo = candidate.snapshot.nextService?.trainNo;
+    return '${candidate.selection.direction}|${candidate.selection.boardingStationId}|$trainNo|$serviceDate';
+  }
+
+  RailBoardState _resetSessionIfChanged(
+    RailBoardState updatedState,
+    String previousSession,
+  ) {
+    if (previousSession == _reportSessionIdentity(updatedState)) {
+      return updatedState;
+    }
+
+    return updatedState.copyWith(
+      report: const RailBoardReportState(),
+      community: updatedState.community.copyWith(
+        insightStatus: RailCommunityInsightStatus.idle,
+        clearOverlay: true,
+        predictedStopTimes: const [],
+        clearMessage: true,
       ),
     );
   }
@@ -364,13 +467,16 @@ class RailBoardCubit extends Cubit<RailBoardState> {
   }
 
   Future<void> _refreshCommunityOverlay() async {
-    final nextService = state.snapshot.nextService;
-    if (!communityFeaturesEnabled || nextService == null) {
+    final requestId = ++_communityRequestId;
+    final reportService = state.snapshot.nextService;
+    if (!communityFeaturesEnabled || reportService == null) {
       return;
     }
+    final requestSession = _reportSessionIdentity(state);
+    final requestSelection = state.selection;
     final tripId = EdgeHmacClient.toCanonicalTripId(
-      directionId: state.selection.direction,
-      trainNo: nextService.trainNo,
+      directionId: requestSelection.direction,
+      trainNo: reportService.trainNo,
     );
 
     _safeEmit(
@@ -384,26 +490,32 @@ class RailBoardCubit extends Cubit<RailBoardState> {
     try {
       final overlay = await _communityRepository.fetchOverlay(
         tripId: tripId,
-        stationId: state.selection.boardingStationId,
+        stationId: requestSelection.boardingStationId,
       );
+      if (!_isCurrentCommunityRequest(requestId, requestSession)) {
+        return;
+      }
       if (overlay == null) {
-        _safeEmit(
-          state.copyWith(
-            view: state.view.copyWith(
-              snapshot: _boardService.getSnapshot(
-                selection: state.selection,
-                now: _nowProvider(),
-              ),
-            ),
-            community: state.community.copyWith(
-              insightStatus: RailCommunityInsightStatus.empty,
-              clearOverlay: true,
-              predictedStopTimes: const [],
-              message: RailBoardTexts.communityNoDataMessage,
-            ),
+        final updatedSnapshot = _boardService.getSnapshot(
+          selection: state.selection,
+          now: _nowProvider(),
+        );
+        final updatedState = state.copyWith(
+          view: state.view.copyWith(snapshot: updatedSnapshot),
+          community: state.community.copyWith(
+            insightStatus: RailCommunityInsightStatus.empty,
+            clearOverlay: true,
+            predictedStopTimes: const [],
+            message: RailBoardTexts.communityNoDataMessage,
           ),
         );
+        final sessionChanged =
+            requestSession != _reportSessionIdentity(updatedState);
+        _safeEmit(_resetSessionIfChanged(updatedState, requestSession));
         _refreshReportAvailability();
+        if (sessionChanged) {
+          await _refreshCommunityOverlay();
+        }
         return;
       }
 
@@ -419,7 +531,7 @@ class RailBoardCubit extends Cubit<RailBoardState> {
         now: _nowProvider(),
         knownDelayMinutes: overlay.delayMinutes,
       );
-      final effectiveNextService = updatedSnapshot.nextService ?? nextService;
+      final effectiveNextService = updatedSnapshot.nextService ?? reportService;
 
       final predictedStops = _buildPredictedStopTimes(
         nextService: effectiveNextService,
@@ -427,40 +539,59 @@ class RailBoardCubit extends Cubit<RailBoardState> {
         now: _nowProvider(),
       );
 
-      _safeEmit(
-        state.copyWith(
-          view: state.view.copyWith(snapshot: updatedSnapshot),
-          community: state.community.copyWith(
-            insightStatus: status,
-            overlay: overlay,
-            predictedStopTimes: predictedStops,
-            clearMessage: status != RailCommunityInsightStatus.expired,
-            message: status == RailCommunityInsightStatus.expired
-                ? RailBoardTexts.communityExpiredMessage
-                : null,
-          ),
+      final updatedState = state.copyWith(
+        view: state.view.copyWith(snapshot: updatedSnapshot),
+        community: state.community.copyWith(
+          insightStatus: status,
+          overlay: overlay,
+          predictedStopTimes: predictedStops,
+          clearMessage: status != RailCommunityInsightStatus.expired,
+          message: status == RailCommunityInsightStatus.expired
+              ? RailBoardTexts.communityExpiredMessage
+              : null,
         ),
       );
+      final sessionChanged =
+          requestSession != _reportSessionIdentity(updatedState);
+      if (sessionChanged) {
+        _safeEmit(_resetSessionIfChanged(updatedState, requestSession));
+        _refreshReportAvailability();
+        await _refreshCommunityOverlay();
+        return;
+      }
+      _safeEmit(updatedState);
       _refreshReportAvailability();
     } catch (_) {
-      _safeEmit(
-        state.copyWith(
-          view: state.view.copyWith(
-            snapshot: _boardService.getSnapshot(
-              selection: state.selection,
-              now: _nowProvider(),
-            ),
-          ),
-          community: state.community.copyWith(
-            insightStatus: RailCommunityInsightStatus.error,
-            clearOverlay: true,
-            predictedStopTimes: const [],
-            message: RailBoardTexts.communityOfflineMessage,
-          ),
+      if (!_isCurrentCommunityRequest(requestId, requestSession)) {
+        return;
+      }
+      final updatedSnapshot = _boardService.getSnapshot(
+        selection: state.selection,
+        now: _nowProvider(),
+      );
+      final updatedState = state.copyWith(
+        view: state.view.copyWith(snapshot: updatedSnapshot),
+        community: state.community.copyWith(
+          insightStatus: RailCommunityInsightStatus.error,
+          clearOverlay: true,
+          predictedStopTimes: const [],
+          message: RailBoardTexts.communityOfflineMessage,
         ),
       );
+      final sessionChanged =
+          requestSession != _reportSessionIdentity(updatedState);
+      _safeEmit(_resetSessionIfChanged(updatedState, requestSession));
       _refreshReportAvailability();
+      if (sessionChanged) {
+        await _refreshCommunityOverlay();
+      }
     }
+  }
+
+  bool _isCurrentCommunityRequest(int requestId, String requestSession) {
+    return !isClosed &&
+        requestId == _communityRequestId &&
+        requestSession == _reportSessionIdentity(state);
   }
 
   List<PredictedStopTime> _buildPredictedStopTimes({

@@ -78,6 +78,9 @@ void main() {
       expect(snapshot.nextService!.isOverdue, isTrue);
       expect(snapshot.nextService!.overdueMinutes, equals(15));
       expect(snapshot.nextService!.waitMinutes, equals(0));
+      expect(snapshot.nextDepartureService, isNotNull);
+      expect(snapshot.nextDepartureService!.departureTime, equals('09:15'));
+      expect(snapshot.nextDepartureService!.isOverdue, isFalse);
     });
 
     test(

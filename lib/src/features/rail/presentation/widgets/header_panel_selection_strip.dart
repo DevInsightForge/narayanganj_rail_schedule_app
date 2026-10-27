@@ -73,20 +73,47 @@ class _ScrollableSelectionRow extends StatefulWidget {
 
 class _ScrollableSelectionRowState extends State<_ScrollableSelectionRow> {
   final ScrollController _controller = ScrollController();
+  final Map<String, GlobalKey> _chipKeys = {};
   bool _showLeading = false;
   bool _showTrailing = false;
+
+  GlobalKey _keyFor(String optionValue) {
+    return _chipKeys.putIfAbsent(optionValue, () => GlobalKey());
+  }
+
+  void _scrollSelectedIntoView({bool animate = true}) {
+    final selectedKey = _chipKeys[widget.value];
+    final targetContext = selectedKey?.currentContext;
+    if (targetContext == null || !targetContext.mounted) {
+      return;
+    }
+    Scrollable.ensureVisible(
+      targetContext,
+      alignment: 0.5,
+      duration: animate ? const Duration(milliseconds: 220) : Duration.zero,
+      curve: Curves.easeOutCubic,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(_syncIndicators);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _syncIndicators());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncIndicators();
+      _scrollSelectedIntoView(animate: false);
+    });
   }
 
   @override
   void didUpdateWidget(covariant _ScrollableSelectionRow oldWidget) {
     super.didUpdateWidget(oldWidget);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _syncIndicators());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncIndicators();
+      if (oldWidget.value != widget.value) {
+        _scrollSelectedIntoView(animate: true);
+      }
+    });
   }
 
   @override
@@ -125,6 +152,7 @@ class _ScrollableSelectionRowState extends State<_ScrollableSelectionRow> {
             children: [
               for (var i = 0; i < widget.options.length; i++) ...[
                 _SelectionChip(
+                  key: _keyFor(widget.options[i].value),
                   label: widget.options[i].label,
                   selected: widget.options[i].value == widget.value,
                   disabled: widget.options[i].disabled,
@@ -143,12 +171,10 @@ class _ScrollableSelectionRowState extends State<_ScrollableSelectionRow> {
             left: 0,
             top: 0,
             bottom: 0,
-            child: IgnorePointer(
+            child: const IgnorePointer(
               child: _ScrollIndicator(
-                alignment: Alignment.centerLeft,
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
-                icon: Icons.chevron_left_rounded,
               ),
             ),
           ),
@@ -157,12 +183,10 @@ class _ScrollableSelectionRowState extends State<_ScrollableSelectionRow> {
             right: 0,
             top: 0,
             bottom: 0,
-            child: IgnorePointer(
+            child: const IgnorePointer(
               child: _ScrollIndicator(
-                alignment: Alignment.centerRight,
                 begin: Alignment.centerRight,
                 end: Alignment.centerLeft,
-                icon: Icons.chevron_right_rounded,
               ),
             ),
           ),
@@ -172,41 +196,33 @@ class _ScrollableSelectionRowState extends State<_ScrollableSelectionRow> {
 }
 
 class _ScrollIndicator extends StatelessWidget {
-  const _ScrollIndicator({
-    required this.alignment,
-    required this.begin,
-    required this.end,
-    required this.icon,
-  });
+  const _ScrollIndicator({required this.begin, required this.end});
 
-  final Alignment alignment;
   final Alignment begin;
   final Alignment end;
-  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     final tokens = RailBoardTokens.of(context);
     return Container(
-      width: 28,
-      alignment: alignment,
+      width: 24,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: begin,
           end: end,
           colors: [
-            tokens.accentSurface,
-            tokens.accentSurface.withValues(alpha: 0.2),
+            tokens.primarySurface,
+            tokens.primarySurface.withValues(alpha: 0.0),
           ],
         ),
       ),
-      child: Icon(icon, size: 16, color: tokens.textMuted),
     );
   }
 }
 
 class _SelectionChip extends StatelessWidget {
   const _SelectionChip({
+    super.key,
     required this.label,
     required this.selected,
     required this.disabled,
@@ -224,22 +240,28 @@ class _SelectionChip extends StatelessWidget {
     final theme = Theme.of(context);
     return Opacity(
       opacity: disabled ? 0.45 : 1,
-      child: FilledButton.tonal(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          foregroundColor: selected ? theme.colorScheme.onPrimary : null,
-          backgroundColor: selected ? tokens.accent : tokens.primarySurface,
-          side: BorderSide(color: selected ? tokens.accent : tokens.border),
-          textStyle: theme.textTheme.labelMedium,
-          minimumSize: const Size(0, 34),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          visualDensity: const VisualDensity(horizontal: -1, vertical: -1),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(tokens.chipRadius),
+      child: AnimatedScale(
+        scale: selected ? 1.02 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        child: FilledButton.tonal(
+          onPressed: onPressed,
+          style: FilledButton.styleFrom(
+            foregroundColor: selected ? theme.colorScheme.onPrimary : null,
+            backgroundColor: selected ? tokens.accent : tokens.primarySurface,
+            side: BorderSide(color: selected ? tokens.accent : tokens.border),
+            textStyle: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            ),
+            minimumSize: const Size(0, 34),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: const VisualDensity(horizontal: -1, vertical: -1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(tokens.chipRadius),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text(label),
         ),
-        child: Text(label),
       ),
     );
   }

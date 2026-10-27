@@ -12,6 +12,7 @@ import 'package:narayanganj_rail_schedule/src/features/rail/domain/services/rail
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/bloc/rail_board_cubit.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/decision_panel.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/rail_board_texts.dart';
+import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/rail_board_copy.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/notice_panel.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/footer_panel.dart';
 import 'package:narayanganj_rail_schedule/src/features/rail/presentation/widgets/header_panel_hero.dart';
@@ -86,6 +87,126 @@ void main() {
     expect(find.text(RailBoardTexts.noMoreDeparturesTitle), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'overdue report service stays available while next boardable service is primary',
+    (tester) async {
+      final service = RailBoardService(schedule: loadBundledScheduleFixture());
+      final snapshot = service.getSnapshot(
+        selection: const RailSelection(
+          direction: 'dhaka_to_narayanganj',
+          boardingStationId: 'dhaka',
+          destinationStationId: 'narayanganj',
+        ),
+        now: DateTime(2026, 3, 27, 7, 10),
+      );
+      final reportService = snapshot.nextService!;
+      final boardableService = snapshot.nextDepartureService!;
+      final reportState = const RailBoardReportState(
+        status: RailReportSubmissionStatus.idle,
+        visibility: RailReportVisibility.visible,
+        submitEnabled: true,
+        actionReason: RailReportActionReason.eligible,
+      );
+      final communityState = RailBoardCommunityState(
+        featuresEnabled: true,
+        insightStatus: RailCommunityInsightStatus.ready,
+        overlay: CommunityOverlay(
+          tripId: 'dhk-ngj-${reportService.trainNo}',
+          serviceDate: '2026-03-27',
+          delayMinutes: 4,
+          delayStatus: DelayStatus.minorDelay,
+          freshness: Freshness.live,
+          confidence: const ReportConfidence(score: 0.8, sampleCount: 3),
+          freshnessSeconds: 30,
+          isReportingAvailable: true,
+        ),
+      );
+
+      expect(reportService.isOverdue, isTrue);
+      expect(boardableService.isOverdue, isFalse);
+
+      await tester.pumpWidget(
+        _PanelHarness(
+          size: const Size(390, 844),
+          service: service,
+          child: DecisionPanel(
+            view: RailBoardViewState(
+              selection: const RailSelection(
+                direction: 'dhaka_to_narayanganj',
+                boardingStationId: 'dhaka',
+                destinationStationId: 'narayanganj',
+              ),
+              snapshot: snapshot,
+            ),
+            report: reportState,
+            community: communityState,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(RailBoardTexts.nextBoardableEyebrow), findsOneWidget);
+      expect(
+        find.text(RailBoardCopy.formatTimeAmPm(boardableService.departureTime)),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          '${RailBoardTexts.previousTrainLabel} #${reportService.trainNo}',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(FilledButton), findsOneWidget);
+      expect(
+        find.text(RailBoardTexts.liveUpdatesForTrain(reportService.trainNo)),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(
+        _PanelHarness(
+          size: const Size(1100, 900),
+          service: service,
+          child: TimelinePanel(
+            snapshot: snapshot,
+            predictedStopTimes: [
+              PredictedStopTime(
+                stationId: reportService.stops.first.stationId,
+                predictedAt: DateTime(2026, 3, 27, 7, 20),
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(RailBoardTexts.routeStopsSubtitle(boardableService.trainNo)),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(RailBoardTexts.liveEstimateLabel),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(
+        _PanelHarness(
+          size: const Size(390, 844),
+          service: service,
+          child: UpcomingPanel(snapshot: snapshot),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(RailBoardCopy.formatTimeAmPm(boardableService.departureTime)),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('notice panel and state message support larger text scale', (
     tester,
@@ -260,7 +381,7 @@ void main() {
 
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNull);
-      expect(find.text(RailBoardTexts.reportingClosedNow), findsOneWidget);
+      expect(find.text(RailBoardTexts.reportingWindowClosed), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -398,6 +519,8 @@ void main() {
       expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
       expect(find.textContaining('85% confidence'), findsOneWidget);
       expect(find.textContaining('5 reports'), findsOneWidget);
+      expect(find.text('DEPARTS · EST.'), findsOneWidget);
+      expect(find.text('ARRIVES · EST.'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

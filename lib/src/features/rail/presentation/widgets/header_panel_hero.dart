@@ -14,7 +14,7 @@ class HeaderPanelHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = RailBoardTokens.of(context);
     final textTheme = Theme.of(context).textTheme;
-    final nextService = view.snapshot.nextService;
+    final nextService = view.snapshot.nextDepartureService;
 
     return tokens.isWide
         ? Row(
@@ -60,29 +60,43 @@ class HeaderPanelHero extends StatelessWidget {
         : Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(RailBoardTexts.appName, style: textTheme.headlineMedium),
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: tokens.compactGap,
+                runSpacing: tokens.compactGap,
+                children: [
+                  Text(RailBoardTexts.appName, style: textTheme.headlineMedium),
+                  if (nextService != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tokens.primarySurface,
+                        borderRadius: BorderRadius.circular(tokens.chipRadius),
+                        border: Border.all(color: tokens.border),
+                      ),
+                      child: Text(
+                        '${RailBoardTexts.departureHeroDetail(nextService.trainNo)} • ${RailBoardCopy.formatTimeAmPm(nextService.departureTime)}',
+                        style: textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: tokens.accent,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               SizedBox(height: tokens.compactGap),
               Text(
                 nextService == null
                     ? RailBoardTexts.timetableChooseRouteMessage
-                    : RailBoardTexts.nextDepartureNarrowMessage(
-                        RailBoardCopy.getWaitLabel(
-                          nextService.waitMinutes,
-                        ).toLowerCase(),
+                    : _routeSubtitle(
+                        from: view.snapshot.selectedStationName,
+                        destination: view.snapshot.destinationStationName,
                       ),
                 style: textTheme.bodyMedium?.copyWith(color: tokens.textMuted),
-              ),
-              SizedBox(height: tokens.itemGap),
-              _DepartureHero(
-                title: nextService == null
-                    ? RailBoardTexts.noDepartureLabel
-                    : RailBoardCopy.formatTimeAmPm(nextService.departureTime),
-                detailLineOne: nextService == null
-                    ? RailBoardTexts.noTrainAvailableMessage
-                    : RailBoardTexts.departureHeroDetail(nextService.trainNo),
-                detailLineTwo: nextService == null
-                    ? null
-                    : _routeSummary(from: view.snapshot.selectedStationName),
               ),
             ],
           );
@@ -117,7 +131,7 @@ class _DepartureHero extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
-      width: tokens.isWide ? 260 : double.infinity,
+      width: tokens.isWide ? 290 : double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
         color: tokens.primarySurface,
@@ -140,7 +154,6 @@ class _DepartureHero extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            flex: 2,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -156,33 +169,24 @@ class _DepartureHero extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    detailLineOne,
-                    textAlign: TextAlign.end,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: tokens.textMuted,
-                    ),
-                  ),
-                  if (detailLineTwo != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      detailLineTwo!,
-                      textAlign: TextAlign.end,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: tokens.textMuted,
-                      ),
-                    ),
-                  ],
-                ],
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                detailLineOne,
+                textAlign: TextAlign.end,
+                style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),
               ),
-            ),
+              if (detailLineTwo != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  detailLineTwo!,
+                  textAlign: TextAlign.end,
+                  style: textTheme.bodySmall?.copyWith(color: tokens.textMuted),
+                ),
+              ],
+            ],
           ),
         ],
       ),

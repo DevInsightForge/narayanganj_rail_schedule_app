@@ -82,6 +82,15 @@ class RailBoardSnapshot extends Equatable {
   final List<RailServiceSnapshot> upcomingServices;
   final String scheduleVersion;
 
+  RailServiceSnapshot? get nextDepartureService {
+    for (final service in upcomingServices) {
+      if (!service.isOverdue) {
+        return service;
+      }
+    }
+    return nextService?.isOverdue == false ? nextService : null;
+  }
+
   RailBoardSnapshot copyWith({
     String? selectedStationName,
     String? destinationStationName,
