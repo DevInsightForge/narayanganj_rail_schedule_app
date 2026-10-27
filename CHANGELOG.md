@@ -2,6 +2,12 @@
 
 All notable changes to this project should be tracked in this file by release version.
 
+## v2.2.0
+
+- Added Android home-screen widgets for the next boardable train, using the app's saved route and offline timetable.
+- Added a widget handoff to report an eligible late arrival in the app without confusing the previous train with the next departure.
+- Updated the rail board to foreground the next boardable service while preserving the previous train's reporting window.
+
 ## v2.1.3
 
 - Synchronized edge API models and requests with Cloudflare Worker overlay contracts (`GET /overlay?tripId={tripId}&stationId={stationId}`).

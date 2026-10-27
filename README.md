@@ -16,6 +16,7 @@ Mobile-first Flutter commuter rail app for the Dhaka-Narayanganj route. The app 
 - **Directional Station Filtering:** Direction selection, boarding station picker, and downstream-only destination filtering.
 - **Journey Timeline:** Stop-by-stop progress with scheduled departure times.
 - **Community Updates:** Real-time delay status, freshness aging, and crowdsourced reporting.
+- **Android Home-Screen Widgets:** Glanceable next-train times with a handoff for eligible late-arrival reports.
 - **Graceful Degradation:** Clean fallback to offline baseline when network or API is unavailable.
 
 ---
